@@ -1,0 +1,35 @@
+version: '3'
+services:
+  offat-redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    networks:
+      - offat-network
+
+  offat-api:
+    image: dmdhrumilmistry/offat-base:latest
+    command: ["python", "-m", "offat.api"]
+    ports:
+      - "8000:8000"
+    networks:
+      - offat-network
+    environment:
+      - REDIS_HOST=offat-redis
+      - REDIS_PORT=6379
+    depends_on:
+      - offat-redis  # Wait for offat-redis to start before starting this container
+
+  offat-api-worker:
+    image: dmdhrumilmistry/offat-base:latest
+    command: ["rq", "worker","offat_task_queue"]
+    networks:
+      - offat-network
+    environment:
+      - REDIS_HOST=offat-redis
+      - REDIS_PORT=6379
+    depends_on:
+      - offat-redis  # Wait for offat-redis to start before starting this container
+
+networks:
+  offat-network:

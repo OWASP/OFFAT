@@ -1,0 +1,5 @@
+FROM dmdhrumilmistry/offat-base:latest
+
+WORKDIR /offat
+
+ENTRYPOINT [ "rq", "worker", "offat_task_queue" ]
