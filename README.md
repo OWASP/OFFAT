@@ -1,21 +1,12 @@
----
-
-layout: col-sidebar
-title: OWASP OFFAT
-tags: api-security
-level: 2
-type: code, tool
-pitch: Tests your API automatically for common API vulnerabilities after generating tests from provided openapi specification file.
-
----
+# OWASP OFFAT
 
 OWASP OFFAT (OFFensive Api Tester) is created to automatically test API for common vulnerabilities after generating tests from openapi specification file. It provides feature to automatically fuzz inputs and use user provided inputs during tests specified via YAML config file.
 
-![UnDocumented petstore API endpoint HTTP method results](./src/.images/tests/offat-v0.5.0.png)
+![UnDocumented petstore API endpoint HTTP method results](/assets/images/tests/offat-v0.5.0.png)
 
 ## Demo
 
-[![asciicast](https://asciinema.org/a/9MSwl7UafIVT3iJn13OcvWXeF.svg)](https://asciinema.org/a/9MSwl7UafIVT3iJn13OcvWXeF)
+[![ASCII Cast Demo](https://asciinema.org/a/9MSwl7UafIVT3iJn13OcvWXeF.svg)](https://asciinema.org/a/9MSwl7UafIVT3iJn13OcvWXeF)
 
 ## Security Checks
 
@@ -52,4 +43,4 @@ python -m pip install offat
 offat -f swagger_file.json
 ```
 
-- For more usage options read Project Repo [README.md](https://github.com/OWASP/OFFAT/blob/main/src/README.md)
+- For more usage options read [README.md](https://github.com/OWASP/OFFAT/blob/main/src/README.md)
