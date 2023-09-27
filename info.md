@@ -1,17 +1,20 @@
 ### Offensive API Tester Information
-* [Incubator Project](#)
+
+* [Incubator Project](https://owasp.org/OFFAT)
 * [Type of Project](#)
 * [Version 0.0.0](#)
 * [Builder](#)
 * [Breaker](#)
 
 ### Downloads or Social Links
-* [Download](#)
-* [Meetup](#)
+
+* [Download](https://github.com/OWASP/OFFAT/releases)
+<!-- * [Meetup](#) -->
 
 ### Code Repository
-* [repo](#)
 
-### Change Log
-* [changes](#)
+* [repo](https://github.com/OWASP/OFFAT)
 
+<!-- ### Change Log -->
+
+<!-- * [changes](#) -->
