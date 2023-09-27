@@ -1,10 +1,10 @@
 # OFFAT - OFFensive Api Tester
 
-![OffAT Logo](./.images/logos/offat.png)
+![OffAT Logo](/assets/images/logos/offat.png)
 
 Automatically Tests for vulnerabilities after generating tests from openapi specification file. Project is in Beta stage, so sometimes it might crash while running.
 
-![UnDocumented petstore API endpoint HTTP method results](./.images/tests/offat-v0.5.0.png)
+![UnDocumented petstore API endpoint HTTP method results](/assets/images/tests/offat-v0.5.0.png)
 
 ## Security Checks
 
