@@ -6,12 +6,6 @@ Automatically Tests for vulnerabilities after generating tests from openapi spec
 
 ![UnDocumented petstore API endpoint HTTP method results](./.images/tests/offat-v0.5.0.png)
 
-## Notice
-
-Project proposal has been approved by the OWASP Foundation. As a result, OFFAT will now be taken care of within the OWASP Repository and will go by the name OWASP OFFAT.
-
-For the most up-to-date releases and updates, be sure to check out the OWASP OFFAT Repository at this [link](https://github.com/OWASP/OFFAT).
-
 ## Security Checks
 
 - [X] Restricted HTTP Methods
@@ -28,7 +22,7 @@ For the most up-to-date releases and updates, be sure to check out the OWASP OFF
 
 - Few Security Checks from OWASP API Top 10
 - Automated Testing
-- User Config
+- User Config Based Testing
 - API for Automating tests and Integrating Tool with other platforms/tools
 - CLI tool
 - Dockerized Project for Easy Usage
@@ -39,8 +33,6 @@ For the most up-to-date releases and updates, be sure to check out the OWASP OFF
 [![asciicast](https://asciinema.org/a/9MSwl7UafIVT3iJn13OcvWXeF.svg)](https://asciinema.org/a/9MSwl7UafIVT3iJn13OcvWXeF)
 
 ## PyPi Downloads
-
-[![Upload offat Python Package to PyPi](https://github.com/dmdhrumilmistry/offat/actions/workflows/pypi-publish.yml/badge.svg)](https://github.com/dmdhrumilmistry/offat/actions/workflows/pypi-publish.yml)
 
 |Period|Count|
 |:----:|:---:|
@@ -54,10 +46,6 @@ The disclaimer advises users to use the open-source project for ethical and legi
 
 [Read More](./DISCLAIMER.md)
 
-## Join Our Discord Community
-
-[![Join our Discord server!](https://invidget.switchblade.xyz/DJrnAg4nv2)](http://discord.gg/DJrnAg4nv2)
-
 ## Installation
 
 ### Using pip
@@ -65,7 +53,7 @@ The disclaimer advises users to use the open-source project for ethical and legi
 - Install main branch using pip
 
   ```bash
-  python3 -m pip install git+https://github.com/dmdhrumilmistry/offat.git
+  python3 -m pip install git+https://github.com/OWASP/OFFAT.git
   ```
 
 - Install Release from PyPi
@@ -97,7 +85,7 @@ The disclaimer advises users to use the open-source project for ethical and legi
   docker compose up -d
   ```
 
-  > POST `openapi` documentation to `/api/v1/scan/` endpoint with its valid `type` (json/yaml); `job_id` will be returned, `job_id` should
+  > POST `openapi` documentation to `/api/v1/scan/` endpoint with its valid `type` (json/yaml); `job_id` will be returned.
 
 ### Manual Method
 
@@ -114,7 +102,7 @@ The disclaimer advises users to use the open-source project for ethical and legi
 - clone the repository to your machine
 
   ```bash
-  git clone https://github.com/dmdhrumilmistry/offat.git
+  git clone https://github.com/OWASP/OFFAT.git
   ```
 
 - Change directory
@@ -254,9 +242,9 @@ The disclaimer advises users to use the open-source project for ethical and legi
 ### Open In Google Cloud Shell
 
 - Temporary Session  
-  [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/dmdhrumilmistry/offat.git&ephemeral=true&show=terminal&cloudshell_print=./DISCLAIMER.md)
+  [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/OWASP/OFFAT.git&ephemeral=true&show=terminal&cloudshell_print=./DISCLAIMER.md)
 - Perisitent Session  
-  [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/dmdhrumilmistry/offat.git&ephemeral=false&show=terminal&cloudshell_print=./DISCLAIMER.md)
+  [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/OWASP/OFFAT.git&ephemeral=false&show=terminal&cloudshell_print=./DISCLAIMER.md)
 
 ## Have any Ideas 💡 or issue
 
@@ -265,8 +253,8 @@ The disclaimer advises users to use the open-source project for ethical and legi
 
 ## Contributing
 
-Refer [CONTRIBUTIONS.md](/.github/CONTRIBUTING.md) for contributing to the project.
+Refer [CONTRIBUTIONS.md](/CONTRIBUTING.md) for contributing to the project.
 
 ## LICENSE
 
-Offat is distributed under `MIT` License. Refer [License](/LICENSE) for more information.
+Offat is distributed under `MIT` License. Refer [License](/LICENSE.md) for more information.
