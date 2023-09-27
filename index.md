@@ -1,22 +1,57 @@
 ---
 
 layout: col-sidebar
-title: OWASP Offensive API Tester
-tags: example-tag
+title: OWASP OFFAT
+tags: api-security
 level: 2
-type: 
-pitch: A very brief, one-line description of your project
+type: code, tool
+pitch: Tests your API automatically for common API vulnerabilities after generating tests from provided openapi specification file.
 
 ---
 
-This is an example of a Project or Chapter Page.  Please change these items to indicate the actual information you wish to present.  In addition to this information, the 'front-matter' above this text should be modified to reflect your actual information.  An explanation of each of the front-matter items is below:
+## OWASP OFFAT
 
-layout: This is the layout used by project and chapter pages.  You should leave this value as col-sidebar
+OWASP OFFAT (OFFensive Api Tester) is created to automatically test API for common vulnerabilities after generating tests from openapi specification file. It provides feature to automatically fuzz inputs and use user provided inputs during tests specified via YAML config file.
 
-title: This is the title of your project or chapter page, usually the name.  For example, OWASP Zed Attack Proxy or OWASP Baltimore
+![UnDocumented petstore API endpoint HTTP method results](./src/.images/tests/offat-v0.5.0.png)
 
-tags: This is a space-delimited list of tags you associate with your project or chapter.  If you are using tabs, at least one of these tags should be unique in order to be used in the tabs files (an example tab is included in this repo)
+## Demo
 
-level: For projects, this is your project level (2 - Incubator, 3 - Lab, 3.5 - Production, 4 - Flagship)
+[![asciicast](https://asciinema.org/a/9MSwl7UafIVT3iJn13OcvWXeF.svg)](https://asciinema.org/a/9MSwl7UafIVT3iJn13OcvWXeF)
 
-type: code, tool, documentation, or other
+## Security Checks
+
+- Restricted HTTP Methods
+- SQLi
+- BOLA
+- Data Exposure
+- BOPLA / Mass Assignment
+- Broken Access Control
+- Basic Command Injection
+- Basic XSS/HTML Injection test
+
+## Features
+
+- Few Security Checks from OWASP API Top 10
+- Automated Testing
+- User Config Based Testing
+- API for Automating tests and Integrating Tool with other platforms/tools
+- CLI tool
+- Dockerized Project for Easy Usage
+- Open Source Tool with MIT License
+
+## Try Tool
+
+- Install Tool using pip
+
+```bash
+python -m pip install offat
+```
+
+- Run Tool
+
+```bash
+offat -f swagger_file.json
+```
+
+- For more usage options read Project Repo [README.md](https://github.com/OWASP/OFFAT/blob/main/src/README.md)
