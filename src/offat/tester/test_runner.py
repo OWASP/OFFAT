@@ -102,18 +102,6 @@ class TestRunner:
         test_result['response_status_code'] = response.get('status')
         test_result['redirection'] = response.get('res_redirection', '')
 
-        # run data leak test
-        # TODO: run this test in result processing module
-        
-
-        # if data_exposures_dict:
-            # print(res_body)
-            # Display the detected exposures
-            # for data_type, data_values in data_exposures_dict.items():
-                # print(f"Detected {data_type}: {data_values}")
-            # print('--'*30)
-        
-
         return test_result
 
 
