@@ -316,18 +316,13 @@ class TestGenerator:
             path_params_in_body = list(filter(lambda x: x.get('in') == 'path', request_params))
             path_params += path_params_in_body
             path_params = fill_params(path_params)
-            # print(path_params)
-            # print('-'*30)
 
             for path_param in path_params:
                 path_param_name = path_param.get('name')
                 path_param_value = path_param.get('value')
                 endpoint_path = endpoint_path.replace('{' + str(path_param_name) + '}', str(path_param_value))
 
-            # TODO: handle request query params
             request_query_params = list(filter(lambda x: x.get('in') == 'query', request_params))
-            # print(request_query_params)
-            # print('-'*30)
 
             tasks.append({
                 'test_name':'BOLA Path Test with Fuzzed Params',
