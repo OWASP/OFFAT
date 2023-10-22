@@ -1,6 +1,5 @@
 from asyncio import ensure_future, gather
 from enum import Enum
-from .data_exposure import detect_data_exposure
 from ..http import AsyncRequests, AsyncRLRequests
 from ..logger import create_logger
 
@@ -105,8 +104,7 @@ class TestRunner:
 
         # run data leak test
         # TODO: run this test in result processing module
-        data_exposures_dict = detect_data_exposure(str(res_body))
-        test_result['data_leak'] = data_exposures_dict
+        
 
         # if data_exposures_dict:
             # print(res_body)

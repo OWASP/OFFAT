@@ -1,8 +1,9 @@
 from copy import deepcopy
-from re import search as re_search
-from pprint import pprint
+from re import search as re_search, findall
 
+from .regexs import sensitive_data_regex_patterns
 from .test_runner import TestRunnerFiltersEnum
+
 
 class PostRunTests:
     '''class Includes tests that should be ran after running all the active test'''
@@ -66,6 +67,40 @@ class PostRunTests:
                 actor_based_tests.append(PostRunTests.filter_status_code_based_results(actor_test_result))
 
         return actor_based_tests
+    
+
+    @staticmethod
+    def detect_data_exposure(results:list[dict])->list[dict]:
+        '''Detects data exposure against sensitive data regex 
+        patterns and returns dict of matched results  
+        
+        Args:
+            data (str): data to be analyzed for exposure
+
+        Returns:
+            dict: dictionary with tag as dict key and matched pattern as dict value
+        '''        
+        def detect_exposure(data:str) -> dict:
+            # Dictionary to store detected data exposures
+            detected_exposures = {}
+
+            for pattern_name, pattern in sensitive_data_regex_patterns.items():
+                matches = findall(pattern, data)
+                if matches:
+                    detected_exposures[pattern_name] = matches
+            return detected_exposures
+
+
+        new_results = []
+        
+        for result in results:
+            res_body = result.get('response_body')
+            data_exposures_dict = detect_exposure(str(res_body))
+            result['data_leak'] = data_exposures_dict
+            new_results.append(result)
+
+        return new_results
+
 
 
     @staticmethod
@@ -104,7 +139,7 @@ class PostRunTests:
             new_result['result_details'] = result['result_details'].get(result['result'])
 
             new_results.append(new_result)
-            
+
         return new_results
     
     
