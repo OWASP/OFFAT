@@ -1,6 +1,5 @@
 from asyncio import ensure_future, gather
 from enum import Enum
-from .data_exposure import detect_data_exposure
 from ..http import AsyncRequests, AsyncRLRequests
 from ..logger import create_logger
 
@@ -71,7 +70,7 @@ class TestRunner:
         return {}
     
 
-    async def status_code_filter_request(self, test_task):
+    async def send_request(self, test_task):
         url = test_task.get('url')
         http_method = test_task.get('method')
         success_codes = test_task.get('success_codes', [200, 301])
@@ -91,14 +90,7 @@ class TestRunner:
         except ConnectionRefusedError:
             logger.error('Connection Failed! Server refused Connection!!')
 
-        # TODO: move this filter to result processing module
         test_result = test_task
-        if isinstance(response, dict) and response.get('status') in success_codes:
-            result = False # test failed
-        else:
-            result = True # test passed
-        test_result['result'] = result
-        test_result['result_details'] = test_result['result_details'].get(result)
 
         # add request headers to result
         test_result['request_headers'] = response.get('req_headers',[])
@@ -110,19 +102,6 @@ class TestRunner:
         test_result['response_status_code'] = response.get('status')
         test_result['redirection'] = response.get('res_redirection', '')
 
-        # run data leak test
-        # TODO: run this test in result processing module
-        data_exposures_dict = detect_data_exposure(str(res_body))
-        test_result['data_leak'] = data_exposures_dict
-
-        # if data_exposures_dict:
-            # print(res_body)
-            # Display the detected exposures
-            # for data_type, data_values in data_exposures_dict.items():
-                # print(f"Detected {data_type}: {data_values}")
-            # print('--'*30)
-        
-
         return test_result
 
 
@@ -131,13 +110,9 @@ class TestRunner:
         tasks = []
 
         for test_task in test_tasks:
-            match test_task.get('response_filter', None):
-                case _: # default filter 
-                    task_filter = self.status_code_filter_request
-
             tasks.append(
                 ensure_future(
-                    task_filter(test_task)
+                    self.send_request(test_task)
                 )
             )
 
