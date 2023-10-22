@@ -69,17 +69,44 @@ class PostRunTests:
 
 
     @staticmethod
-    # TODO: use this everywhere instead of filtering data
-    def filter_status_code_based_results(result):
-        new_result = deepcopy(result)
-        if result.get('response_status_code') in result.get('success_codes'):
-            res_status = False # test failed
-        else:
-            res_status = True # test passed
-        new_result['result'] = res_status
-        new_result['result_details'] = result['result_details'].get(res_status)
+    def filter_status_code_based_results(results:list[dict]) -> list[dict]: # take a list and filter all at once
+        new_results = []
+        for result in results:
+            new_result = deepcopy(result)
+            response_status_code = result.get('response_status_code')
+            success_codes = result.get('success_codes')
 
-        return new_result
+            # if response status code or success code is not 
+            # found then continue updating status of remaining 
+            # results
+            if  not response_status_code or not success_codes:
+                continue
+
+            if response_status_code in success_codes:
+                res_status = False # test failed
+            else:
+                res_status = True # test passed
+
+            new_result['result'] = res_status
+
+            # new_result['result_details'] = result['result_details'].get(res_status)
+
+            new_results.append(new_result)
+
+        return new_results
+    
+
+    @staticmethod
+    def update_result_details(results:list[dict]):
+        new_results = []
+        for result in results:
+            new_result = deepcopy(result)
+            new_result['result_details'] = result['result_details'].get(result['result'])
+
+            new_results.append(new_result)
+            
+        return new_results
+    
     
     @staticmethod
     def matcher(results:list[dict]):

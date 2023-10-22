@@ -71,7 +71,7 @@ class TestRunner:
         return {}
     
 
-    async def status_code_filter_request(self, test_task):
+    async def send_request(self, test_task):
         url = test_task.get('url')
         http_method = test_task.get('method')
         success_codes = test_task.get('success_codes', [200, 301])
@@ -91,14 +91,7 @@ class TestRunner:
         except ConnectionRefusedError:
             logger.error('Connection Failed! Server refused Connection!!')
 
-        # TODO: move this filter to result processing module
         test_result = test_task
-        if isinstance(response, dict) and response.get('status') in success_codes:
-            result = False # test failed
-        else:
-            result = True # test passed
-        test_result['result'] = result
-        test_result['result_details'] = test_result['result_details'].get(result)
 
         # add request headers to result
         test_result['request_headers'] = response.get('req_headers',[])
@@ -131,13 +124,9 @@ class TestRunner:
         tasks = []
 
         for test_task in test_tasks:
-            match test_task.get('response_filter', None):
-                case _: # default filter 
-                    task_filter = self.status_code_filter_request
-
             tasks.append(
                 ensure_future(
-                    task_filter(test_task)
+                    self.send_request(test_task)
                 )
             )
 
