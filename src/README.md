@@ -25,6 +25,7 @@ Automatically Tests for vulnerabilities after generating tests from openapi spec
 - User Config Based Testing
 - API for Automating tests and Integrating Tool with other platforms/tools
 - CLI tool
+- Proxy Support
 - Dockerized Project for Easy Usage
 - Open Source Tool with MIT License
 
@@ -163,6 +164,12 @@ The disclaimer advises users to use the open-source project for ethical and legi
   ```
 
   > `rl`: requests rate limit, `dr`: delay between requests
+
+- Use along with proxy
+
+```bash
+offat -f swagger_file.json -p http://localhost:8080 --no-ssl -o output.json
+```
 
 - Use user provided inputs for generating tests
 
