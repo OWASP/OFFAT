@@ -40,6 +40,8 @@ def start():
     parser.add_argument('-o', '--output', dest='output_file', type=str, help='path to store test results in json format', required=False, default=None)
     parser.add_argument('-H', '--headers', dest='headers', type=str, help='HTTP requests headers that should be sent during testing eg: User-Agent: offat', required=False, default=None, action='append', nargs='*')
     parser.add_argument('-tdc','--test-data-config', dest='test_data_config',help='YAML file containing user test data for tests', required=False, type=str)
+    parser.add_argument('-p', '--proxy', dest='proxy', help='Proxy server URL to route HTTP requests through (e.g., "http://proxyserver:port")', required=False, type=str)
+    parser.add_argument('-ns', '--no-ssl', dest='no_ssl', help='Ignores SSL verification when enabled', action='store_true', required=False) # False -> ignore SSL, True -> enforce SSL check
     args = parser.parse_args()
 
 
@@ -72,6 +74,8 @@ def start():
         rate_limit=rate_limit,
         delay=delay_rate,
         test_data_config=test_data_config,
+        proxy=args.proxy,
+        ssl=args.no_ssl,
     )
 
 
