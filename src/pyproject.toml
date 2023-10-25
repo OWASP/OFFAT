@@ -35,6 +35,7 @@ api = ["fastapi", "uvicorn", "redis", "rq", "python-dotenv"]
 
 [tool.poetry.scripts]
 offat = "offat.__main__:start"
+offat-api = "offat.api.__main__:start"
 
 
 [build-system]

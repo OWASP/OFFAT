@@ -1,7 +1,6 @@
 from uvicorn import run
 
-
-if __name__ == '__main__':
+def start():
     run(
         app='offat.api.app:app',
         host="0.0.0.0",
@@ -9,3 +8,6 @@ if __name__ == '__main__':
         workers=2,
         reload=True
     )
+
+if __name__ == '__main__':
+    start()
