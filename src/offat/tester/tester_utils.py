@@ -53,13 +53,16 @@ def run_test(test_runner:TestRunner, tests:list[dict], regex_pattern:str=None, s
     return test_results
 
  
-def generate_and_run_tests(api_parser:OpenAPIParser, regex_pattern:str=None, output_file:str=None, rate_limit:int=None,delay:float=None,req_headers:dict=None, test_data_config:dict=None):
+# Note: redirects are allowed by default making it easier for pentesters/researchers
+def generate_and_run_tests(api_parser:OpenAPIParser, regex_pattern:str=None, output_file:str=None, rate_limit:int=None,delay:float=None,req_headers:dict=None,proxy:str = None, ssl:bool = True, test_data_config:dict=None):
     global test_table_generator, logger
 
     test_runner = TestRunner(
         rate_limit=rate_limit,
         delay=delay,
-        headers=req_headers
+        headers=req_headers,
+        proxy=proxy,
+        ssl=ssl,
     )
     
     results:list = []
