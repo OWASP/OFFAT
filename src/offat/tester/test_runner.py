@@ -18,12 +18,12 @@ class PayloadFor(Enum):
 
 
 class TestRunner:
-    def __init__(self, rate_limit:int=None, delay:float=None, headers:dict=None) -> None:
+    def __init__(self, rate_limit:int=None, delay:float=None, headers:dict=None, proxy: str = None, ssl: bool = True) -> None:
         if rate_limit and delay:
-            self._client = AsyncRLRequests(rate_limit=rate_limit, delay=delay, headers=headers)
+            self._client = AsyncRLRequests(rate_limit=rate_limit, delay=delay, headers=headers, proxy=proxy, ssl=ssl)
         else:
-            self._client = AsyncRequests(headers=headers)
-
+            self._client = AsyncRequests(headers=headers, proxy=proxy, ssl=ssl)
+            
 
     def _generate_payloads(self, params:list[dict], payload_for:PayloadFor=PayloadFor.BODY):
         '''Generate body payload from passed data for HTTP body and query.
