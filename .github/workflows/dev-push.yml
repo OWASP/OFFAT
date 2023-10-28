@@ -20,13 +20,11 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: change cwd to src directory 
-        run: cd src
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          context: .
-          file: ./DockerFiles/base-Dockerfile
+          context: ./src/
+          file: ./src/DockerFiles/base-Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat-base:dev
           platforms: linux/amd64,linux/arm64
@@ -48,8 +46,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          context: .
-          file: ./DockerFiles/cli-Dockerfile
+          context: ./src/
+          file: ./src/DockerFiles/cli-Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat:dev
           platforms: linux/amd64,linux/arm64
