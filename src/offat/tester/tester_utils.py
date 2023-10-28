@@ -37,19 +37,32 @@ def run_test(test_runner:TestRunner, tests:list[dict], regex_pattern:str=None, s
 
     if post_run_matcher_test:
         test_results = PostRunTests.matcher(test_results)
+
+    # update test result for status based code filter
+    test_results = PostRunTests.filter_status_code_based_results(test_results)
     
+    # update tests result success/failure details
+    test_results = PostRunTests.update_result_details(test_results)
+    
+    # run data leak tests
+    test_results = PostRunTests.detect_data_exposure(test_results)
+
+    # print results
     results = test_table_generator.generate_result_table(deepcopy(test_results))
     print(results)
     return test_results
 
  
-def generate_and_run_tests(api_parser:OpenAPIParser, regex_pattern:str=None, output_file:str=None, rate_limit:int=None,delay:float=None,req_headers:dict=None, test_data_config:dict=None):
+# Note: redirects are allowed by default making it easier for pentesters/researchers
+def generate_and_run_tests(api_parser:OpenAPIParser, regex_pattern:str=None, output_file:str=None, rate_limit:int=None,delay:float=None,req_headers:dict=None,proxy:str = None, ssl:bool = True, test_data_config:dict=None):
     global test_table_generator, logger
 
     test_runner = TestRunner(
         rate_limit=rate_limit,
         delay=delay,
-        headers=req_headers
+        headers=req_headers,
+        proxy=proxy,
+        ssl=ssl,
     )
     
     results:list = []

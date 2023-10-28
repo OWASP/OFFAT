@@ -40,7 +40,7 @@ def populate_user_data(actor_data:dict, actor_name:str,tests:list[dict]):
         request_headers[header.get('name')] = header.get('value')
 
     for test in tests:
-        # TODO: replace key and value instead of appending
+        #  replace key and value instead of appending
         test['body_params'] += body_params
         test['query_params'] += query_params
         test['path_params'] += path_params
