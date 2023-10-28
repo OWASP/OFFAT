@@ -11,13 +11,15 @@ if os_name == 'nt':
 
 class AsyncRequests:
     '''
-    AsyncRequests class helps to send HTTP requests.
+    AsyncRequests class helps to send HTTP requests with rate limiting options.
     '''
 
-    def __init__(self, headers: dict = None, proxy:str = None, ssl:bool=True, allow_redirects: bool=True) -> None:
+    def __init__(self, rate_limit:int=None, delay:float=None, headers: dict = None, proxy:str = None, ssl:bool=True, allow_redirects: bool=True) -> None:
         '''AsyncRequests class constructor
         
         Args:
+            rate_limit (int): number of concurrent requests at the same time
+            delay (float): delay between consecutive requests
             headers (dict): overrides default headers while sending HTTP requests
             proxy (str): proxy URL to be used while sending requests
             ssl (bool): ignores few SSL errors if value is False
@@ -25,10 +27,13 @@ class AsyncRequests:
         Returns:
             None
         '''
+        self._rate_limit = rate_limit
+        self._delay = delay
         self._headers = headers
         self._proxy = proxy if proxy else None
         self._ssl = ssl if ssl else None
         self._allow_redirects = allow_redirects
+
 
     async def request(self, url: str, method: str = 'GET', session: ClientSession = None, *args, **kwargs) -> ClientResponse:
         '''Send HTTP requests asynchronously
@@ -44,9 +49,7 @@ class AsyncRequests:
             dict: returns request and response data as dict
         '''
         is_new_session = False
-
-
-        connector = TCPConnector(ssl=self._ssl,)
+        connector = TCPConnector(ssl=self._ssl,limit=self._rate_limit,)
 
         if not session:
             session = ClientSession(headers=self._headers, connector=connector)
@@ -86,46 +89,7 @@ class AsyncRequests:
                 await session.close()
                 del session
 
-        return resp_data
-
-
-class AsyncRLRequests(AsyncRequests):
-    '''
-    Send Asynchronous rate limited HTTP requests.
-    '''
-
-    def __init__(self, rate_limit: int = 20, delay: float = 0.05, headers: dict = None, proxy: str = None, ssl:bool = True) -> None:
-        '''AsyncRLRequests constructor
-
-        Args:
-            rate_limit (int): number of concurrent requests at the same time
-            delay (float): delay between consecutive requests
-            headers (dict): overrides default headers while sending HTTP requests
-
-        Returns:
-            None
-        '''
-        assert isinstance(delay, float) or isinstance(delay, int)
-        assert isinstance(rate_limit, float) or isinstance(rate_limit, int)
-
-        self._delay = delay
-        self._semaphore = asyncio.Semaphore(rate_limit)
-        super().__init__(headers=headers, proxy=proxy, ssl=ssl)
-
-
-    async def request(self, url: str, method: str = 'GET', session: ClientSession = None, *args, **kwargs) -> ClientResponse:
-        '''Send HTTP requests asynchronously with rate limit and delay between the requests
-
-        Args:
-            url (str): URL of the webpage/endpoint
-            method (str): HTTP methods (default: GET) supports GET, POST, 
-            PUT, HEAD, OPTIONS, DELETE
-            session (aiohttp.ClientSession): aiohttp Client Session for sending requests
-        
-        Returns:
-            dict: returns request and response data as dict
-        '''
-        async with self._semaphore:
-            response = await super().request(url, method, session, *args, **kwargs)
+        if self._delay:
             await asyncio.sleep(self._delay)
-            return response
+
+        return resp_data
