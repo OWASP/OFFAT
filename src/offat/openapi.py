@@ -19,7 +19,8 @@ class OpenAPIParser:
             self._spec = spec
             
         self.host = self._spec.get('host')
-        self.base_url = f"http://{self.host}{self._spec.get('basePath','')}"
+        self.http_scheme = 'https' if 'https' in self._spec.get('schemes') else 'http'
+        self.base_url = f"{self.http_scheme}://{self.host}{self._spec.get('basePath','')}"
         self.request_response_params = self._get_request_response_params()
 
 
