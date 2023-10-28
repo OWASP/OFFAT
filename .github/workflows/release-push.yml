@@ -18,12 +18,14 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: change cwd to src directory 
+        run: cd src
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
           platforms: linux/amd64,linux/arm64
           push: true
-          file: ./src/Dockerfiles/base-Dockerfile
+          file: ./Dockerfiles/base-Dockerfile
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat-base:latest
     
     
