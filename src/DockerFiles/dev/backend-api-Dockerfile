@@ -1,0 +1,5 @@
+FROM dmdhrumilmistry/offat-base:dev
+
+EXPOSE 8000
+
+ENTRYPOINT [ "python", "-m", "offat.api" ]
