@@ -1,4 +1,5 @@
 from asyncio import ensure_future, gather
+from aiohttp.client_exceptions import ClientProxyConnectionError
 from enum import Enum
 from ..http import AsyncRequests
 from ..logger import create_logger
@@ -86,12 +87,13 @@ class TestRunner:
             response = await self._client.request(url=url, method=http_method, *args, **kwargs)
         except ConnectionRefusedError:
             logger.error('Connection Failed! Server refused Connection!!')
+        except ClientProxyConnectionError as e:
+            logger.error(f'Proxy Connection Error: {e}')
 
         test_result = test_task
 
         # add request headers to result
         test_result['request_headers'] = response.get('req_headers',[])
-        
         # append response headers and body for analyzing data leak
         res_body = response.get('res_body', 'No Response Body Found')
         test_result['response_headers'] = response.get('res_headers')
