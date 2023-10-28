@@ -26,6 +26,8 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: '3.x'
+    - name: change cwd to src directory 
+      run: cd src
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
