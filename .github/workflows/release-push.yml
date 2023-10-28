@@ -1,9 +1,8 @@
 name: "Release: Build and Push OWASP OFFAT Docker Images to DockerHub"
 
 on:
-  push:
-    branches:
-      - "dev"
+  release:
+    types: [published]
 
 jobs:
   build-and-push-main-docker-images:
