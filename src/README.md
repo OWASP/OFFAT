@@ -171,6 +171,8 @@ The disclaimer advises users to use the open-source project for ethical and legi
 offat -f swagger_file.json -p http://localhost:8080 --no-ssl -o output.json
 ```
 
+> Make sure that proxy can handle multiple requests at the same time
+
 - Use user provided inputs for generating tests
 
   ```bash
