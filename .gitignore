@@ -200,3 +200,6 @@ specs.json
 swagger.yaml
 swagger.json
 *.json
+
+## unknown data
+.DS_Store
