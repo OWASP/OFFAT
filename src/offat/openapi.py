@@ -17,11 +17,31 @@ class OpenAPIParser:
             self._spec = self._parser.specification
         else:
             self._spec = spec
-            
-        self.host = self._spec.get('host')
-        self.http_scheme = 'https' if 'https' in self._spec.get('schemes') else 'http'
+        
+        self.hosts = []
+        self._populate_hosts()
+        self.host = self.hosts[0]
+
+        self.http_scheme = 'https' if 'https' in self._spec.get('schemes',[]) else 'http'
         self.base_url = f"{self.http_scheme}://{self.host}{self._spec.get('basePath','')}"
         self.request_response_params = self._get_request_response_params()
+
+    def _populate_hosts(self):
+        if self._spec.get('openapi'): # for openapi v3
+            servers = self._spec.get('servers',[])
+            hosts = []
+            for server in servers:
+                host = server.get('url','').removeprefix('http://').removeprefix('http://').removesuffix('/')
+                host = None if host == '' else host
+                hosts.append(host)
+        else:
+            host = self._spec.get('host') # for swagger files
+            if not host:
+                logger.error('Invalid Host: Host is missing')
+                raise ValueError(f'Host Not Found in spec file')
+            hosts = [host]
+
+        self.hosts = hosts
 
 
     def _get_endpoints(self):
