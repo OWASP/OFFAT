@@ -1,6 +1,7 @@
 from asyncio import ensure_future, gather
 from aiohttp.client_exceptions import ClientProxyConnectionError
 from enum import Enum
+from traceback import print_exc
 from ..http import AsyncRequests
 from ..logger import create_logger
 
@@ -115,4 +116,10 @@ class TestRunner:
                 )
             )
 
-        return await gather(*tasks)
+        try:
+            results = await gather(*tasks)
+            return results
+        except Exception as e:
+            print(f'[*] Exception occurred while gathering results: {e}')
+            print_exc()
+            return []

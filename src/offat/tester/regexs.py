@@ -6,7 +6,7 @@ sensitive_data_regex_patterns = {
     'ip': r'(?:\d{1,3}\.){3}\d{1,3}\b|\b(?:[A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}\b',
     'ccn': r'\b\d{4}-\d{4}-\d{4}-\d{4}\b',
     'jwtToken':r'(^|\s|")[A-Za-z0-9_-]{2,}(?:\.[A-Za-z0-9_-]{2,}){2}($|\s|")',
-    'ato_data':r'\b(auth_code|otp|password|password_hash|auth_token|access_token|refresh_token|secret|session_id|key|pin|accessToken|refreshToken|authenticationCode|authentication_code|jwt|api_secret|apiSecret)\b'
+    'ato_data':r'\b(auth_code|otp|password|password_hash|auth_token|access_token|refresh_token|secret|session_id|key|pin|accessToken|refreshToken|authenticationCode|authentication_code|jwt|api_secret|apiSecret)\b',
     
     # BRAZIL
     'BrazilCPF':r'\b(\d{3}\.){2}\d{3}\-\d{2}\b',
