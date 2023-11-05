@@ -14,8 +14,8 @@
     <nav class="navbar navbar-light bg-gradient">
         <div class="container-fluid justify-content-center">
             <a class="navbar-brand fw-bold" href="https://github.com/OWASP/OFFAT">
-                <img src="/assets/images/logos/offat-3.png" alt="offat logo" width="40" height="40"
-                    class="d-inline-block align-text-center">
+                <img src="https://owasp.org/OFFAT/assets/images/logos/offat-3.png" alt="offat logo" width="40"
+                    height="40" class="d-inline-block align-text-center">
                 OWASP OFFAT
             </a>
             <button id="theme-toggle" class="btn" onclick="changeTheme()"><i id="theme-toggle-icon"
@@ -24,7 +24,6 @@
     </nav>
     <div class="container">
         <div id="test-endpoint" class="text-center container fw-bold">
-
         </div>
         <!-- Requests response table -->
         <div class="container text-left py-2">
@@ -81,11 +80,23 @@
             <!-- End of Test Details -->
         </div>
 
+        <!-- Endpoint Requests -->
         <div class="row align-items-start">
-            <div class="col fs-6">
+            <div class="col fs-4 fw-bold">
                 Endpoints Requests
             </div>
+            <div id="test-requests-list-group" class="list-group list-group-numbered my-2"
+                style="height:500px; overflow-y: auto;"">
+                <a class=" list-group-item list-group-item-action active">
+                The current link item
+                </a>
+                <a class="list-group-item list-group-item-action">A second link item</a>
+                <a class="list-group-item list-group-item-action">A third link item</a>
+                <a class="list-group-item list-group-item-action">A fourth link item</a>
+                <a class="list-group-item list-group-item-action">A disabled link item</a>
+            </div>
         </div>
+        <!-- End of Endpoint requests -->
     </div>
 
     <!-- External import scripts -->
@@ -216,139 +227,30 @@
 
         }
 
-        const results = [{
-            "test_name": "SQLi Test",
-            "url": "https://petstore.swagger.io/v2/pet/78",
-            "endpoint": "/pet/{petId}",
-            "method": "POST",
-            "body_params": [
-                {
-                    "type": "integer",
-                    "format": "int64",
-                    "value": 26,
-                    "name": "id",
-                    "required": true,
-                    "in": "body"
-                },
-                {
-                    "type": "integer",
-                    "format": "int64",
-                    "value": 57,
-                    "name": "petId",
-                    "required": true,
-                    "in": "body"
-                },
-                {
-                    "type": "integer",
-                    "format": "int32",
-                    "value": 58,
-                    "name": "quantity",
-                    "required": true,
-                    "in": "body"
-                },
-                {
-                    "type": "string",
-                    "format": "date-time",
-                    "value": "' OR 1=1 ;--",
-                    "name": "shipDate",
-                    "required": true,
-                    "in": "body"
-                },
-                {
-                    "type": "string",
-                    "description": "Order Status",
-                    "enum": [
-                        "placed",
-                        "approved",
-                        "delivered"
-                    ],
-                    "value": "' OR 1=1 ;--",
-                    "name": "status",
-                    "required": true,
-                    "in": "body"
-                },
-                {
-                    "type": "boolean",
-                    "value": "1'dj>]ZAt2",
-                    "name": "complete",
-                    "required": true,
-                    "in": "body"
-                }
-            ],
-            "query_params": [{
-                "name": "tags",
-                "in": "query",
-                "description": "Tags to filter by",
-                "required": true,
-                "type": "array",
-                "items": {
-                    "type": "string"
-                },
-                "collectionFormat": "multi",
-                "schema": null,
-                "value": "{I1I.:47qT"
-            }],
-            "path_params": [],
-            "args": [],
-            "kwargs": {
-                "json": {
-                    "id": 26,
-                    "petId": 57,
-                    "quantity": 58,
-                    "shipDate": "' OR 1=1 ;--",
-                    "status": "' OR 1=1 ;--",
-                    "complete": "1'dj>]ZAt2"
-                }
-            },
-            "malicious_payload": "' OR 1=1 ;--",
-            "result_details": "One or more parameter is vulnerable to SQL Injection Attack",
-            "success_codes": [
-                500
-            ],
-            "response_filter": "STATUS_CODE_FILTER",
-            "request_headers": {
-                "Host": "petstore.swagger.io",
-                "Accept": "*/*",
-                "Accept-Encoding": "gzip, deflate",
-                "User-Agent": "Python/3.11 aiohttp/3.8.6",
-                "Content-Length": "119",
-                "Content-Type": "application/json"
-            },
-            "response_headers": {
-                "Date": "Sat, 04 Nov 2023 12:08:38 GMT",
-                "Content-Type": "application/json",
-                "Transfer-Encoding": "chunked",
-                "Connection": "keep-alive",
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, POST, DELETE, PUT",
-                "Access-Control-Allow-Headers": "Content-Type, api_key, Authorization",
-                "Server": "Jetty(9.2.9.v20150224)"
-            },
-            "response_body": "{\"code\":500,\"type\":\"unknown\",\"message\":\"something bad happened\"}",
-            //"response_body": "<\?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><apiResponse><type>unknown</type></apiResponse>",
-            "response_status_code": 500,
-            "redirection": "()",
-            "result": false,
-            "data_leak": {
-                "PhoneNumberIN": [
-                    [
-                        "169909971806",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "169909971806",
-                        "169909971806",
-                        "",
-                        ""
-                    ]
-                ], "ato": ["password"]
-            }
-        }]
+        function createEndpointResultListComponent(result, num, isActive) {
+            return `<a class="list-group-item list-group-item-action ${isActive ? "active" : ""}" data-bs-toggle="list" onclick="updateHttpView(results[${num}])">${result.result ? "✅ Passed" : "❌ Failed"} ${result.url} (${result.response_status_code} ${result.method} ${result.endpoint})</a>`
+        }
 
+        function updateEndpointResultsView(results) {
+            const requestListGroupContainer = document.getElementById('test-requests-list-group');
+            let endpointResultComponents = [];
+
+            for (let i = 0; i < results.length; i++) {
+                endpointResultComponents += createEndpointResultListComponent(results[i], i, i === 0);
+            }
+
+            requestListGroupContainer.innerHTML = endpointResultComponents;
+
+        }
+
+        const results = { results };
+
+        updateEndpointResultsView(results);
         updateHttpView(results[0]);
     </script>
+    <!-- End of Scripts -->
+
 </body>
+<!-- End of Body -->
 
 </html>
