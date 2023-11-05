@@ -145,6 +145,16 @@ The disclaimer advises users to use the open-source project for ethical and legi
   offat -h
   ```
 
+- Save result in `json`, `yaml` or `html` formats.
+
+  ```bash
+  offat -f swagger_file.json -o output.html -of html
+  ```
+
+> `json` format is default output format.
+> `yaml` format needs to be sanitized before usage since it dumps data as python objects.
+> `html` format needs more visualization.
+
 - Run tests only for endpoint paths matching regex pattern
 
   ```bash
