@@ -2,7 +2,7 @@
 
 OWASP OFFAT (OFFensive Api Tester) is created to automatically test API for common vulnerabilities after generating tests from openapi specification file. It provides feature to automatically fuzz inputs and use user provided inputs during tests specified via YAML config file.
 
-![UnDocumented petstore API endpoint HTTP method results](./assets/images/tests/offat-v0.5.0.png)
+![UnDocumented petstore API endpoint HTTP method results](https://owasp.org/OFFAT/assets/images/tests/offat-v0.5.0.png)
 
 ## Demo
 

@@ -250,6 +250,7 @@ class TestGenerator:
                 query_request_params = request_obj.get('query_params',[])
                 malicious_query_request_params = self.__inject_payload_in_params(query_request_params, sqli_payload)
 
+                # BUG: for few SQLi test, path params injected value is not matching with final URI path params in output
                 request_obj['test_name'] = 'SQLi Test'
                 
                 request_obj['body_params'] = malicious_body_request_params

@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OWASP OFFAT</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+
+<body>
+    <nav class="navbar navbar-light bg-gradient">
+        <div class="container-fluid justify-content-center">
+            <a class="navbar-brand fw-bold" href="https://github.com/OWASP/OFFAT">
+                <img src="https://github.com/OWASP/OFFAT/blob/main/assets/images/logos/offat-3.png?raw=True"
+                    alt="offat logo" width="40" height="40" class="d-inline-block align-text-center">
+                OWASP OFFAT
+            </a>
+            <button id="theme-toggle" class="btn" onclick="changeTheme()"><i id="theme-toggle-icon"
+                    class="bi bi-brightness-high-fill"></i></button>
+        </div>
+    </nav>
+    <div class="container">
+        <div id="test-endpoint" class="text-center container fw-bold">
+        </div>
+        <!-- Requests response table -->
+        <div class="container text-left py-2">
+            <div class="row align-items-start">
+                <div class="col">
+                    <div class="text-center fw-bold">Request</div>
+                    <div class="card">
+                        <div id="request-card" class="card-body"
+                            style="height:430px; overflow-y: auto; font-family: 'Courier New', monospace;">
+                            {{request}}
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="text-center fw-bold">Response</div>
+                    <div class="card">
+                        <div id="response-card" class="card-body"
+                            style="height:430px; overflow-y: auto; font-family: 'Courier New', monospace;">
+                            {{response}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Details -->
+            <div class="row">
+                <div class="col align-items-start my-2">
+                    <div class="row">
+                        <div class="col align-items-start text-left"><strong>Test Name:</strong></div>
+                        <div id="test-name" class="col align-items-start text-left"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col align-items-start text-left"><strong>Test Result:</strong></div>
+                        <div id="test-result" class="col align-items-start text-left"></div>
+                    </div>
+                </div>
+                <div class=" col align-items-start my-2">
+                    <div class="row">
+                        <div class="col align-items-start text-left"><strong>Result Details:</strong></div>
+                        <div id="test-result-details" class="col align-items-start text-left"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col align-items-start text-left"><strong>Test Response Filter:</strong></div>
+                        <div id="test-response-filter" class="col align-items-start text-left"></div>
+                    </div>
+                </div>
+                <div class=" col align-items-start my-2">
+                    <div class="row">
+                        <div class="col align-items-start text-left"><strong>Data Leak:</strong></div>
+                        <div id="test-data-leak" class="col align-items-start text-left">No Data Leak Found</div>
+                    </div>
+                </div>
+            </div>
+            <!-- End of Test Details -->
+        </div>
+
+        <!-- Endpoint Requests -->
+        <div class="row align-items-start">
+            <div class="col fs-4 fw-bold">
+                Endpoints Requests
+            </div>
+            <div id="test-requests-list-group" class="list-group list-group-numbered my-2"
+                style="height:500px; overflow-y: auto;"">
+                <a class=" list-group-item list-group-item-action active">
+                The current link item
+                </a>
+                <a class="list-group-item list-group-item-action">A second link item</a>
+                <a class="list-group-item list-group-item-action">A third link item</a>
+                <a class="list-group-item list-group-item-action">A fourth link item</a>
+                <a class="list-group-item list-group-item-action">A disabled link item</a>
+            </div>
+        </div>
+        <!-- End of Endpoint requests -->
+    </div>
+
+    <!-- External import scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xml-formatter@3.6.0/dist/browser/xml-formatter-singleton.min.js"></script>
+
+    <script>
+        function changeTheme() {
+            const htmlElement = document.documentElement;
+            const themeToggle = document.getElementById("theme-toggle");
+            const themeToggleIcon = document.getElementById("theme-toggle-icon");
+
+            if (htmlElement.getAttribute("data-bs-theme") === "dark") {
+                themeToggleIcon.setAttribute("class", "bi bi-brightness-high-fill");
+                htmlElement.setAttribute("data-bs-theme", "light");
+            } else {
+                themeToggleIcon.setAttribute("class", "bi bi-brightness-high");
+                htmlElement.setAttribute("data-bs-theme", "dark");
+            }
+        }
+
+        function prettyPrintResponseBody(responseBody) {
+            let formattedBody = '';
+
+            try {
+                // Try to parse as JSON
+                const parsedJson = JSON.parse(responseBody);
+                formattedBody = JSON.stringify(parsedJson, null, 2);
+            } catch (jsonError) {
+                try {
+                    // Try to format as XML
+                    formattedBody = xmlFormatter(responseBody);
+                } catch (xmlError) {
+                    // If not JSON or XML, treat as plain text
+                    formattedBody = responseBody;
+                }
+            }
+
+            return formattedBody;
+        }
+
+        function formatDataLeak(dataLeak) {
+            if (dataLeak === undefined) {
+                return "";
+            }
+
+            // Extract and format unique non-empty keys
+            const uniqueKeys = Array.from(new Set(Object.keys(dataLeak).filter(key => key !== "")));
+
+            // Join the keys into a comma-separated string
+            const result = uniqueKeys.join(', ');
+
+            return result;
+        }
+
+        // Function to build the query string from the query_params list
+        function buildQueryString(query_params) {
+            let queryString = "";
+
+            query_params.forEach((param, index) => {
+                // Check if the parameter is required and has a value
+                if (param.required && param.value) {
+                    // Use encodeURIComponent to encode parameter values
+                    const encodedValue = encodeURIComponent(param.value);
+                    const separator = index === 0 ? '?' : '&';
+
+                    // Add the parameter to the query string
+                    queryString += `${separator}${param.name}=${encodedValue}`;
+                }
+            });
+
+            return queryString;
+        }
+
+        function updateHttpView(result) {
+
+            // Reconstruct the HTTP request string
+            const requestMethod = result.method;
+            const requestHeaders = Object.entries(result.request_headers)
+                .map(([header, value]) => `${header}: ${value}`)
+                .join('\n');
+            // Check if "kwargs" contains a "json" key and if it's an object
+            let jsonBody = "";
+            if (result.kwargs && typeof result.kwargs.json === 'object') {
+                jsonBody = JSON.stringify(result.kwargs.json, null, 2);
+            }
+            // build query string
+            const queryParamsString = buildQueryString(result.query_params);
+            const requestPath = result.endpoint + queryParamsString;
+
+            const httpRequest = `${requestMethod} ${requestPath} HTTP/1.1\n${requestHeaders}\n\n${jsonBody}`;
+
+
+            // Reconstruct the HTTP response string
+            const responseStatus = result.response_status_code;
+            const responseHeaders = Object.entries(result.response_headers)
+                .map(([header, value]) => `${header}: ${value}`)
+                .join('\n');
+            const responseBody = result.response_body;
+            const httpResponse = `HTTP/1.1 ${responseStatus}\n${responseHeaders}\n\n${prettyPrintResponseBody(responseBody)}`;
+
+            // Find the HTTP request and response div containers by their IDs
+            const requestContainer = document.getElementById('request-card');
+            const responseContainer = document.getElementById('response-card');
+
+            // update request and response cards texts
+            requestContainer.innerText = httpRequest;
+            responseContainer.innerText = httpResponse;
+
+            // update test data
+            const testNameContainer = document.getElementById('test-name');
+            const testEndpointContainer = document.getElementById('test-endpoint');
+            const testResultContainer = document.getElementById('test-result');
+            const testResultDetailsContainer = document.getElementById('test-result-details');
+            const testResponseFilterContainer = document.getElementById('test-response-filter');
+            const testDataLeakContainer = document.getElementById('test-data-leak');
+
+            const dataLeaked = formatDataLeak(result.data_leak);
+
+            testNameContainer.innerText = result.test_name;
+            testEndpointContainer.innerText = `${result.method} ${result.endpoint} (${result.url})`;
+            testResultContainer.innerText = result.result ? "✅ Passed" : "❌ Failed";
+            testResultDetailsContainer.innerText = result.result_details;
+            testResponseFilterContainer.innerText = result.response_filter;
+            testDataLeakContainer.innerText = dataLeaked === "" ? "No Data Leakage Found" : dataLeaked;
+
+        }
+
+        function createEndpointResultListComponent(result, num, isActive) {
+            return `<a class="list-group-item list-group-item-action ${isActive ? "active" : ""}" data-bs-toggle="list" onclick="updateHttpView(results[${num}])">${result.result ? "✅ Passed" : "❌ Failed"} ${result.url} (${result.response_status_code} ${result.method} ${result.endpoint})</a>`
+        }
+
+        function updateEndpointResultsView(results) {
+            const requestListGroupContainer = document.getElementById('test-requests-list-group');
+            let endpointResultComponents = [];
+
+            for (let i = 0; i < results.length; i++) {
+                endpointResultComponents += createEndpointResultListComponent(results[i], i, i === 0);
+            }
+
+            requestListGroupContainer.innerHTML = endpointResultComponents;
+
+        }
+
+        const results = { results };
+
+        updateEndpointResultsView(results);
+        updateHttpView(results[0]);
+    </script>
+    <!-- End of Scripts -->
+
+</body>
+<!-- End of Body -->
+
+</html>
