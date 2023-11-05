@@ -6,6 +6,7 @@ from .post_test_processor import PostRunTests
 from .test_generator import TestGenerator
 from .test_runner import TestRunner
 from .test_results import TestResultTable
+from ..report.generator import ReportGenerator
 from ..logger import create_logger
 from ..openapi import OpenAPIParser
 from ..utils import write_json_to_file
@@ -54,7 +55,7 @@ def run_test(test_runner:TestRunner, tests:list[dict], regex_pattern:str=None, s
 
  
 # Note: redirects are allowed by default making it easier for pentesters/researchers
-def generate_and_run_tests(api_parser:OpenAPIParser, regex_pattern:str=None, output_file:str=None, rate_limit:int=None,delay:float=None,req_headers:dict=None,proxy:str = None, ssl:bool = True, test_data_config:dict=None):
+def generate_and_run_tests(api_parser:OpenAPIParser, regex_pattern:str=None, output_file:str=None, output_file_format:str=None, rate_limit:int=None,delay:float=None,req_headers:dict=None,proxy:str = None, ssl:bool = True, test_data_config:dict=None):
     global test_table_generator, logger
 
     test_runner = TestRunner(
@@ -153,11 +154,10 @@ def generate_and_run_tests(api_parser:OpenAPIParser, regex_pattern:str=None, out
 
     # save file to output if output flag is present
     if output_file:
-        write_json_to_file(
-            json_data={
-                'results':results
-            }, 
-            file_path=output_file
+        ReportGenerator.generate_report(
+            results=results,
+            report_format=output_file_format,
+            report_path=output_file,
         )
 
     return results
