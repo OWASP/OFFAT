@@ -32,7 +32,7 @@ def start():
     banner()
 
     parser = ArgumentParser(prog='offat')
-    parser.add_argument('-f','--file', dest='fpath', type=str, help='path of openapi/swagger specification file', required=True)
+    parser.add_argument('-f','--file', dest='fpath', type=str, help='path or url of openapi/swagger specification file', required=True)
     parser.add_argument('-v','--version', action='version', version=f'%(prog)s {get_package_version()}')
     parser.add_argument('-rl', '--rate-limit', dest='rate_limit', help='API requests rate limit. -dr should be passed in order to use this option', type=int, default=None, required=False)
     parser.add_argument('-dr', '--delay-rate', dest='delay_rate', help='API requests delay rate in seconds. -rl should be passed in order to use this option', type=float, default=None, required=False)
