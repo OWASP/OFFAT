@@ -7,16 +7,15 @@ logger = create_logger(__name__)
 
 class OpenAPIParser:
     ''''''
-    def __init__(self, fpath:str, spec:dict=None) -> None:
-        if fpath:
-            self._parser = ResolvingParser(fpath, backend = 'openapi-spec-validator')
-            if self._parser.valid:
-                logger.info('Specification file is valid')
-            else:
-                logger.error('Specification file is invalid!')
-            self._spec = self._parser.specification
+    def __init__(self, fpath_or_url:str, spec:dict=None) -> None:
+        self._parser = ResolvingParser(fpath_or_url, backend = 'openapi-spec-validator', spec_string=spec)
+
+        if self._parser.valid:
+            logger.info('Specification file is valid')
         else:
-            self._spec = spec
+            logger.error('Specification file is invalid!')
+        
+        self._spec = self._parser.specification
         
         self.hosts = []
         self._populate_hosts()
@@ -38,7 +37,7 @@ class OpenAPIParser:
             host = self._spec.get('host') # for swagger files
             if not host:
                 logger.error('Invalid Host: Host is missing')
-                raise ValueError(f'Host Not Found in spec file')
+                raise ValueError('Host Not Found in spec file')
             hosts = [host]
 
         self.hosts = hosts
