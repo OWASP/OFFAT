@@ -1,8 +1,9 @@
+from html import escape
+from json import dumps as json_dumps
 from offat.report import templates
 from os.path import dirname, join as path_join
 from os import makedirs
 from yaml import dump as yaml_dump
-from json import dumps as json_dumps
 
 from ..logger import create_logger
 
@@ -20,12 +21,26 @@ class ReportGenerator:
         with open(html_report_file_path, 'r') as f:
             report_file_content = f.read()
 
-        # TODO: validate report path to avoid injection attacks.
+        # TODO: validate report data to avoid HTML injection attacks.
         if not isinstance(results, list):
             raise ValueError('results arg expects a list[dict].')
 
+        # HTML escape data
+        escaped_results = []
+        escape_keys = ["response_body"]
+        for result_dict in results:
+            escaped_result_dict = {}
+            for key, value in result_dict.items():
+                if key in escape_keys:
+                    escaped_value = escape(value)
+                    escaped_result_dict[key] = escaped_value
+                else:
+                    escaped_result_dict[key] = value
+
+                escaped_results.append(escaped_result_dict)
+
         report_file_content = report_file_content.replace(
-            '{ results }', json_dumps(results))
+            '{ results }', json_dumps(escaped_results))
 
         return report_file_content
 
@@ -56,7 +71,8 @@ class ReportGenerator:
     def save_report(report_path: str, report_file_content: str):
         if report_path != '/':
             dir_name = dirname(report_path)
-            makedirs(dir_name, exist_ok=True)
+            if dir_name != '':
+                makedirs(dir_name, exist_ok=True)
 
         with open(report_path, 'w') as f:
             logger.info(f'Writing report to file: {report_path}')
