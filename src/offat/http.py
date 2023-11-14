@@ -1,5 +1,6 @@
 from aiohttp import ClientSession, ClientResponse, TCPConnector
 from os import name as os_name
+from typing import Optional
 
 
 import asyncio
@@ -14,7 +15,7 @@ class AsyncRequests:
     AsyncRequests class helps to send HTTP requests with rate limiting options.
     '''
 
-    def __init__(self, rate_limit:int=None, delay:float=None, headers: dict = None, proxy:str = None, ssl:bool=True, allow_redirects: bool=True) -> None:
+    def __init__(self, rate_limit:Optional[int]=None, delay:Optional[float]=None, headers: Optional[dict] = None, proxy:Optional[str] = None, ssl:Optional[bool]=True, allow_redirects: Optional[bool]=True) -> None:
         '''AsyncRequests class constructor
         
         Args:
