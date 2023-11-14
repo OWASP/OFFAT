@@ -1,6 +1,7 @@
 from asyncio import ensure_future, gather
 from aiohttp.client_exceptions import ClientProxyConnectionError
 from enum import Enum
+from typing import Optional
 from traceback import print_exc
 from ..http import AsyncRequests
 from ..logger import create_logger
@@ -14,19 +15,20 @@ class TestRunnerFiltersEnum(Enum):
     BODY_REGEX_FILTER = 1
     HEADER_REGEX_FILTER = 2
 
+
 class PayloadFor(Enum):
     BODY = 0
     QUERY = 1
 
 
 class TestRunner:
-    def __init__(self, rate_limit:int=None, delay:float=None, headers:dict=None, proxy: str = None, ssl: bool = True) -> None:
-        self._client = AsyncRequests(rate_limit=rate_limit, delay=delay, headers=headers, proxy=proxy, ssl=ssl)
+    def __init__(self, rate_limit: Optional[int] = None, delay: Optional[float] = None, headers: Optional[dict] = None, proxy: Optional[str] = None, ssl: Optional[bool] = True) -> None:
+        self._client = AsyncRequests(
+            rate_limit=rate_limit, delay=delay, headers=headers, proxy=proxy, ssl=ssl)
 
-
-    def _generate_payloads(self, params:list[dict], payload_for:PayloadFor=PayloadFor.BODY):
+    def _generate_payloads(self, params: list[dict], payload_for: PayloadFor = PayloadFor.BODY):
         '''Generate body payload from passed data for HTTP body and query.
-        
+
         Args:
             params (list[dict]): list of containing payload parameters
             payload_for (PayloadFor): PayloadFor constant indicating 
@@ -39,7 +41,8 @@ class TestRunner:
             ValueError: If incorrect `payload_for` argument is not of `PayloadFor` class.
         '''
         if payload_for not in [PayloadFor.BODY, PayloadFor.QUERY]:
-            raise ValueError('`payload_for` arg only supports `PayloadFor.BODY, PayloadFor.QUERY` value')
+            raise ValueError(
+                '`payload_for` arg only supports `PayloadFor.BODY, PayloadFor.QUERY` value')
 
         body_payload = {}
         query_payload = {}
@@ -58,16 +61,15 @@ class TestRunner:
                     query_payload[param_name] = param_value
                 case _:
                     continue
-        
+
         match payload_for:
             case PayloadFor.BODY:
                 return body_payload
-            
+
             case PayloadFor.QUERY:
                 return query_payload
-            
+
         return {}
-    
 
     async def send_request(self, test_task):
         url = test_task.get('url')
@@ -79,10 +81,12 @@ class TestRunner:
         query_params = test_task.get('query_params')
 
         if body_params and str(http_method).upper() not in ['GET', 'OPTIONS']:
-            kwargs['json'] = self._generate_payloads(body_params, payload_for=PayloadFor.BODY)
+            kwargs['json'] = self._generate_payloads(
+                body_params, payload_for=PayloadFor.BODY)
 
         if query_params:
-            kwargs['params'] = self._generate_payloads(query_params, payload_for=PayloadFor.QUERY)
+            kwargs['params'] = self._generate_payloads(
+                query_params, payload_for=PayloadFor.QUERY)
 
         try:
             response = await self._client.request(url=url, method=http_method, *args, **kwargs)
@@ -94,7 +98,7 @@ class TestRunner:
         test_result = test_task
 
         # add request headers to result
-        test_result['request_headers'] = response.get('req_headers',[])
+        test_result['request_headers'] = response.get('req_headers', [])
         # append response headers and body for analyzing data leak
         res_body = response.get('res_body', 'No Response Body Found')
         test_result['response_headers'] = response.get('res_headers')
@@ -104,8 +108,7 @@ class TestRunner:
 
         return test_result
 
-
-    async def run_tests(self, test_tasks:list):
+    async def run_tests(self, test_tasks: list):
         '''run tests generated from test generator module'''
         tasks = []
 
