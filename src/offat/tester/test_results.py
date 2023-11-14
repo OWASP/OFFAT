@@ -2,21 +2,20 @@ from tabulate import tabulate
 
 
 class TestResultTable:
-    def __init__(self, tablefmt:str='heavy_outline', headers:str='keys',*args, **kwargs) -> None:
+    def __init__(self, tablefmt: str = 'heavy_outline', headers: str = 'keys', *args, **kwargs) -> None:
         self.tablefmt = tablefmt
         self.headers = headers
         self.args = args
         self.kwargs = kwargs
 
-
-    def generate_result_table(self, results:list, filter_passed_results:bool=True):
+    def generate_result_table(self, results: list, filter_passed_results: bool = True):
         return tabulate(self._sanitize_results(results, filter_passed_results), headers=self.headers, tablefmt=self.tablefmt, *self.args, **self.kwargs)
-    
-    
-    def _sanitize_results(self, results:list, filter_passed_results:bool=True, is_leaking_data:bool=False):
+
+    def _sanitize_results(self, results: list, filter_passed_results: bool = True, is_leaking_data: bool = False):
         if filter_passed_results:
-            results = list(filter(lambda x: not x.get('result') or x.get('data_leak'), results))
-        
+            results = list(filter(lambda x: not x.get(
+                'result') or x.get('data_leak'), results))
+
         # remove keys based on conditions or update their values
         for result in results:
             if result['result']:
@@ -46,7 +45,6 @@ class TestResultTable:
             else:
                 result['data_leak'] = u"\u00d7"
 
-
             if not isinstance(result.get('malicious_payload'), str):
                 del result['malicious_payload']
 
@@ -60,5 +58,5 @@ class TestResultTable:
             del result['redirection']
             del result['query_params']
             del result['path_params']
-            
+
         return results
