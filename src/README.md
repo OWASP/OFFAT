@@ -127,6 +127,10 @@ The disclaimer advises users to use the open-source project for ethical and legi
 
   ```bash
   python -m offat.api
+
+  # OR 
+
+  offat-api
   ```
 
 - API Documentation can be found at <http://localhost:8000/docs>
@@ -136,7 +140,8 @@ The disclaimer advises users to use the open-source project for ethical and legi
 - Run offat
 
   ```bash
-  offat -f swagger_file.json
+  offat -f swagger_file.json              # using file
+  offat -f https://example.com/docs.json  # using url
   ```
 
 - To get all the commands use `help`
@@ -148,7 +153,9 @@ The disclaimer advises users to use the open-source project for ethical and legi
 - Save result in `json`, `yaml` or `html` formats.
 
   ```bash
-  offat -f swagger_file.json -o output.html -of html
+  offat -f swagger_file.json -o output.json           # json
+  offat -f swagger_file.json -o output.html -of html  # html
+  offat -f swagger_file.json -o output.yaml -of yaml  # yaml
   ```
 
 > `json` format is default output format.
