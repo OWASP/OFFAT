@@ -2,10 +2,7 @@ from traceback import print_exception
 from offat.api.models import CreateScanModel
 from offat.tester.tester_utils import generate_and_run_tests
 from offat.openapi import OpenAPIParser
-from offat.logger import create_logger
-
-
-logger = create_logger(__name__)
+from offat.logger import logger
 
 
 def scan_api(body_data: CreateScanModel):
