@@ -1,38 +1,35 @@
 from copy import deepcopy
-from pprint import pprint
-from .logger import create_logger
+from .logger import logger
 
 
-logger = create_logger(__name__)
-
-
-def validate_config_file_data(test_config_data:dict):
+def validate_config_file_data(test_config_data: dict):
     if not isinstance(test_config_data, dict):
         logger.warning('Invalid data format')
         return False
-    
+
     if test_config_data.get('error', False):
-        logger.warning(f'Error Occurred While reading file: {test_config_data}')
+        logger.warning(
+            f'Error Occurred While reading file: {test_config_data}')
         return False
-    
+
     if not test_config_data.get('actors', ):
         logger.warning('actors are required')
         return False
-    
-    if not test_config_data.get('actors', [])[0].get('actor1',None):
+
+    if not test_config_data.get('actors', [])[0].get('actor1', None):
         logger.warning('actor1 is required')
         return False
-    
+
     logger.info('User provided data will be used for generating test cases')
     return test_config_data
 
 
-def populate_user_data(actor_data:dict, actor_name:str,tests:list[dict]):
+def populate_user_data(actor_data: dict, actor_name: str, tests: list[dict]):
     tests = deepcopy(tests)
-    headers = actor_data.get('request_headers',[])
-    body_params = actor_data.get('body',[])
-    query_params = actor_data.get('query',[])
-    path_params = actor_data.get('path',[])
+    headers = actor_data.get('request_headers', [])
+    body_params = actor_data.get('body', [])
+    query_params = actor_data.get('query', [])
+    path_params = actor_data.get('path', [])
 
     # create HTTP request headers
     request_headers = {}
@@ -44,9 +41,11 @@ def populate_user_data(actor_data:dict, actor_name:str,tests:list[dict]):
         test['body_params'] += body_params
         test['query_params'] += query_params
         test['path_params'] += path_params
-        test['test_actor_name'] = actor_name # for post test processing tests such as broken authentication
-        if test.get('kwargs',{}).get('headers',{}).items():
-            test['kwargs']['headers'] = dict(test['kwargs']['headers'], **request_headers)
+        # for post test processing tests such as broken authentication
+        test['test_actor_name'] = actor_name
+        if test.get('kwargs', {}).get('headers', {}).items():
+            test['kwargs']['headers'] = dict(
+                test['kwargs']['headers'], **request_headers)
         else:
             test['kwargs']['headers'] = request_headers
 

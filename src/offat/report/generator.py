@@ -1,14 +1,14 @@
+from copy import deepcopy
 from html import escape
 from json import dumps as json_dumps
 from offat.report import templates
 from os.path import dirname, join as path_join
 from os import makedirs
+from rich.table import Table
 from yaml import dump as yaml_dump
 
-from ..logger import create_logger
-
-
-logger = create_logger(__name__)
+from .templates.table import TestResultTable
+from ..logger import logger, console
 
 
 class ReportGenerator:
@@ -45,7 +45,7 @@ class ReportGenerator:
         return report_file_content
 
     @staticmethod
-    def handle_report_format(results: list[dict], report_format: str) -> str:
+    def handle_report_format(results: list[dict], report_format: str | None) -> str | Table:
         result = None
 
         match report_format:
@@ -58,28 +58,40 @@ class ReportGenerator:
                 result = yaml_dump({
                     'results': results,
                 })
-            case _:  # default json format
+            case 'json':
                 report_format = 'json'
                 result = json_dumps({
                     'results': results,
                 })
+            case _:  # default: CLI table
+                report_format = 'table'
+                results_table = TestResultTable().generate_result_table(
+                    deepcopy(results))
+                result = results_table
 
         logger.info(f'Generated {report_format.upper()} format report.')
         return result
 
     @staticmethod
-    def save_report(report_path: str, report_file_content: str):
-        if report_path != '/':
+    def save_report(report_path: str | None, report_file_content: str | Table | None):
+        if report_path != '/' and report_path:
             dir_name = dirname(report_path)
-            if dir_name != '':
+            if dir_name != '' and report_path:
                 makedirs(dir_name, exist_ok=True)
 
-        with open(report_path, 'w') as f:
-            logger.info(f'Writing report to file: {report_path}')
-            f.write(report_file_content)
+        # print to cli if report path and file content as absent else write to file location.
+        if report_path and report_file_content and not isinstance(report_file_content, Table):
+            with open(report_path, 'w') as f:
+                logger.info(f'Writing report to file: {report_path}')
+                f.write(report_file_content)
+        else:
+            if isinstance(report_file_content, Table) and report_file_content.columns:
+                TestResultTable().print_table(report_file_content)
+            else:
+                console.print(report_file_content)
 
     @staticmethod
-    def generate_report(results: list[dict], report_format: str, report_path: str):
+    def generate_report(results: list[dict], report_format: str | None, report_path: str | None):
         formatted_results = ReportGenerator.handle_report_format(
             results=results, report_format=report_format)
         ReportGenerator.save_report(
