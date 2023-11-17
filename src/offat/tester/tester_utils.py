@@ -6,20 +6,18 @@ from re import search as regex_search
 from .post_test_processor import PostRunTests
 from .test_generator import TestGenerator
 from .test_runner import TestRunner
-from ..report.table import TestResultTable
+from ..report.templates.table import TestResultTable
 from ..report.generator import ReportGenerator
 from ..logger import logger
 from ..openapi import OpenAPIParser
 
 
 # create tester objs
-test_table_generator = TestResultTable()
 test_generator = TestGenerator()
 
 
 def run_test(test_runner: TestRunner, tests: list[dict], regex_pattern: Optional[str] = None, skip_test_run: Optional[bool] = False, post_run_matcher_test: Optional[bool] = False, description: Optional[str] = None) -> list:
     '''Run tests and print result on console'''
-    global test_table_generator
     # filter data if regex is passed
     if regex_pattern:
         tests = list(
@@ -46,13 +44,6 @@ def run_test(test_runner: TestRunner, tests: list[dict], regex_pattern: Optional
 
     # run data leak tests
     test_results = PostRunTests.detect_data_exposure(test_results)
-
-    # print results
-    results_table = test_table_generator.generate_result_table(
-        deepcopy(test_results))
-
-    if results_table.columns:
-        test_table_generator.print_table(results_table)
 
     return test_results
 
@@ -238,11 +229,10 @@ def generate_and_run_tests(api_parser: OpenAPIParser, regex_pattern: Optional[st
         )
 
     # save file to output if output flag is present
-    if output_file:
-        ReportGenerator.generate_report(
-            results=results,
-            report_format=output_file_format,
-            report_path=output_file,
-        )
+    ReportGenerator.generate_report(
+        results=results,
+        report_format=output_file_format,
+        report_path=output_file,
+    )
 
     return results
