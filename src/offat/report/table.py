@@ -1,15 +1,38 @@
-from tabulate import tabulate
+from rich.console import Console
+from rich.table import Table, Column
 
 
 class TestResultTable:
-    def __init__(self, tablefmt: str = 'heavy_outline', headers: str = 'keys', *args, **kwargs) -> None:
-        self.tablefmt = tablefmt
-        self.headers = headers
-        self.args = args
-        self.kwargs = kwargs
+    def __init__(self, table_width_percentage: float = 98, ) -> None:
+        self.console = Console()
+        self.table_width_percentage = table_width_percentage
+
+    def print_table(self, table: Table):
+        terminal_width = self.console.width
+        table_width = int(terminal_width * (self.table_width_percentage / 100))
+        table.width = table_width
+
+        self.console.print(table, width=table_width, overflow='fold')
+        self.console.rule()
+
+    def extract_result_table_cols(self, results: list[dict]) -> list[str]:
+        return sorted({key for dictionary in results for key in dictionary.keys()})
+
+    def generate_result_cols(self, results_list: list[dict]) -> list[Column]:
+        return [Column(header=col_header, overflow='fold') for col_header in self.extract_result_table_cols(results_list)]
 
     def generate_result_table(self, results: list, filter_passed_results: bool = True):
-        return tabulate(self._sanitize_results(results, filter_passed_results), headers=self.headers, tablefmt=self.tablefmt, *self.args, **self.kwargs)
+        results = self._sanitize_results(results, filter_passed_results)
+        cols = self.generate_result_cols(results)
+        table = Table(*cols)
+
+        for result in results:
+            table_row = []
+            for col in cols:
+                table_row.append(str(result[col.header]))
+            table.add_row(*table_row)
+
+        return table
 
     def _sanitize_results(self, results: list, filter_passed_results: bool = True, is_leaking_data: bool = False):
         if filter_passed_results:
@@ -19,9 +42,9 @@ class TestResultTable:
         # remove keys based on conditions or update their values
         for result in results:
             if result['result']:
-                result['result'] = u"\u2713"
+                result['result'] = u"[bold green]Passed \u2713[/bold green]"
             else:
-                result['result'] = u"\u00d7"
+                result['result'] = u"[bold red]Failed \u00d7[/bold red]"
 
             if not is_leaking_data:
                 del result['response_headers']
@@ -41,9 +64,9 @@ class TestResultTable:
                 del result['response_match_regex']
 
             if result.get('data_leak'):
-                result['data_leak'] = u"\u2713"
+                result['data_leak'] = u"[bold red]Leak Found \u00d7[/bold red]"
             else:
-                result['data_leak'] = u"\u00d7"
+                result['data_leak'] = u"[bold green]No Leak \u2713[/bold green]"
 
             if not isinstance(result.get('malicious_payload'), str):
                 del result['malicious_payload']
