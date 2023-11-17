@@ -1,12 +1,14 @@
 from asyncio import ensure_future, gather
 from aiohttp.client_exceptions import ClientProxyConnectionError
 from enum import Enum
-from typing import Optional
+from rich.progress import Progress, TaskID
 from traceback import print_exc
-from ..http import AsyncRequests
-from ..logger import create_logger
+from typing import Optional
 
-logger = create_logger(__name__)
+
+from ..http import AsyncRequests
+from ..logger import logger
+from ..logger import console
 
 
 # TODO: move filters to post processing module
@@ -25,6 +27,8 @@ class TestRunner:
     def __init__(self, rate_limit: Optional[int] = None, delay: Optional[float] = None, headers: Optional[dict] = None, proxy: Optional[str] = None, ssl: Optional[bool] = True) -> None:
         self._client = AsyncRequests(
             rate_limit=rate_limit, delay=delay, headers=headers, proxy=proxy, ssl=ssl)
+        self.progress = Progress(console=console)
+        self.progress_task_id: Optional[TaskID] = None
 
     def _generate_payloads(self, params: list[dict], payload_for: PayloadFor = PayloadFor.BODY):
         '''Generate body payload from passed data for HTTP body and query.
@@ -106,10 +110,22 @@ class TestRunner:
         test_result['response_status_code'] = response.get('status')
         test_result['redirection'] = response.get('res_redirection', '')
 
+        # advance progress bar
+        if self.progress_task_id:
+            self.progress.update(self.progress_task_id,
+                                 advance=1, refresh=True)
+
+        if self.progress and self.progress.finished:
+            self.progress.stop()
+            self.progress_task_id = None
+
         return test_result
 
-    async def run_tests(self, test_tasks: list):
+    async def run_tests(self, test_tasks: list, description: Optional[str]):
         '''run tests generated from test generator module'''
+        self.progress.start()
+        self.progress_task_id = self.progress.add_task(
+            f'[orange] {description}', total=len(test_tasks))
         tasks = []
 
         for test_task in test_tasks:

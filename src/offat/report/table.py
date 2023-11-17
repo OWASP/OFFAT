@@ -1,18 +1,18 @@
-from rich.console import Console
 from rich.table import Table, Column
+from ..logger import console
 
 
 class TestResultTable:
     def __init__(self, table_width_percentage: float = 98, ) -> None:
-        self.console = Console()
+        self.console = console
         self.table_width_percentage = table_width_percentage
 
     def print_table(self, table: Table):
-        terminal_width = self.console.width
+        terminal_width = console.width
         table_width = int(terminal_width * (self.table_width_percentage / 100))
         table.width = table_width
 
-        self.console.print(table, width=table_width, overflow='fold')
+        self.console.print(table)
         self.console.rule()
 
     def extract_result_table_cols(self, results: list[dict]) -> list[str]:
