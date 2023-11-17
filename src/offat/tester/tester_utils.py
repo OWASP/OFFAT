@@ -10,7 +10,6 @@ from ..report.table import TestResultTable
 from ..report.generator import ReportGenerator
 from ..logger import create_logger
 from ..openapi import OpenAPIParser
-from ..utils import write_json_to_file
 
 
 logger = create_logger(__name__)
@@ -50,9 +49,12 @@ def run_test(test_runner: TestRunner, tests: list[dict], regex_pattern: Optional
     test_results = PostRunTests.detect_data_exposure(test_results)
 
     # print results
-    results = test_table_generator.generate_result_table(
+    results_table = test_table_generator.generate_result_table(
         deepcopy(test_results))
-    print(results)
+
+    if results_table.columns:
+        test_table_generator.print_table(results_table)
+
     return test_results
 
 
