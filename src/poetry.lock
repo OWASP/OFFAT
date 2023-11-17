@@ -1542,4 +1542,4 @@ api = ["fastapi", "python-dotenv", "redis", "rq", "uvicorn"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "ba1f03330ab6bef00a84cd168539b0d4d7871620bed7b8a5db42a6fb30fbae0f"
+content-hash = "47d162badebc88e55a2271095cc1c5f488ee412b6197b0ec13133b25da5adfb4"
