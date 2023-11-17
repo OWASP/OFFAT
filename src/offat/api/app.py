@@ -2,11 +2,10 @@ from fastapi import status, Request, Response
 from offat.api.config import app, task_queue, task_timeout, auth_secret_key
 from offat.api.jobs import scan_api
 from offat.api.models import CreateScanModel
-from offat.logger import create_logger
+from offat.logger import logger
 from os import uname, environ
 
 
-logger = create_logger(__name__)
 logger.info(f'Secret Key: {auth_secret_key}')
 
 

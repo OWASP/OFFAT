@@ -5,10 +5,7 @@ from os.path import dirname, join as path_join
 from os import makedirs
 from yaml import dump as yaml_dump
 
-from ..logger import create_logger
-
-
-logger = create_logger(__name__)
+from ..logger import logger
 
 
 class ReportGenerator:
