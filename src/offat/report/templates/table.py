@@ -1,5 +1,5 @@
 from rich.table import Table, Column
-from ..logger import console
+from ...logger import console
 
 
 class TestResultTable:
@@ -29,7 +29,8 @@ class TestResultTable:
         for result in results:
             table_row = []
             for col in cols:
-                table_row.append(str(result[col.header]))
+                table_row.append(
+                    str(result.get(col.header, '[red]:bug: - [/red]')))
             table.add_row(*table_row)
 
         return table
