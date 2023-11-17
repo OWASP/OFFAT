@@ -1,5 +1,8 @@
 from tabulate import tabulate
 
+from rich.console import Console
+from rich.table import Table
+
 
 class TestResultTable:
     def __init__(self, tablefmt: str = 'heavy_outline', headers: str = 'keys', *args, **kwargs) -> None:
@@ -9,7 +12,10 @@ class TestResultTable:
         self.kwargs = kwargs
 
     def generate_result_table(self, results: list, filter_passed_results: bool = True):
-        return tabulate(self._sanitize_results(results, filter_passed_results), headers=self.headers, tablefmt=self.tablefmt, *self.args, **self.kwargs)
+        results = self._sanitize_results(results, filter_passed_results)
+        table = Table()
+        print(results)
+        return []
 
     def _sanitize_results(self, results: list, filter_passed_results: bool = True, is_leaking_data: bool = False):
         if filter_passed_results:
