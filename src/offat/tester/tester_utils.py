@@ -6,7 +6,7 @@ from re import search as regex_search
 from .post_test_processor import PostRunTests
 from .test_generator import TestGenerator
 from .test_runner import TestRunner
-from .test_results import TestResultTable
+from ..report.table import TestResultTable
 from ..report.generator import ReportGenerator
 from ..logger import create_logger
 from ..openapi import OpenAPIParser
