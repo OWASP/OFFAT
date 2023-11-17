@@ -5,7 +5,6 @@ from offat.report import templates
 from os.path import dirname, join as path_join
 from os import makedirs
 from rich.table import Table
-from rich.pretty import pprint
 from yaml import dump as yaml_dump
 
 from .templates.table import TestResultTable
