@@ -2,6 +2,7 @@ from copy import deepcopy
 from .fuzzer import fill_params
 from .test_runner import TestRunnerFiltersEnum
 from .fuzzer import generate_random_int
+from ..logger import logger, console
 from ..openapi import OpenAPIParser
 from ..config_data_handler import populate_user_data
 
@@ -18,12 +19,6 @@ class TestGenerator:
     Methods:
         check_unsupported_http_methods: Checks whether endpoint supports undocumented/unsupported HTTP methods.
         sqli_fuzz_params: Performs SQL injection (SQLi) parameter fuzzing based on the provided OpenAPIParser instance.
-
-    # Examples:
-    #     generator = TestGenerator()
-    #     check1 = generator.generate_check1()
-    #     check2 = generator.generate_check2()
-
     """
 
     def __init__(self,  headers: dict = None) -> None:
@@ -44,9 +39,8 @@ class TestGenerator:
 
     def check_unsupported_http_methods(
         self,
-        base_url: str,
-        endpoints: list[tuple],
-        success_codes: list[int] = [200, 301],
+        openapi_parser: OpenAPIParser,
+        success_codes: list[int] = [200, 201, 301, 302],
         *args,
         **kwargs
     ):
@@ -55,7 +49,7 @@ class TestGenerator:
         Args:
             base_url (str): The base URL to check for unsupported HTTP methods.
             endpoints (list[tuple]): A list of tuples representing the endpoints to check. Each tuple should contain the endpoint path and the corresponding supported HTTP methods.
-            success_codes (list[int], optional): A list of HTTP success codes to consider as successful responses. Defaults to [200, 301].
+            success_codes (list[int], optional): A list of HTTP success codes to consider as successful responses. Defaults to [ 200, 201, 301, 302 ].
             *args: Variable-length positional arguments.
             **kwargs: Arbitrary keyword arguments.
 
@@ -66,8 +60,39 @@ class TestGenerator:
             Any exceptions raised during the execution.
         '''
         tasks = []
+        fuzzed_endpoints = self.__fuzz_request_params(openapi_parser)
+        endpoints_index = {}
 
-        for endpoint, methods_allowed in endpoints:
+        for fuzzed_endpoint_data in fuzzed_endpoints:
+            endpoint = fuzzed_endpoint_data['endpoint']
+            method = fuzzed_endpoint_data['method']
+
+            if endpoint not in endpoints_index:
+                endpoints_index[endpoint] = {
+                    'endpoints': [],
+                    'methods': [],
+                    'body_params': [],
+                    'query_params': [],
+                    'path_params': []
+                }
+
+            endpoints_index[endpoint]['endpoints'].append(fuzzed_endpoint_data)
+            if method not in endpoints_index[endpoint]['methods']:
+                endpoints_index[endpoint]['methods'].append(method.lower())
+
+            endpoints_index[endpoint]['body_params'].extend(
+                fuzzed_endpoint_data['body_params'])
+            endpoints_index[endpoint]['query_params'].extend(
+                fuzzed_endpoint_data['query_params'])
+            endpoints_index[endpoint]['path_params'].extend(
+                fuzzed_endpoint_data['path_params'])
+
+        for endpoint, endpoint_dict in endpoints_index.items():
+            methods_allowed = endpoint_dict.get('methods', [])
+            body_params = endpoint_dict.get('body_params', [])
+            path_params = endpoint_dict.get('path_params', [])
+            query_params = endpoint_dict.get('query_params', [])
+
             http_methods: set = {'get', 'post', 'put', 'delete', 'options'}
             restricted_methods = http_methods - set(methods_allowed)
 
@@ -75,7 +100,7 @@ class TestGenerator:
 
                 tasks.append({
                     'test_name': 'UnSupported HTTP Method Check',
-                    'url': f'{base_url}{endpoint}',
+                    'url': f'{openapi_parser.base_url}{endpoint}',
                     'endpoint': endpoint,
                     'method': restricted_method.upper(),
                     'malicious_payload': [],
@@ -85,9 +110,9 @@ class TestGenerator:
                         True: 'Endpoint does not perform any HTTP method which is not documented',  # passed
                         False: 'Endpoint performs HTTP method which is not documented',  # failed
                     },
-                    'body_params': [],
-                    'query_params': [],
-                    'path_params': [],
+                    'body_params': body_params,
+                    'query_params': query_params,
+                    'path_params': path_params,
                     'success_codes': success_codes,
                     'response_filter': TestRunnerFiltersEnum.STATUS_CODE_FILTER.name
                 })
@@ -132,6 +157,8 @@ class TestGenerator:
             list: returns list of dict (tasks) for API testing with fuzzed request params
         """
         base_url: str = openapi_parser.base_url
+        # TODO: generate proper api endpoint path
+        base_api_path: str = openapi_parser.api_base_path
         request_response_params: list[dict] = openapi_parser.request_response_params
 
         tasks = []
@@ -165,10 +192,9 @@ class TestGenerator:
                     '{' + str(path_param_name) + '}', str(path_param_value))
 
             tasks.append({
-                'test_name': 'BOLA Path Test with Fuzzed Params',
                 'url': f'{base_url}{endpoint_path}',
-                'endpoint': path_obj.get('path'),
-                'method': path_obj.get('http_method').upper(),
+                'endpoint': f'{path_obj.get("path")}',
+                'method': path_obj.get('http_method', '').upper(),
                 'body_params': request_body_params,
                 'query_params': request_query_params,
                 'path_params': path_params,
