@@ -22,7 +22,9 @@ class OpenAPIParser:
 
         self.http_scheme = 'https' if 'https' in self._spec.get(
             'schemes', []) else 'http'
-        self.base_url = f"{self.http_scheme}://{self.host}{self._spec.get('basePath','')}"
+        # TODO: while generating proper endpoint, make sure that every endpoint key is handled in every test generated method
+        self.api_base_path = self._spec.get('basePath', '')
+        self.base_url = f"{self.http_scheme}://{self.host}{self.api_base_path}"
         self.request_response_params = self._get_request_response_params()
 
     def _populate_hosts(self):
