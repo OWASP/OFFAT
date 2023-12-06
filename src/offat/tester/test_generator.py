@@ -1,6 +1,6 @@
 from copy import deepcopy
 from .fuzzer import fill_params
-from .test_runner import TestRunnerFiltersEnum
+from .post_test_processor import PostTestFiltersEnum
 from .fuzzer import generate_random_int
 from ..openapi import OpenAPIParser
 from ..config_data_handler import populate_user_data
@@ -113,7 +113,7 @@ class TestGenerator:
                     'query_params': query_params,
                     'path_params': path_params,
                     'success_codes': success_codes,
-                    'response_filter': TestRunnerFiltersEnum.STATUS_CODE_FILTER.name
+                    'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name
                 })
 
         return tasks
@@ -156,8 +156,6 @@ class TestGenerator:
             list: returns list of dict (tasks) for API testing with fuzzed request params
         """
         base_url: str = openapi_parser.base_url
-        # TODO: generate proper api endpoint path
-        base_api_path: str = openapi_parser.api_base_path
         request_response_params: list[dict] = openapi_parser.request_response_params
 
         tasks = []
@@ -289,7 +287,7 @@ class TestGenerator:
                     False: 'One or more parameter is vulnerable to SQL Injection Attack',  # failed
                 }
                 request_obj['success_codes'] = success_codes
-                request_obj['response_filter'] = TestRunnerFiltersEnum.STATUS_CODE_FILTER.name
+                request_obj['response_filter'] = PostTestFiltersEnum.STATUS_CODE_FILTER.name
                 tasks.append(deepcopy(request_obj))
 
         return tasks
@@ -368,7 +366,7 @@ class TestGenerator:
                     False: 'Endpoint might be vulnerable to BOLA',  # failed
                 },
                 'success_codes': success_codes,
-                'response_filter': TestRunnerFiltersEnum.STATUS_CODE_FILTER.name
+                'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name
             })
 
         return tasks
@@ -450,7 +448,7 @@ class TestGenerator:
                     False: 'Endpoint might be vulnerable to BOLA',  # failed
                 },
                 'success_codes': success_codes,
-                'response_filter': TestRunnerFiltersEnum.STATUS_CODE_FILTER.name
+                'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name
             })
 
         return tasks
@@ -552,7 +550,6 @@ class TestGenerator:
                 'body_params': request_body_params,
                 'query_params': request_query_params,
                 'path_params': path_params,
-                # TODO: check these params in response
                 'malicious_payload': response_body_params,
                 'args': args,
                 'kwargs': kwargs,
@@ -561,7 +558,7 @@ class TestGenerator:
                     False: 'Endpoint might be vulnerable to BOPLA',  # failed
                 },
                 'success_codes': success_codes,
-                'response_filter': TestRunnerFiltersEnum.STATUS_CODE_FILTER.name
+                'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name
             })
 
         return tasks
@@ -659,7 +656,7 @@ class TestGenerator:
                 request_obj['malicious_payload'] = payload
 
                 request_obj['result_details'] = result_details
-                request_obj['response_filter'] = TestRunnerFiltersEnum.BODY_REGEX_FILTER.name
+                request_obj['response_filter'] = PostTestFiltersEnum.BODY_REGEX_FILTER.name
                 request_obj['response_match_regex'] = payload_dict.get(
                     'response_match_regex')
 
