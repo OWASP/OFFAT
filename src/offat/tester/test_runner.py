@@ -11,13 +11,6 @@ from ..logger import logger
 from ..logger import console
 
 
-# TODO: move filters to post processing module
-class TestRunnerFiltersEnum(Enum):
-    STATUS_CODE_FILTER = 0
-    BODY_REGEX_FILTER = 1
-    HEADER_REGEX_FILTER = 2
-
-
 class PayloadFor(Enum):
     BODY = 0
     QUERY = 1
