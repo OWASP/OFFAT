@@ -69,11 +69,10 @@ def start():
         delay_rate = None
 
     # handle test user data config file
-    test_data_config = read_yaml(args.test_data_config)
-    test_data_config = validate_config_file_data(test_data_config)
-
-    if not test_data_config:
-        test_data_config = None
+    test_data_config = args.test_data_config
+    if test_data_config:
+        test_data_config = read_yaml(args.test_data_config)
+        test_data_config = validate_config_file_data(test_data_config)
 
     # parse args and run tests
     api_parser = OpenAPIParser(args.fpath)
