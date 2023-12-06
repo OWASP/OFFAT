@@ -2,7 +2,6 @@ from copy import deepcopy
 from .fuzzer import fill_params
 from .test_runner import TestRunnerFiltersEnum
 from .fuzzer import generate_random_int
-from ..logger import logger, console
 from ..openapi import OpenAPIParser
 from ..config_data_handler import populate_user_data
 
@@ -193,7 +192,7 @@ class TestGenerator:
 
             tasks.append({
                 'url': f'{base_url}{endpoint_path}',
-                'endpoint': f'{path_obj.get("path")}',
+                'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
                 'method': path_obj.get('http_method', '').upper(),
                 'body_params': request_body_params,
                 'query_params': request_query_params,
@@ -356,7 +355,7 @@ class TestGenerator:
             tasks.append({
                 'test_name': 'BOLA Path Test with Fuzzed Params',
                 'url': f'{base_url}{endpoint_path}',
-                'endpoint': path_obj.get('path'),
+                'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
                 'method': path_obj.get('http_method').upper(),
                 'body_params': request_body_params,
                 'query_params': request_query_params,
@@ -438,7 +437,7 @@ class TestGenerator:
             tasks.append({
                 'test_name': 'BOLA Path Trailing Slash Test',
                 'url': url,
-                'endpoint': path_obj.get('path'),
+                'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
                 'method': path_obj.get('http_method').upper(),
                 'body_params': request_body_params,
                 'query_params': request_query_params,
@@ -548,7 +547,7 @@ class TestGenerator:
             tasks.append({
                 'test_name': 'BOPLA Test',
                 'url': f'{base_url}{endpoint_path}',
-                'endpoint': path_obj.get('path'),
+                'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
                 'method': path_obj.get('http_method', '').upper(),
                 'body_params': request_body_params,
                 'query_params': request_query_params,
