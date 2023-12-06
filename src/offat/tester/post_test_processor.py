@@ -1,8 +1,14 @@
 from copy import deepcopy
+from enum import Enum
 from re import search as re_search, findall
 
 from .regexs import sensitive_data_regex_patterns
-from .test_runner import TestRunnerFiltersEnum
+
+
+class PostTestFiltersEnum(Enum):
+    STATUS_CODE_FILTER = 0
+    BODY_REGEX_FILTER = 1
+    HEADER_REGEX_FILTER = 2
 
 
 class PostRunTests:
@@ -170,11 +176,11 @@ class PostRunTests:
                 continue
 
             match match_location:
-                case TestRunnerFiltersEnum.STATUS_CODE_FILTER:
+                case PostTestFiltersEnum.STATUS_CODE_FILTER:
                     target_data = result.get('response_status_code')
-                case TestRunnerFiltersEnum.HEADER_REGEX_FILTER:
+                case PostTestFiltersEnum.HEADER_REGEX_FILTER:
                     target_data = result.get('response_body')
-                case _:  # TestRunnerFiltersEnum.BODY_REGEX_FILTER.name:
+                case _:  # PostTestFiltersEnum.BODY_REGEX_FILTER.name:
                     target_data = result.get('response_body')
 
             match_response = re_search(match_regex, target_data)
