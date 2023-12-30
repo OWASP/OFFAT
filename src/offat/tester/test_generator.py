@@ -91,15 +91,15 @@ class TestGenerator:
             body_params = endpoint_dict.get('body_params', [])
             path_params = endpoint_dict.get('path_params', [])
             query_params = endpoint_dict.get('query_params', [])
+            url = f'{openapi_parser.base_url}{endpoint}'
 
             http_methods: set = {'get', 'post', 'put', 'delete', 'options'}
             restricted_methods = http_methods - set(methods_allowed)
 
             for restricted_method in restricted_methods:
-
                 tasks.append({
                     'test_name': 'UnSupported HTTP Method Check',
-                    'url': f'{openapi_parser.base_url}{endpoint}',
+                    'url': url,
                     'endpoint': endpoint,
                     'method': restricted_method.upper(),
                     'malicious_payload': [],
@@ -179,8 +179,6 @@ class TestGenerator:
             path_params = path_obj.get('path_params', [])
             path_params += path_params_in_body
             path_params = fill_params(path_params)
-            # print(path_params)
-            # print('-'*30)
 
             for path_param in path_params:
                 path_param_name = path_param.get('name')
@@ -189,7 +187,7 @@ class TestGenerator:
                     '{' + str(path_param_name) + '}', str(path_param_value))
 
             tasks.append({
-                'url': f'{base_url}{endpoint_path}',
+                'url': f'{base_url}{openapi_parser.api_base_path}{endpoint_path}',
                 'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
                 'method': path_obj.get('http_method', '').upper(),
                 'body_params': request_body_params,
@@ -416,8 +414,6 @@ class TestGenerator:
             path_params = path_obj.get('path_params', [])
             path_params += path_params_in_body
             path_params = fill_params(path_params)
-            # print(path_params)
-            # print('-'*30)
 
             for path_param in path_params:
                 path_param_name = path_param.get('name')
@@ -505,7 +501,6 @@ class TestGenerator:
         '''
         base_url: str = openapi_parser.base_url
         request_response_params: list[dict] = openapi_parser.request_response_params
-        # pprint(request_response_params)
 
         tasks = []
         for path_obj in request_response_params:
@@ -528,8 +523,6 @@ class TestGenerator:
             path_params = path_obj.get('path_params', [])
             path_params += path_params_in_body
             path_params = fill_params(path_params)
-            # print(path_params)
-            # print('-'*30)
 
             for path_param in path_params:
                 path_param_name = path_param.get('name')
@@ -592,7 +585,6 @@ class TestGenerator:
         tests = test_generator_method(*args, **kwargs)
         new_tests = []
 
-        # pprint(user_data)
         actor1_data = user_data.get('actors', [])[0].get('actor1', {})
         actor2_data = user_data.get('actors', [])[1].get('actor2', {})
 
