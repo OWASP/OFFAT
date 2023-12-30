@@ -66,6 +66,7 @@ def generate_and_run_tests(api_parser: OpenAPIParser, regex_pattern: Optional[st
     logger.info(test_name)
     unsupported_http_endpoint_tests = test_generator.check_unsupported_http_methods(
         api_parser)
+
     results += run_test(
         test_runner=test_runner,
         tests=unsupported_http_endpoint_tests,
