@@ -6,7 +6,6 @@ from re import search as regex_search
 from .post_test_processor import PostRunTests
 from .test_generator import TestGenerator
 from .test_runner import TestRunner
-from ..report.templates.table import TestResultTable
 from ..report.generator import ReportGenerator
 from ..logger import logger
 from ..openapi import OpenAPIParser
@@ -63,15 +62,16 @@ def generate_and_run_tests(api_parser: OpenAPIParser, regex_pattern: Optional[st
     results: list = []
 
     # test for unsupported http methods
-    test_name = 'Checking for Unsupported HTTP methods:'
+    test_name = 'Checking for Unsupported HTTP Methods/Verbs:'
     logger.info(test_name)
     unsupported_http_endpoint_tests = test_generator.check_unsupported_http_methods(
-        api_parser.base_url, api_parser._get_endpoints())
+        api_parser)
+
     results += run_test(
         test_runner=test_runner,
         tests=unsupported_http_endpoint_tests,
         regex_pattern=regex_pattern,
-        description='(OAS) Checking for Unsupported HTTP methods:'
+        description='(FUZZED) ' + test_name
     )
 
     # sqli fuzz test

@@ -87,6 +87,8 @@ class ReportGenerator:
         else:
             if isinstance(report_file_content, Table) and report_file_content.columns:
                 TestResultTable().print_table(report_file_content)
+            elif isinstance(report_file_content, Table) and not report_file_content.columns:
+                logger.warning('No Columns found in Table.')
             else:
                 console.print(report_file_content)
 
