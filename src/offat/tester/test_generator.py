@@ -1,6 +1,6 @@
 from copy import deepcopy
 from .fuzzer import fill_params
-from .test_runner import TestRunnerFiltersEnum
+from .post_test_processor import PostTestFiltersEnum
 from .fuzzer import generate_random_int
 from ..openapi import OpenAPIParser
 from ..config_data_handler import populate_user_data
@@ -18,12 +18,6 @@ class TestGenerator:
     Methods:
         check_unsupported_http_methods: Checks whether endpoint supports undocumented/unsupported HTTP methods.
         sqli_fuzz_params: Performs SQL injection (SQLi) parameter fuzzing based on the provided OpenAPIParser instance.
-
-    # Examples:
-    #     generator = TestGenerator()
-    #     check1 = generator.generate_check1()
-    #     check2 = generator.generate_check2()
-
     """
 
     def __init__(self,  headers: dict = None) -> None:
@@ -44,9 +38,8 @@ class TestGenerator:
 
     def check_unsupported_http_methods(
         self,
-        base_url: str,
-        endpoints: list[tuple],
-        success_codes: list[int] = [200, 301],
+        openapi_parser: OpenAPIParser,
+        success_codes: list[int] = [200, 201, 301, 302],
         *args,
         **kwargs
     ):
@@ -55,7 +48,7 @@ class TestGenerator:
         Args:
             base_url (str): The base URL to check for unsupported HTTP methods.
             endpoints (list[tuple]): A list of tuples representing the endpoints to check. Each tuple should contain the endpoint path and the corresponding supported HTTP methods.
-            success_codes (list[int], optional): A list of HTTP success codes to consider as successful responses. Defaults to [200, 301].
+            success_codes (list[int], optional): A list of HTTP success codes to consider as successful responses. Defaults to [ 200, 201, 301, 302 ].
             *args: Variable-length positional arguments.
             **kwargs: Arbitrary keyword arguments.
 
@@ -66,16 +59,47 @@ class TestGenerator:
             Any exceptions raised during the execution.
         '''
         tasks = []
+        fuzzed_endpoints = self.__fuzz_request_params(openapi_parser)
+        endpoints_index = {}
 
-        for endpoint, methods_allowed in endpoints:
+        for fuzzed_endpoint_data in fuzzed_endpoints:
+            endpoint = fuzzed_endpoint_data['endpoint']
+            method = fuzzed_endpoint_data['method']
+
+            if endpoint not in endpoints_index:
+                endpoints_index[endpoint] = {
+                    'endpoints': [],
+                    'methods': [],
+                    'body_params': [],
+                    'query_params': [],
+                    'path_params': []
+                }
+
+            endpoints_index[endpoint]['endpoints'].append(fuzzed_endpoint_data)
+            if method not in endpoints_index[endpoint]['methods']:
+                endpoints_index[endpoint]['methods'].append(method.lower())
+
+            endpoints_index[endpoint]['body_params'].extend(
+                fuzzed_endpoint_data['body_params'])
+            endpoints_index[endpoint]['query_params'].extend(
+                fuzzed_endpoint_data['query_params'])
+            endpoints_index[endpoint]['path_params'].extend(
+                fuzzed_endpoint_data['path_params'])
+
+        for endpoint, endpoint_dict in endpoints_index.items():
+            methods_allowed = endpoint_dict.get('methods', [])
+            body_params = endpoint_dict.get('body_params', [])
+            path_params = endpoint_dict.get('path_params', [])
+            query_params = endpoint_dict.get('query_params', [])
+            url = f'{openapi_parser.base_url}{endpoint}'
+
             http_methods: set = {'get', 'post', 'put', 'delete', 'options'}
             restricted_methods = http_methods - set(methods_allowed)
 
             for restricted_method in restricted_methods:
-
                 tasks.append({
                     'test_name': 'UnSupported HTTP Method Check',
-                    'url': f'{base_url}{endpoint}',
+                    'url': url,
                     'endpoint': endpoint,
                     'method': restricted_method.upper(),
                     'malicious_payload': [],
@@ -85,11 +109,11 @@ class TestGenerator:
                         True: 'Endpoint does not perform any HTTP method which is not documented',  # passed
                         False: 'Endpoint performs HTTP method which is not documented',  # failed
                     },
-                    'body_params': [],
-                    'query_params': [],
-                    'path_params': [],
+                    'body_params': body_params,
+                    'query_params': query_params,
+                    'path_params': path_params,
                     'success_codes': success_codes,
-                    'response_filter': TestRunnerFiltersEnum.STATUS_CODE_FILTER.name
+                    'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name
                 })
 
         return tasks
@@ -155,8 +179,6 @@ class TestGenerator:
             path_params = path_obj.get('path_params', [])
             path_params += path_params_in_body
             path_params = fill_params(path_params)
-            # print(path_params)
-            # print('-'*30)
 
             for path_param in path_params:
                 path_param_name = path_param.get('name')
@@ -165,10 +187,9 @@ class TestGenerator:
                     '{' + str(path_param_name) + '}', str(path_param_value))
 
             tasks.append({
-                'test_name': 'BOLA Path Test with Fuzzed Params',
-                'url': f'{base_url}{endpoint_path}',
-                'endpoint': path_obj.get('path'),
-                'method': path_obj.get('http_method').upper(),
+                'url': f'{base_url}{openapi_parser.api_base_path}{endpoint_path}',
+                'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
+                'method': path_obj.get('http_method', '').upper(),
                 'body_params': request_body_params,
                 'query_params': request_query_params,
                 'path_params': path_params,
@@ -264,7 +285,7 @@ class TestGenerator:
                     False: 'One or more parameter is vulnerable to SQL Injection Attack',  # failed
                 }
                 request_obj['success_codes'] = success_codes
-                request_obj['response_filter'] = TestRunnerFiltersEnum.STATUS_CODE_FILTER.name
+                request_obj['response_filter'] = PostTestFiltersEnum.STATUS_CODE_FILTER.name
                 tasks.append(deepcopy(request_obj))
 
         return tasks
@@ -330,7 +351,7 @@ class TestGenerator:
             tasks.append({
                 'test_name': 'BOLA Path Test with Fuzzed Params',
                 'url': f'{base_url}{endpoint_path}',
-                'endpoint': path_obj.get('path'),
+                'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
                 'method': path_obj.get('http_method').upper(),
                 'body_params': request_body_params,
                 'query_params': request_query_params,
@@ -343,7 +364,7 @@ class TestGenerator:
                     False: 'Endpoint might be vulnerable to BOLA',  # failed
                 },
                 'success_codes': success_codes,
-                'response_filter': TestRunnerFiltersEnum.STATUS_CODE_FILTER.name
+                'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name
             })
 
         return tasks
@@ -393,8 +414,6 @@ class TestGenerator:
             path_params = path_obj.get('path_params', [])
             path_params += path_params_in_body
             path_params = fill_params(path_params)
-            # print(path_params)
-            # print('-'*30)
 
             for path_param in path_params:
                 path_param_name = path_param.get('name')
@@ -412,7 +431,7 @@ class TestGenerator:
             tasks.append({
                 'test_name': 'BOLA Path Trailing Slash Test',
                 'url': url,
-                'endpoint': path_obj.get('path'),
+                'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
                 'method': path_obj.get('http_method').upper(),
                 'body_params': request_body_params,
                 'query_params': request_query_params,
@@ -425,7 +444,7 @@ class TestGenerator:
                     False: 'Endpoint might be vulnerable to BOLA',  # failed
                 },
                 'success_codes': success_codes,
-                'response_filter': TestRunnerFiltersEnum.STATUS_CODE_FILTER.name
+                'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name
             })
 
         return tasks
@@ -482,7 +501,6 @@ class TestGenerator:
         '''
         base_url: str = openapi_parser.base_url
         request_response_params: list[dict] = openapi_parser.request_response_params
-        # pprint(request_response_params)
 
         tasks = []
         for path_obj in request_response_params:
@@ -505,8 +523,6 @@ class TestGenerator:
             path_params = path_obj.get('path_params', [])
             path_params += path_params_in_body
             path_params = fill_params(path_params)
-            # print(path_params)
-            # print('-'*30)
 
             for path_param in path_params:
                 path_param_name = path_param.get('name')
@@ -522,12 +538,11 @@ class TestGenerator:
             tasks.append({
                 'test_name': 'BOPLA Test',
                 'url': f'{base_url}{endpoint_path}',
-                'endpoint': path_obj.get('path'),
+                'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
                 'method': path_obj.get('http_method', '').upper(),
                 'body_params': request_body_params,
                 'query_params': request_query_params,
                 'path_params': path_params,
-                # TODO: check these params in response
                 'malicious_payload': response_body_params,
                 'args': args,
                 'kwargs': kwargs,
@@ -536,7 +551,7 @@ class TestGenerator:
                     False: 'Endpoint might be vulnerable to BOPLA',  # failed
                 },
                 'success_codes': success_codes,
-                'response_filter': TestRunnerFiltersEnum.STATUS_CODE_FILTER.name
+                'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name
             })
 
         return tasks
@@ -570,7 +585,6 @@ class TestGenerator:
         tests = test_generator_method(*args, **kwargs)
         new_tests = []
 
-        # pprint(user_data)
         actor1_data = user_data.get('actors', [])[0].get('actor1', {})
         actor2_data = user_data.get('actors', [])[1].get('actor2', {})
 
@@ -634,7 +648,7 @@ class TestGenerator:
                 request_obj['malicious_payload'] = payload
 
                 request_obj['result_details'] = result_details
-                request_obj['response_filter'] = TestRunnerFiltersEnum.BODY_REGEX_FILTER.name
+                request_obj['response_filter'] = PostTestFiltersEnum.BODY_REGEX_FILTER.name
                 request_obj['response_match_regex'] = payload_dict.get(
                     'response_match_regex')
 

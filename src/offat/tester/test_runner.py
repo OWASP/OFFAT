@@ -11,13 +11,6 @@ from ..logger import logger
 from ..logger import console
 
 
-# TODO: move filters to post processing module
-class TestRunnerFiltersEnum(Enum):
-    STATUS_CODE_FILTER = 0
-    BODY_REGEX_FILTER = 1
-    HEADER_REGEX_FILTER = 2
-
-
 class PayloadFor(Enum):
     BODY = 0
     QUERY = 1
@@ -139,6 +132,7 @@ class TestRunner:
             results = await gather(*tasks)
             return results
         except Exception as e:
-            print(f'[*] Exception occurred while gathering results: {e}')
+            console.print(
+                f'[*] Exception occurred while gathering results: {e}')
             print_exc()
             return []
