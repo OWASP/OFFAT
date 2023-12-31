@@ -132,6 +132,7 @@ class TestRunner:
             results = await gather(*tasks)
             return results
         except Exception as e:
-            print(f'[*] Exception occurred while gathering results: {e}')
+            console.print(
+                f'[*] Exception occurred while gathering results: {e}')
             print_exc()
             return []
