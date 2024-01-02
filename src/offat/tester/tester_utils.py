@@ -82,7 +82,17 @@ def generate_and_run_tests(api_parser: OpenAPIParser, regex_pattern: Optional[st
         test_runner=test_runner,
         tests=sqli_fuzz_tests,
         regex_pattern=regex_pattern,
-        description='(FUZZED) Checking for SQLi vulnerability:',
+        description=f'(FUZZED) {test_name}',
+    )
+
+    test_name = 'Checking for SQLi vulnerability in URI Path:'
+    logger.info(test_name)
+    sqli_fuzz_tests = test_generator.sqli_in_uri_path_fuzz_test(api_parser)
+    results += run_test(
+        test_runner=test_runner,
+        tests=sqli_fuzz_tests,
+        regex_pattern=regex_pattern,
+        description=f'(FUZZED) {test_name}',
     )
 
     # OS Command Injection Fuzz Test
