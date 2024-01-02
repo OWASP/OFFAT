@@ -94,6 +94,9 @@ class ReportGenerator:
 
     @staticmethod
     def generate_report(results: list[dict], report_format: str | None, report_path: str | None):
+        if report_path:
+            report_format = report_path.split('.')[-1]
+
         formatted_results = ReportGenerator.handle_report_format(
             results=results, report_format=report_format)
         ReportGenerator.save_report(
