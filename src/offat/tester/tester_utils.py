@@ -1,5 +1,5 @@
 from asyncio import run
-from copy import deepcopy
+from http import client as http_client
 from typing import Optional
 from re import search as regex_search
 
@@ -8,11 +8,38 @@ from .test_generator import TestGenerator
 from .test_runner import TestRunner
 from ..report.generator import ReportGenerator
 from ..logger import logger
+from ..http import AsyncRequests
 from ..openapi import OpenAPIParser
 
 
 # create tester objs
 test_generator = TestGenerator()
+
+
+def is_host_up(openapi_parser: OpenAPIParser) -> bool:
+    tokens = openapi_parser.host.split(":")
+    match len(tokens):
+        case 1:
+            host = tokens[0]
+            port = 443 if openapi_parser.http_scheme == "https" else 80
+        case 2:
+            host = tokens[0]
+            port = tokens[1]
+        case _:
+            logger.warning(f"Invalid host: {openapi_parser.host}")
+            return False
+
+    logger.info(f"Checking whether host {host}:{port} is available")
+    try:
+        conn = http_client.HTTPConnection(host=host, port=port, timeout=5)
+        conn.request("GET", "/")
+        res = conn.getresponse()
+        logger.info(f"Host returned status code: {res.status}")
+        return res.status in range(200, 499)
+    except Exception as e:
+        logger.error(
+            f"Unable to connect to host {host}:{port} due to error: {e}")
+        return False
 
 
 def run_test(test_runner: TestRunner, tests: list[dict], regex_pattern: Optional[str] = None, skip_test_run: Optional[bool] = False, post_run_matcher_test: Optional[bool] = False, description: Optional[str] = None) -> list:
@@ -50,6 +77,12 @@ def run_test(test_runner: TestRunner, tests: list[dict], regex_pattern: Optional
 # Note: redirects are allowed by default making it easier for pentesters/researchers
 def generate_and_run_tests(api_parser: OpenAPIParser, regex_pattern: Optional[str] = None, output_file: Optional[str] = None, output_file_format: Optional[str] = None, rate_limit: Optional[int] = None, delay: Optional[float] = None, req_headers: Optional[dict] = None, proxy: Optional[str] = None, ssl: Optional[bool] = True, test_data_config: Optional[dict] = None):
     global test_table_generator, logger
+
+    if not is_host_up(openapi_parser=api_parser):
+        logger.error(
+            f"Stopping tests due to unavailibility of host: {api_parser.host}")
+        return
+    logger.info(f"Host {api_parser.host} is up")
 
     test_runner = TestRunner(
         rate_limit=rate_limit,
