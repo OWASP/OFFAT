@@ -272,10 +272,17 @@ def generate_and_run_tests(api_parser: OpenAPIParser, regex_pattern: Optional[st
         )
 
     # save file to output if output flag is present
+    if output_file_format != 'table':
+        ReportGenerator.generate_report(
+            results=results,
+            report_format=output_file_format,
+            report_path=output_file,
+        )
+
     ReportGenerator.generate_report(
         results=results,
-        report_format=output_file_format,
-        report_path=output_file,
+        report_format='table',
+        report_path=None,
     )
 
     return results
