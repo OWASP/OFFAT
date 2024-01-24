@@ -91,6 +91,7 @@ class TestRunner:
             logger.error('Connection Failed! Server refused Connection!!')
         except ClientProxyConnectionError as e:
             logger.error(f'Proxy Connection Error: {e}')
+        # TODO: handle exception here
 
         test_result = test_task
 
