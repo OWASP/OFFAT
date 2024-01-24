@@ -50,9 +50,9 @@ class AsyncRequests:
             dict: returns request and response data as dict
         '''
         is_new_session = False
-        connector = TCPConnector(ssl=self._ssl, limit=self._rate_limit,)
 
         if not session:
+            connector = TCPConnector(ssl=self._ssl, limit=self._rate_limit,)
             session = ClientSession(headers=self._headers, connector=connector)
             is_new_session = True
 
