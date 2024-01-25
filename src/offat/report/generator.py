@@ -64,6 +64,7 @@ class ReportGenerator:
                     'results': results,
                 })
             case _:  # default: CLI table
+                # TODO: filter failed requests first and then create new table for failed requests
                 report_format = 'table'
                 results_table = TestResultTable().generate_result_table(
                     deepcopy(results))
