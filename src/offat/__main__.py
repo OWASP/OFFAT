@@ -37,9 +37,7 @@ def start():
     parser.add_argument('-v', '--version', action='version',
                         version=f'%(prog)s {get_package_version()}')
     parser.add_argument('-rl', '--rate-limit', dest='rate_limit',
-                        help='API requests rate limit. -dr should be passed in order to use this option', type=int, default=None, required=False)
-    parser.add_argument('-dr', '--delay-rate', dest='delay_rate',
-                        help='API requests delay rate in seconds. -rl should be passed in order to use this option', type=float, default=None, required=False)
+                        help='API requests rate limit per second', type=float, default=60, required=False)
     parser.add_argument('-pr', '--path-regex', dest='path_regex_pattern', type=str,
                         help='run tests for paths matching given regex pattern', required=False, default=None)
     parser.add_argument('-o', '--output', dest='output_file', type=str,
@@ -52,21 +50,14 @@ def start():
                         help='YAML file containing user test data for tests', required=False, type=str)
     parser.add_argument('-p', '--proxy', dest='proxy',
                         help='Proxy server URL to route HTTP requests through (e.g., "http://proxyserver:port")', required=False, type=str)
-    parser.add_argument('-ns', '--no-ssl', dest='no_ssl', help='Ignores SSL verification when enabled',
-                        action='store_true', required=False)  # False -> ignore SSL, True -> enforce SSL check
     args = parser.parse_args()
 
     # convert req headers str to dict
     headers_dict: dict = headers_list_to_dict(args.headers)
 
     # handle rate limiting options
+    # TODO: allow user to opt out of rate limit
     rate_limit = args.rate_limit
-    delay_rate = args.delay_rate
-
-    # if any is not set, then set both to None
-    if (rate_limit and not delay_rate) or (not rate_limit and delay_rate):
-        rate_limit = None
-        delay_rate = None
 
     # handle test user data config file
     test_data_config = args.test_data_config
@@ -83,7 +74,6 @@ def start():
         output_file_format=args.output_format,
         req_headers=headers_dict,
         rate_limit=rate_limit,
-        delay=delay_rate,
         test_data_config=test_data_config,
         proxy=args.proxy,
         ssl=args.no_ssl,
