@@ -50,8 +50,6 @@ def start():
                         help='YAML file containing user test data for tests', required=False, type=str)
     parser.add_argument('-p', '--proxy', dest='proxy',
                         help='Proxy server URL to route HTTP requests through (e.g., "http://proxyserver:port")', required=False, type=str)
-    parser.add_argument('-ns', '--no-ssl', dest='no_ssl', help='Ignores SSL verification when enabled',
-                        action='store_true', required=False)  # False -> ignore SSL, True -> enforce SSL check
     args = parser.parse_args()
 
     # convert req headers str to dict
