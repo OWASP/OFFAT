@@ -1,9 +1,7 @@
 from asyncio import ensure_future, gather
-from aiohttp.client_exceptions import ClientProxyConnectionError
 from enum import Enum
 from rich.progress import Progress, TaskID
 from traceback import print_exc
-from typing import Optional
 
 
 from ..http import AsyncRequests
@@ -17,11 +15,11 @@ class PayloadFor(Enum):
 
 
 class TestRunner:
-    def __init__(self, rate_limit: Optional[int] = None, delay: Optional[float] = None, headers: Optional[dict] = None, proxy: Optional[str] = None, ssl: Optional[bool] = True) -> None:
+    def __init__(self, rate_limit: float = 60, headers: dict | None = None, proxy: str | None = None, ssl: bool = True) -> None:
         self._client = AsyncRequests(
-            rate_limit=rate_limit, delay=delay, headers=headers, proxy=proxy, ssl=ssl)
+            rate_limit=rate_limit, headers=headers, proxy=proxy, ssl=ssl)
         self.progress = Progress(console=console)
-        self.progress_task_id: Optional[TaskID] = None
+        self.progress_task_id: TaskID | None = None
 
     def _generate_payloads(self, params: list[dict], payload_for: PayloadFor = PayloadFor.BODY):
         '''Generate body payload from passed data for HTTP body and query.
@@ -85,24 +83,29 @@ class TestRunner:
             kwargs['params'] = self._generate_payloads(
                 query_params, payload_for=PayloadFor.QUERY)
 
+        test_result = test_task
         try:
             response = await self._client.request(url=url, method=http_method, *args, **kwargs)
-        except ConnectionRefusedError:
-            logger.error('Connection Failed! Server refused Connection!!')
-        except ClientProxyConnectionError as e:
-            logger.error(f'Proxy Connection Error: {e}')
-        # TODO: handle exception here
+            # add request headers to result
+            test_result['request_headers'] = response.get('req_headers', [])
+            # append response headers and body for analyzing data leak
+            res_body = response.get('res_body', 'No Response Body Found')
+            test_result['response_headers'] = response.get('res_headers')
+            test_result['response_body'] = res_body
+            test_result['response_status_code'] = response.get('status')
+            test_result['redirection'] = response.get('res_redirection', '')
+            test_result['error'] = False
 
-        test_result = test_task
+        except Exception as e:
+            test_result['request_headers'] = []
+            test_result['response_headers'] = []
+            test_result['response_body'] = 'No Response Body Found'
+            test_result['response_status_code'] = -1
+            test_result['redirection'] = ''
+            test_result['error'] = True
 
-        # add request headers to result
-        test_result['request_headers'] = response.get('req_headers', [])
-        # append response headers and body for analyzing data leak
-        res_body = response.get('res_body', 'No Response Body Found')
-        test_result['response_headers'] = response.get('res_headers')
-        test_result['response_body'] = res_body
-        test_result['response_status_code'] = response.get('status')
-        test_result['redirection'] = response.get('res_redirection', '')
+            logger.error(f'Unable to send request due to error: {e}')
+            logger.error(locals())
 
         # advance progress bar
         if self.progress_task_id:
@@ -115,7 +118,7 @@ class TestRunner:
 
         return test_result
 
-    async def run_tests(self, test_tasks: list, description: Optional[str]):
+    async def run_tests(self, test_tasks: list, description: str | None):
         '''run tests generated from test generator module'''
         self.progress.start()
         self.progress_task_id = self.progress.add_task(
