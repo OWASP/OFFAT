@@ -86,7 +86,6 @@ def generate_and_run_tests(api_parser: OpenAPIParser, regex_pattern: Optional[st
 
     test_runner = TestRunner(
         rate_limit=rate_limit,
-        delay=delay,
         headers=req_headers,
         proxy=proxy,
         ssl=ssl,
