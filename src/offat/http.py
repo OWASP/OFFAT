@@ -17,7 +17,7 @@ class AsyncRequests:
     AsyncRequests class helps to send HTTP requests with rate limiting options.
     '''
 
-    def __init__(self, rate_limit: float = 50, headers: dict | None = None, proxy: str | None = None, ssl: bool = True, allow_redirects: bool = True, timeout: float = 60) -> None:
+    def __init__(self, rate_limit: float = 50, headers: dict | None = None, proxy: str | None = None, allow_redirects: bool = True, timeout: float = 60) -> None:
         '''AsyncRequests class constructor
 
         Args:
@@ -26,7 +26,6 @@ class AsyncRequests:
             headers (dict): overrides default headers while sending HTTP requests
             proxy (str): proxy URL to be used while sending requests
             timeout (float): total timeout parameter of aiohttp.ClientTimeout
-            ssl (bool): ignores few SSL errors if value is False
 
         Returns:
             None
