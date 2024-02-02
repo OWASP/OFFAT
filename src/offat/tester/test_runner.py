@@ -48,11 +48,6 @@ class TestRunner:
             param_in = param.get('in')
             param_name = param.get('name')
             param_value = param.get('value')
-            # TODO: None is getting in param_value since value
-            # in JSON schema is different for swagger and OAS
-            # Apply fix where data is populated
-            # {'name': 'password', 'in': 'query', 'description': 'The password for login in clear text', 'required': True, 'schema': {'type': 'string'}}
-            # {'password': None}
 
             # TODO:handle schema
 
