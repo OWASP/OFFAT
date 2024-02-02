@@ -6,11 +6,11 @@ from offat.logger import logger
 from os import uname, environ
 
 
-logger.info(f'Secret Key: {auth_secret_key}')
+logger.info('Secret Key: %s', auth_secret_key)
 
 
-if uname().sysname == 'Darwin' and environ.get('OBJC_DISABLE_INITIALIZE_FORK_SAFETY') != 'YES':
-    logger.warning('Mac Users might need to configure OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES in env\nVisit StackOverFlow link for more info: https://stackoverflow.com/questions/50168647/multiprocessing-causes-python-to-crash-and-gives-an-error-may-have-been-in-progr')
+# if uname().sysname == 'Darwin' and environ.get('OBJC_DISABLE_INITIALIZE_FORK_SAFETY') != 'YES':
+# logger.warning('Mac Users might need to configure OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES in env\nVisit StackOverFlow link for more info: https://stackoverflow.com/questions/50168647/multiprocessing-causes-python-to-crash-and-gives-an-error-may-have-been-in-progr')
 
 
 @app.get('/', status_code=status.HTTP_200_OK)
@@ -30,8 +30,7 @@ async def add_scan_task(scan_data: CreateScanModel, request: Request, response: 
     if secret_key != auth_secret_key:
         # return 404 for better endpoint security
         response.status_code = status.HTTP_401_UNAUTHORIZED
-        logger.warning(
-            f'INTRUSION: {client_ip} tried to create a new scan job')
+        logger.warning('INTRUSION: %s tried to create a new scan job', client_ip)
         return {"message": "Unauthorized"}
 
     msg = {
@@ -42,7 +41,7 @@ async def add_scan_task(scan_data: CreateScanModel, request: Request, response: 
     job = task_queue.enqueue(scan_api, scan_data,  job_timeout=task_timeout)
     msg['job_id'] = job.id
 
-    logger.info(f'SUCCESS: {client_ip} created new scan job - {job.id}')
+    logger.info('SUCCESS: %s created new scan job - %s', client_ip, job.id)
 
     return msg
 
@@ -55,13 +54,12 @@ async def get_scan_task_result(job_id: str, request: Request, response: Response
     if secret_key != auth_secret_key:
         # return 404 for better endpoint security
         response.status_code = status.HTTP_401_UNAUTHORIZED
-        logger.warning(
-            f'INTRUSION: {client_ip} tried to access {job_id} job scan results')
+        logger.warning('INTRUSION: %s tried to access %s job scan results', client_ip, job_id)
         return {"message": "Unauthorized"}
 
     scan_results_job = task_queue.fetch_job(job_id=job_id)
 
-    logger.info(f'SUCCESS: {client_ip} accessed {job_id} job scan results')
+    logger.info('SUCCESS: %s accessed %s job scan results', client_ip, job_id)
 
     msg = 'Task Remaining or Invalid Job Id'
     results = None

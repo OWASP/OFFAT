@@ -1,14 +1,13 @@
 from asyncio import run
 from http import client as http_client
 from typing import Optional
-from re import search as regex_search, compile
+from re import search as regex_search
 
 from .post_test_processor import PostRunTests
 from .test_generator import TestGenerator
 from .test_runner import TestRunner
 from ..report.generator import ReportGenerator
 from ..logger import logger
-from ..http import AsyncRequests
 from ..openapi import OpenAPIParser
 
 
@@ -26,7 +25,7 @@ def is_host_up(openapi_parser: OpenAPIParser) -> bool:
             host = tokens[0]
             port = tokens[1]
         case _:
-            logger.warning(f"Invalid host: {openapi_parser.host}")
+            logger.warning("Invalid host: %s", openapi_parser.host)
             return False
 
     host = host.split('/')[0]
@@ -37,22 +36,21 @@ def is_host_up(openapi_parser: OpenAPIParser) -> bool:
         case _:
             proto = http_client.HTTPConnection
 
-    logger.info(f"Checking whether host {host}:{port} is available")
+    logger.info("Checking whether host %s:%d is available", host, port)
     try:
         conn = proto(host=host, port=port, timeout=5)
         conn.request("GET", "/")
         res = conn.getresponse()
-        logger.info(f"Host returned status code: {res.status}")
+        logger.info("Host returned status code: %d", res.status)
         return res.status in range(200, 499)
     except Exception as e:
-        logger.error(
-            f"Unable to connect to host {host}:{port} due to error: {e}")
+        logger.error("Unable to connect to host %s:%d due to error: %s", host, port, repr(e))
         return False
 
 
 def run_test(test_runner: TestRunner, tests: list[dict], regex_pattern: Optional[str] = None, skip_test_run: Optional[bool] = False, post_run_matcher_test: Optional[bool] = False, description: Optional[str] = None) -> list:
     '''Run tests and print result on console'''
-    logger.info(f'Tests Generated: {len(tests)}')
+    logger.info('Tests Generated: %d', len(tests))
 
     # filter data if regex is passed
     if regex_pattern:
@@ -89,9 +87,10 @@ def generate_and_run_tests(api_parser: OpenAPIParser, regex_pattern: Optional[st
     global test_table_generator, logger
 
     if not is_host_up(openapi_parser=api_parser):
-        logger.error(f"Stopping tests due to unavailibility of host: {api_parser.host}")
+        logger.error("Stopping tests due to unavailibility of host: %s", api_parser.host)
         return
-    logger.info(f"Host {api_parser.host} is up")
+
+    logger.info("Host %s is up", api_parser.host)
 
     test_runner = TestRunner(
         rate_limit=rate_limit,

@@ -6,8 +6,7 @@ from rich.progress import Progress, TaskID
 
 
 from ..http import AsyncRequests
-from ..logger import logger
-from ..logger import console
+from ..logger import logger, console
 
 
 class PayloadFor(Enum):
@@ -107,7 +106,7 @@ class TestRunner:
             test_result['error'] = True
 
             logger.debug('Exception Debug Data:', exc_info=exc_info())
-            logger.error(f'Unable to send request due to error: {e}')
+            logger.error('Unable to send request due to error: %s', e)
             logger.error(locals())
 
         # advance progress bar
