@@ -14,4 +14,4 @@ logging.basicConfig(
         console=console, rich_tracebacks=True, tracebacks_show_locals=True)],
 )
 logger = logging.getLogger("OWASP-OFFAT")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
