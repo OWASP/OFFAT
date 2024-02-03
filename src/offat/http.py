@@ -1,7 +1,6 @@
-from aiohttp import ClientSession, ClientTimeout, TCPConnector
+from aiohttp import ClientSession, ClientTimeout
 from aiolimiter import AsyncLimiter
 from os import name as os_name
-from typing import Optional
 
 
 import asyncio

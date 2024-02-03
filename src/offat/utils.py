@@ -98,22 +98,20 @@ def write_json_to_file(json_data: dict, file_path: str):
         Any exception occurred during operation
     '''
     if isfile(file_path):
-        logger.info(f'{file_path} file will be overwritten.')
+        logger.info('%s file will be overwritten.', file_path)
 
-    logger.info(f'Writing data to file: {file_path}')
+    logger.info('Writing data to file: %s', file_path)
     try:
         with open(file_path, 'w') as f:
             f.write(json_dumps(json_data))
-            logger.info(f'Completed writing data to file: {file_path}')
+            logger.info('Completed writing data to file: %s', file_path)
             return True
 
     except JSONDecodeError:
-        logger.error(
-            f'Invalid JSON data, error while writing to {file_path} file.')
+        logger.error('Invalid JSON data, error while writing to %s file.', file_path)
 
     except Exception as e:
-        logger.error(
-            f'Unable to write JSON data to file due to below exception:\n{repr(e)}')
+        logger.error('Unable to write JSON data to file due to below exception:\n%s', repr(e))
 
     return False
 

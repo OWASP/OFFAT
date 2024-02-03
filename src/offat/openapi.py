@@ -1,9 +1,12 @@
+'''
+module to parse openapi documentation JSON/YAML files.
+'''
 from prance import ResolvingParser
 from .logger import logger
 
 
 class OpenAPIParser:
-    ''''''
+    '''openapi parser'''
 
     def __init__(self, fpath_or_url: str, spec: dict = None) -> None:
         self._parser = ResolvingParser(
@@ -15,34 +18,52 @@ class OpenAPIParser:
             logger.error('Specification file is invalid!')
 
         self._spec = self._parser.specification
+        self._oas_version = self._get_oas_version()
 
         self.hosts = []
         self._populate_hosts()
         self.host = self.hosts[0]
 
-        self.http_scheme = 'https' if 'https' in self._spec.get(
-            'schemes', []) else 'http'
+        self.http_scheme = self._get_scheme()
         self.api_base_path = self._spec.get('basePath', '')
         self.base_url = f"{self.http_scheme}://{self.host}"
         self.request_response_params = self._get_request_response_params()
 
+    def _get_oas_version(self):
+        if self._spec.get('openapi'):
+            return 3
+        return 2
+
     def _populate_hosts(self):
-        if self._spec.get('openapi'):  # for openapi v3
+        if self._oas_version == 3:
             servers = self._spec.get('servers', [])
             hosts = []
             for server in servers:
                 host = server.get('url', '').removeprefix(
-                    'http://').removeprefix('http://').removesuffix('/')
+                    'https://').removeprefix('http://').removesuffix('/')
                 host = None if host == '' else host
                 hosts.append(host)
         else:
-            host = self._spec.get('host')  # for swagger files
+            host = self._spec.get('host')
             if not host:
                 logger.error('Invalid Host: Host is missing')
                 raise ValueError('Host Not Found in spec file')
             hosts = [host]
 
         self.hosts = hosts
+
+    def _get_scheme(self):
+        if self._oas_version == 3:
+            servers = self._spec.get('servers', [])
+            schemes = []
+            for server in servers:
+                schemes.append('https' if 'https://' in server.get('url', '') else 'http')
+
+            scheme = 'https' if 'https' in schemes else 'http'
+        else:
+            scheme = 'https' if 'https' in self._spec.get('schemes', []) else 'http'
+
+        return scheme
 
     def _get_endpoints(self):
         '''Returns list of endpoint paths along with HTTP methods allowed'''
