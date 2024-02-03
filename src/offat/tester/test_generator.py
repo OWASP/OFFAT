@@ -2,7 +2,7 @@ from copy import deepcopy
 from .fuzzer import fill_params
 from .post_test_processor import PostTestFiltersEnum
 from .fuzzer import generate_random_int
-from ..openapi import OpenAPIParser
+from ..parsers.openapi import OpenAPIParser
 from ..config_data_handler import populate_user_data
 
 

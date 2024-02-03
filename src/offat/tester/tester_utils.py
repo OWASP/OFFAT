@@ -8,7 +8,7 @@ from .test_generator import TestGenerator
 from .test_runner import TestRunner
 from ..report.generator import ReportGenerator
 from ..logger import logger
-from ..openapi import OpenAPIParser
+from ..parsers.openapi import OpenAPIParser
 
 
 # create tester objs
