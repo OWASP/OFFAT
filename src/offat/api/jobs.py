@@ -1,7 +1,7 @@
 from sys import exc_info
 from offat.api.models import CreateScanModel
 from offat.tester.tester_utils import generate_and_run_tests
-from offat.parsers.openapi import OpenAPIParser
+from offat.parsers import OpenAPIParser
 from offat.logger import logger
 
 

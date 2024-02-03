@@ -8,7 +8,7 @@ class InvalidSpecVersion(Exception):
     pass
 
 
-class Parser:
+class BaseParser:
     def __init__(self, file_or_url: str, spec: dict = None) -> None:
         if spec:
             self.specification = spec

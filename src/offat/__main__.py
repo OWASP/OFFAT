@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 
 from .config_data_handler import validate_config_file_data
 from .tester.tester_utils import generate_and_run_tests
-from .parsers.openapi import OpenAPIParser
+from .parsers import create_parser
 from .utils import get_package_version, headers_list_to_dict, read_yaml
 
 
@@ -66,7 +66,7 @@ def start():
         test_data_config = validate_config_file_data(test_data_config)
 
     # parse args and run tests
-    api_parser = OpenAPIParser(args.fpath)
+    api_parser = create_parser(args.fpath)
     generate_and_run_tests(
         api_parser=api_parser,
         regex_pattern=args.path_regex_pattern,

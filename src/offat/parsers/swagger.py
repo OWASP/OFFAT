@@ -1,7 +1,7 @@
 '''
 module to parse Swagger v2 documentation JSON/YAML files.
 '''
-from .utils import Parser
+from .parser import BaseParser
 from ..logger import logger
 
 
@@ -9,7 +9,7 @@ class InvalidSwaggerFile(Exception):
     '''Exception to be raised when swagger spec validation fails'''
 
 
-class SwaggerParser(Parser):
+class SwaggerParser(BaseParser):
     '''Swagger Spec file Parser'''
     # while adding new method to this class, make sure same method is present in OpenAPIv3Parser class
 
@@ -113,7 +113,3 @@ class SwaggerParser(Parser):
                 })
 
         return requests
-
-
-if __name__ == "__main__":
-    SwaggerParser("/Users/apple/repos/OWASP/OFFAT/src/test-files/swagger.json")

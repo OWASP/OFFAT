@@ -1,14 +1,14 @@
 '''
 module to parse OAS v3 documentation JSON/YAML files.
 '''
-from .utils import Parser
+from .parser import BaseParser
 
 
 class InvalidOpenAPIv3File(Exception):
     '''Exception to be raised when openAPI/OAS spec validation fails'''
 
 
-class OpenAPIv3Parser(Parser):
+class OpenAPIv3Parser(BaseParser):
     '''OpenAPI v3 Spec File Parser'''
     # while adding new method to this class, make sure same method is present in SwaggerParser class
 
@@ -129,7 +129,6 @@ class OpenAPIv3Parser(Parser):
                         'schema': body_param,
                     })
 
-                # BUG: below code doesn't parse data
                 response_params = []
                 response_params = self._get_response_definition_schema(
                     paths[path][http_method].get('responses', {}))
@@ -146,7 +145,3 @@ class OpenAPIv3Parser(Parser):
                 })
 
         return requests
-
-
-if __name__ == "__main__":
-    OpenAPIv3Parser("/Users/apple/repos/OWASP/OFFAT/src/test-files/oas.yml")

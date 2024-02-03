@@ -111,8 +111,7 @@ class TestRunner:
 
         # advance progress bar
         if self.progress_task_id:
-            self.progress.update(self.progress_task_id,
-                                 advance=1, refresh=True)
+            self.progress.update(self.progress_task_id, advance=1, refresh=True)
 
         if self.progress and self.progress.finished:
             self.progress.stop()
