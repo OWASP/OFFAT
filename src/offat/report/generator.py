@@ -53,8 +53,7 @@ class ReportGenerator:
                 logger.warning('HTML output format displays only basic data.')
                 result = ReportGenerator.generate_html_report(results=results)
             case 'yaml':
-                logger.warning(
-                    'YAML output format needs to be sanitized before using it further.')
+                logger.warning('YAML output format needs to be sanitized before using it further.')
                 result = yaml_dump({
                     'results': results,
                 })
@@ -70,7 +69,7 @@ class ReportGenerator:
                     deepcopy(results))
                 result = results_table
 
-        logger.info(f'Generated {report_format.upper()} format report.')
+        logger.info('Generated %s format report.', report_format.upper())
         return result
 
     @staticmethod
@@ -83,7 +82,7 @@ class ReportGenerator:
         # print to cli if report path and file content as absent else write to file location.
         if report_path and report_file_content and not isinstance(report_file_content, Table):
             with open(report_path, 'w') as f:
-                logger.info(f'Writing report to file: {report_path}')
+                logger.info('Writing report to file: %s', report_path)
                 f.write(report_file_content)
         else:
             if isinstance(report_file_content, Table) and report_file_content.columns:
