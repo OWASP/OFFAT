@@ -8,14 +8,14 @@ from .test_generator import TestGenerator
 from .test_runner import TestRunner
 from ..report.generator import ReportGenerator
 from ..logger import logger
-from ..parsers.openapi import OpenAPIParser
+from ..parsers import SwaggerParser, OpenAPIv3Parser
 
 
 # create tester objs
 test_generator = TestGenerator()
 
 
-def is_host_up(openapi_parser: OpenAPIParser) -> bool:
+def is_host_up(openapi_parser: SwaggerParser | OpenAPIv3Parser) -> bool:
     '''checks whether the host from openapi doc is available or not. 
     Returns True is host is available else returns False'''
     tokens = openapi_parser.host.split(":")
@@ -66,8 +66,7 @@ def run_test(test_runner: TestRunner, tests: list[dict], regex_pattern: Optional
     if skip_test_run:
         test_results = tests
     else:
-        test_results = run(test_runner.run_tests(
-            tests, description))
+        test_results = run(test_runner.run_tests(tests, description))
 
     if post_run_matcher_test:
         test_results = PostRunTests.matcher(test_results)
@@ -85,7 +84,7 @@ def run_test(test_runner: TestRunner, tests: list[dict], regex_pattern: Optional
 
 
 # Note: redirects are allowed by default making it easier for pentesters/researchers
-def generate_and_run_tests(api_parser: OpenAPIParser, regex_pattern: Optional[str] = None, output_file: Optional[str] = None, output_file_format: Optional[str] = None, rate_limit: Optional[int] = None, req_headers: Optional[dict] = None, proxy: Optional[str] = None, test_data_config: Optional[dict] = None):
+def generate_and_run_tests(api_parser: SwaggerParser | OpenAPIv3Parser, regex_pattern: Optional[str] = None, output_file: Optional[str] = None, output_file_format: Optional[str] = None, rate_limit: Optional[int] = None, req_headers: Optional[dict] = None, proxy: Optional[str] = None, test_data_config: Optional[dict] = None):
     global test_table_generator, logger
 
     if not is_host_up(openapi_parser=api_parser):

@@ -78,36 +78,47 @@ def fill_schema_params(params: dict[dict], param_in: str = None, is_required: bo
     return schema_params
 
 
-def fill_params(params: list[dict]):
+def fuzz_type_value(param_type: str, param_name: str):
+    match param_type:
+        case 'string':
+            param_value = fuzz_string_type(param_name)
+
+        case 'integer':
+            param_value = generate_random_int()
+
+        # TODO: handle file and array type
+
+        case _:  # default case
+            param_value = generate_random_string(10)
+
+    return param_value
+
+
+def fill_params(params: list[dict], is_v3: bool) -> list[dict]:
+    '''fills params for OAS/swagger specs'''
     schema_params = []
     for index in range(len(params)):
-        param_type = params[index].get('type')
+        param_type = params[index].get('schema', {}).get(
+            'type') if is_v3 else params[index].get('type')
         param_is_required = params[index].get('required')
         param_in = params[index].get('in')
         param_name = params[index].get('name', '')
-        # for OAS 3
-        is_oas_v3 = False
-        if not param_type:
-            is_oas_v3 = True
-            param_type = params[index].get('schema', {}).get('type')
 
-        match param_type:
-            case 'string':
-                # param_value = generate_random_chars(10)
-                param_value = fuzz_string_type(param_name)
+        param_value = fuzz_type_value(param_type=param_type, param_name=param_name)
 
-            case 'integer':
-                param_value = generate_random_int()
-
-            # TODO: handle file and array type
-
-            case _:  # default case
-                param_value = generate_random_string(10)
-
-        if params[index].get('schema') and not is_oas_v3:
-            schema_obj = params[index].get('schema', {}).get('properties', {})
-            filled_schema_params = fill_schema_params(
-                schema_obj, param_in, param_is_required)
+        if params[index].get('schema'):
+            schema_type = params[index].get('schema', {}).get('type')
+            if schema_type == "object":
+                schema_obj = params[index].get('schema', {}).get('properties', {})
+                filled_schema_params = fill_schema_params(
+                    schema_obj, param_in, param_is_required)
+            else:
+                filled_schema_params = [{
+                    'in': param_in,
+                    'name': param_name,
+                    'required': param_is_required,
+                    'value': param_value
+                }]
 
             schema_params.append(filled_schema_params)
         else:
