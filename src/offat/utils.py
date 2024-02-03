@@ -1,8 +1,9 @@
 from json import loads as json_load, dumps as json_dumps, JSONDecodeError
-from pkg_resources import get_distribution
+# from pkg_resources import get_distribution
 from os.path import isfile
 from yaml import safe_load, YAMLError
 from .logger import logger
+from re import compile, match
 
 
 def get_package_version():
@@ -14,7 +15,8 @@ def get_package_version():
     Returns:
         String: current package version
     '''
-    return get_distribution('offat').version
+    # return get_distribution('offat').version
+    return 3
 
 
 def read_yaml(file_path: str) -> dict:
@@ -169,3 +171,22 @@ def headers_list_to_dict(headers_list_list: list[list[str]]) -> dict | None:
             response_headers_dict[k] = v
 
     return response_headers_dict
+
+
+def is_valid_url(url: str) -> bool:
+    '''Accepts string as an parameter and returns bool 
+    whether str is url or not
+
+    Args:
+        url (str): string value which could be url
+
+    Returns:
+        bool: Returns True str is url else False
+
+    Raises:
+        Any exception occurred during operation
+    '''
+    url_regex = compile(
+        r'https?://(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)'
+    )
+    return bool(match(url_regex, url))
