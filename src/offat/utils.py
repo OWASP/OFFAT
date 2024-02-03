@@ -1,9 +1,9 @@
 from json import loads as json_load, dumps as json_dumps, JSONDecodeError
-# from pkg_resources import get_distribution
+from pkg_resources import get_distribution
 from os.path import isfile
+from re import compile, match
 from yaml import safe_load, YAMLError
 from .logger import logger
-from re import compile, match
 
 
 def get_package_version():
@@ -15,8 +15,7 @@ def get_package_version():
     Returns:
         String: current package version
     '''
-    # return get_distribution('offat').version
-    return 3
+    return get_distribution('offat').version
 
 
 def read_yaml(file_path: str) -> dict:
