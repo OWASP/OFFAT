@@ -8,8 +8,7 @@ def validate_config_file_data(test_config_data: dict):
         return False
 
     if test_config_data.get('error', False):
-        logger.warning(
-            f'Error Occurred While reading file: {test_config_data}')
+        logger.warning('Error Occurred While reading file: %s', test_config_data)
         return False
 
     if not test_config_data.get('actors', ):

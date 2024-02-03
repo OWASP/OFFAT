@@ -85,6 +85,11 @@ def fill_params(params: list[dict]):
         param_is_required = params[index].get('required')
         param_in = params[index].get('in')
         param_name = params[index].get('name', '')
+        # for OAS 3
+        is_oas_v3 = False
+        if not param_type:
+            is_oas_v3 = True
+            param_type = params[index].get('schema', {}).get('type')
 
         match param_type:
             case 'string':
@@ -94,12 +99,12 @@ def fill_params(params: list[dict]):
             case 'integer':
                 param_value = generate_random_int()
 
-            # TODO: handle file type
+            # TODO: handle file and array type
 
             case _:  # default case
                 param_value = generate_random_string(10)
 
-        if params[index].get('schema'):
+        if params[index].get('schema') and not is_oas_v3:
             schema_obj = params[index].get('schema', {}).get('properties', {})
             filled_schema_params = fill_schema_params(
                 schema_obj, param_in, param_is_required)

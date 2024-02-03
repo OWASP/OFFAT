@@ -1,12 +1,12 @@
 from asyncio import ensure_future, gather
 from enum import Enum
-from rich.progress import Progress, TaskID
+from sys import exc_info
 from traceback import print_exc
+from rich.progress import Progress, TaskID
 
 
 from ..http import AsyncRequests
-from ..logger import logger
-from ..logger import console
+from ..logger import logger, console
 
 
 class PayloadFor(Enum):
@@ -15,9 +15,9 @@ class PayloadFor(Enum):
 
 
 class TestRunner:
-    def __init__(self, rate_limit: float = 60, headers: dict | None = None, proxy: str | None = None, ssl: bool = True) -> None:
+    def __init__(self, rate_limit: float = 60, headers: dict | None = None, proxy: str | None = None) -> None:
         self._client = AsyncRequests(
-            rate_limit=rate_limit, headers=headers, proxy=proxy, ssl=ssl)
+            rate_limit=rate_limit, headers=headers, proxy=proxy)
         self.progress = Progress(console=console)
         self.progress_task_id: TaskID | None = None
 
@@ -43,6 +43,7 @@ class TestRunner:
         query_payload = {}
 
         for param in params:
+
             param_in = param.get('in')
             param_name = param.get('name')
             param_value = param.get('value')
@@ -104,7 +105,8 @@ class TestRunner:
             test_result['redirection'] = ''
             test_result['error'] = True
 
-            logger.error(f'Unable to send request due to error: {e}')
+            logger.debug('Exception Debug Data:', exc_info=exc_info())
+            logger.error('Unable to send request due to error: %s', e)
             logger.error(locals())
 
         # advance progress bar

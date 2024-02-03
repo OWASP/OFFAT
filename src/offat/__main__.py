@@ -76,7 +76,6 @@ def start():
         rate_limit=rate_limit,
         test_data_config=test_data_config,
         proxy=args.proxy,
-        ssl=args.no_ssl,
     )
 
 
