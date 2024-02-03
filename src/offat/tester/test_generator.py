@@ -131,8 +131,6 @@ class TestGenerator:
                 required_params: list = param_schema.get('required', [])
 
                 for prop in props.keys():
-                    # TODO: handle arrays differently to
-                    # extract their internal params
                     prop_type = props[prop].get('type')
                     payload_data.append({
                         'in': param_pos,
@@ -183,6 +181,11 @@ class TestGenerator:
             for path_param in path_params:
                 path_param_name = path_param.get('name')
                 path_param_value = path_param.get('value')
+
+                # below code is for handling OAS 3
+                if not path_param_value:
+                    pass
+
                 endpoint_path = endpoint_path.replace(
                     '{' + str(path_param_name) + '}', str(path_param_value))
 

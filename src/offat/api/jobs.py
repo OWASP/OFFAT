@@ -1,4 +1,4 @@
-from traceback import print_exception
+from sys import exc_info
 from offat.api.models import CreateScanModel
 from offat.tester.tester_utils import generate_and_run_tests
 from offat.openapi import OpenAPIParser
@@ -7,7 +7,6 @@ from offat.logger import logger
 
 def scan_api(body_data: CreateScanModel):
     try:
-        logger.info('test')
         api_parser = OpenAPIParser(fpath_or_url=None, spec=body_data.openAPI)
 
         results = generate_and_run_tests(
@@ -20,6 +19,6 @@ def scan_api(body_data: CreateScanModel):
         )
         return results
     except Exception as e:
-        logger.error(f'Error occurred while creating a job: {e}')
-        print_exception(e)
+        logger.error('Error occurred while creating a job: %s', repr(e))
+        logger.debug("Debug Data:", exc_info=exc_info())
         return [{'error': str(e)}]
