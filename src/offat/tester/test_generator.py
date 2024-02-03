@@ -2,7 +2,7 @@ from copy import deepcopy
 from .fuzzer import fill_params
 from .post_test_processor import PostTestFiltersEnum
 from .fuzzer import generate_random_int
-from ..openapi import OpenAPIParser
+from ..parsers import SwaggerParser, OpenAPIv3Parser
 from ..config_data_handler import populate_user_data
 
 
@@ -38,7 +38,7 @@ class TestGenerator:
 
     def check_unsupported_http_methods(
         self,
-        openapi_parser: OpenAPIParser,
+        openapi_parser: SwaggerParser | OpenAPIv3Parser,
         success_codes: list[int] = [200, 201, 301, 302],
         *args,
         **kwargs
@@ -141,7 +141,7 @@ class TestGenerator:
 
         return payload_data
 
-    def __fuzz_request_params(self, openapi_parser: OpenAPIParser) -> list[dict]:
+    def __fuzz_request_params(self, openapi_parser: SwaggerParser | OpenAPIv3Parser) -> list[dict]:
         """
         Fuzzes Request params available in different positions and returns a list
         of tasks
@@ -160,7 +160,7 @@ class TestGenerator:
         for path_obj in request_response_params:
             # handle path params from request_params
             request_params = path_obj.get('request_params', [])
-            request_params = fill_params(request_params)
+            request_params = fill_params(request_params, openapi_parser.is_v3)
 
             # get params based on their position in request
             request_body_params = list(
@@ -176,15 +176,11 @@ class TestGenerator:
             endpoint_path: str = path_obj.get('path')
             path_params = path_obj.get('path_params', [])
             path_params += path_params_in_body
-            path_params = fill_params(path_params)
+            path_params = fill_params(path_params, openapi_parser.is_v3)
 
             for path_param in path_params:
                 path_param_name = path_param.get('name')
                 path_param_value = path_param.get('value')
-
-                # below code is for handling OAS 3
-                if not path_param_value:
-                    pass
 
                 endpoint_path = endpoint_path.replace(
                     '{' + str(path_param_name) + '}', str(path_param_value))
@@ -226,7 +222,7 @@ class TestGenerator:
 
     def sqli_fuzz_params_test(
             self,
-            openapi_parser: OpenAPIParser,
+            openapi_parser: SwaggerParser | OpenAPIv3Parser,
             success_codes: list[int] = [500],
             *args,
             **kwargs
@@ -295,7 +291,7 @@ class TestGenerator:
 
     def sqli_in_uri_path_fuzz_test(
             self,
-            openapi_parser: OpenAPIParser,
+            openapi_parser: SwaggerParser | OpenAPIv3Parser,
             success_codes: list[int] = [500],
             *args,
             **kwargs
@@ -334,7 +330,7 @@ class TestGenerator:
             for path_obj in endpoints_with_param_in_path:
                 # handle path params from request_params
                 request_params = path_obj.get('request_params', [])
-                request_params = fill_params(request_params)
+                request_params = fill_params(request_params, openapi_parser.is_v3)
 
                 # get request body params
                 request_body_params = list(
@@ -349,7 +345,7 @@ class TestGenerator:
                 path_params_in_body = list(
                     filter(lambda x: x.get('in') == 'path', request_params))
                 path_params += path_params_in_body
-                path_params = fill_params(path_params)
+                path_params = fill_params(path_params, openapi_parser.is_v3)
 
                 for path_param in path_params:
                     path_param_name = path_param.get('name')
@@ -383,7 +379,7 @@ class TestGenerator:
 
     def bola_fuzz_path_test(
             self,
-            openapi_parser: OpenAPIParser,
+            openapi_parser: SwaggerParser | OpenAPIv3Parser,
             success_codes: list[int] = [200, 201, 301],
             *args,
             **kwargs
@@ -413,7 +409,7 @@ class TestGenerator:
         for path_obj in endpoints_with_param_in_path:
             # handle path params from request_params
             request_params = path_obj.get('request_params', [])
-            request_params = fill_params(request_params)
+            request_params = fill_params(request_params, openapi_parser.is_v3)
 
             # get request body params
             request_body_params = list(
@@ -428,7 +424,7 @@ class TestGenerator:
             path_params_in_body = list(
                 filter(lambda x: x.get('in') == 'path', request_params))
             path_params += path_params_in_body
-            path_params = fill_params(path_params)
+            path_params = fill_params(path_params, openapi_parser.is_v3)
 
             for path_param in path_params:
                 path_param_name = path_param.get('name')
@@ -463,7 +459,7 @@ class TestGenerator:
 
     def bola_fuzz_trailing_slash_path_test(
             self,
-            openapi_parser: OpenAPIParser,
+            openapi_parser: SwaggerParser | OpenAPIv3Parser,
             success_codes: list[int] = [200, 201, 301],
             *args,
             **kwargs
@@ -489,7 +485,7 @@ class TestGenerator:
         for path_obj in request_response_params:
             # handle path params from request_params
             request_params = path_obj.get('request_params', [])
-            request_params = fill_params(request_params)
+            request_params = fill_params(request_params, openapi_parser.is_v3)
 
             # get params based on their position in request
             request_body_params = list(
@@ -505,7 +501,7 @@ class TestGenerator:
             endpoint_path: str = path_obj.get('path')
             path_params = path_obj.get('path_params', [])
             path_params += path_params_in_body
-            path_params = fill_params(path_params)
+            path_params = fill_params(path_params, openapi_parser.is_v3)
 
             for path_param in path_params:
                 path_param_name = path_param.get('name')
@@ -541,7 +537,7 @@ class TestGenerator:
 
         return tasks
 
-    def _inject_response_params(self, response_params: dict):
+    def _inject_response_params(self, response_params: dict, is_v3: bool = False):
         '''Populate response params in body params for testing
         BOPLA attacks.
 
@@ -567,12 +563,12 @@ class TestGenerator:
                 params.append(deepcopy(param_data))
 
         # fuzz data
-        params = fill_params(params)
+        params = fill_params(params, is_v3)
         return params
 
     def bopla_fuzz_test(
             self,
-            openapi_parser: OpenAPIParser,
+            openapi_parser: SwaggerParser | OpenAPIv3Parser,
             success_codes: list[int] = [200, 201, 301],
             *args,
             **kwargs
@@ -598,7 +594,7 @@ class TestGenerator:
         for path_obj in request_response_params:
             # handle path params from request_params
             request_params = path_obj.get('request_params', [])
-            request_params = fill_params(request_params)
+            request_params = fill_params(request_params, openapi_parser.is_v3)
 
             # get params based on their position in request
             request_body_params = list(
@@ -614,7 +610,7 @@ class TestGenerator:
             endpoint_path: str = path_obj.get('path')
             path_params = path_obj.get('path_params', [])
             path_params += path_params_in_body
-            path_params = fill_params(path_params)
+            path_params = fill_params(path_params, openapi_parser.is_v3)
 
             for path_param in path_params:
                 path_param_name = path_param.get('name')
@@ -624,7 +620,9 @@ class TestGenerator:
 
             # assign values to response params below and add them to JSON request body
             response_body_params = self._inject_response_params(
-                path_obj.get('response_params', []))
+                path_obj.get('response_params', []),
+                openapi_parser.is_v3,
+            )
             request_body_params += response_body_params
 
             tasks.append({
@@ -691,7 +689,7 @@ class TestGenerator:
 
     def __generate_injection_fuzz_params_test(
             self,
-            openapi_parser: OpenAPIParser,
+            openapi_parser: SwaggerParser | OpenAPIv3Parser,
             test_name: str,
             result_details: dict,
             payloads_data: list[dict],
@@ -749,7 +747,7 @@ class TestGenerator:
 
         return tasks
 
-    def os_command_injection_fuzz_params_test(self, openapi_parser: OpenAPIParser):
+    def os_command_injection_fuzz_params_test(self, openapi_parser: SwaggerParser | OpenAPIv3Parser):
         '''Performs OS Command injection parameter fuzzing based on the provided OpenAPIParser instance.
 
         Args:
@@ -792,7 +790,7 @@ class TestGenerator:
             payloads_data=payloads_data,
         )
 
-    def xss_html_injection_fuzz_params_test(self, openapi_parser: OpenAPIParser):
+    def xss_html_injection_fuzz_params_test(self, openapi_parser: SwaggerParser | OpenAPIv3Parser):
         '''Performs OS Command injection parameter fuzzing based on the provided OpenAPIParser instance.
 
         Args:
