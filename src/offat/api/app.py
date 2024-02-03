@@ -3,7 +3,7 @@ from offat.api.config import app, task_queue, task_timeout, auth_secret_key
 from offat.api.jobs import scan_api
 from offat.api.models import CreateScanModel
 from offat.logger import logger
-from os import uname, environ
+# from os import uname, environ
 
 
 logger.info('Secret Key: %s', auth_secret_key)
@@ -17,8 +17,8 @@ logger.info('Secret Key: %s', auth_secret_key)
 async def root():
     return {
         "name": "OFFAT API",
-        "project": "https://github.com/dmdhrumilmistry/offat",
-        "license": "https://github.com/dmdhrumilmistry/offat/blob/main/LICENSE",
+        "project": "https://github.com/OWASP/offat",
+        "license": "https://github.com/OWASP/offat/blob/main/LICENSE",
     }
 
 
