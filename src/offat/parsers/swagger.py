@@ -104,11 +104,6 @@ class SwaggerParser(Parser):
                 for param in request_parameters:
                     param['schema'] = self._get_param_definition_schema(param)
 
-                if path == "/store/order":
-                    print(path)
-                    print(request_parameters)
-                    print('--'*20)
-
                 requests.append({
                     'http_method': http_method,
                     'path': path,

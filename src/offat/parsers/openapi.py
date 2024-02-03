@@ -117,21 +117,25 @@ class OpenAPIv3Parser(Parser):
                 for body_parameter_key in body_parameter_keys:
                     body_parameters_dict = paths[path][http_method]['requestBody']['content'][body_parameter_key]
 
-                    body_params.append(self._get_param_definition_schema(body_parameters_dict))
+                    required = paths[path][http_method]['requestBody'].get('required')
+                    description = paths[path][http_method]['requestBody'].get('description')
+                    body_param = self._get_param_definition_schema(body_parameters_dict)
 
+                    body_params.append({
+                        'in': 'body',
+                        'name': body_parameter_key,
+                        'description': description,
+                        'required': required,
+                        'schema': body_param,
+                    })
+
+                # BUG: below code doesn't parse data
                 response_params = []
                 response_params = self._get_response_definition_schema(
                     paths[path][http_method].get('responses', {}))
 
-                if path == "/store/order":
-                    print(path)
-                    print(request_parameters)
-                    print(body_params)
-                    print('--'*20)
-
                 # add body param to request param
                 request_parameters += body_params
-
                 requests.append({
                     'http_method': http_method,
                     'path': path,
