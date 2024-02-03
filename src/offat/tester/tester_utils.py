@@ -16,6 +16,8 @@ test_generator = TestGenerator()
 
 
 def is_host_up(openapi_parser: OpenAPIParser) -> bool:
+    '''checks whether the host from openapi doc is available or not. 
+    Returns True is host is available else returns False'''
     tokens = openapi_parser.host.split(":")
     match len(tokens):
         case 1:
