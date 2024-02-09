@@ -2,6 +2,7 @@
 module to parse OAS v3 documentation JSON/YAML files.
 '''
 from .parser import BaseParser
+from ..logger import logger
 
 
 class InvalidOpenAPIv3File(Exception):
@@ -27,6 +28,10 @@ class OpenAPIv3Parser(BaseParser):
     def _populate_hosts(self):
         servers = self.specification.get('servers', [])
         hosts = []
+        if not servers:
+            logger.error('Invalid Server Url: Server URLs are missing in spec file')
+            raise InvalidOpenAPIv3File('Server URLs Not Found in spec file')
+
         for server in servers:
             host = server.get('url', '').removeprefix(
                 'https://').removeprefix('http://').removesuffix('/')
