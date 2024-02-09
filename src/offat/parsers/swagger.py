@@ -28,7 +28,7 @@ class SwaggerParser(BaseParser):
         host = self.specification.get('host')
         if not host:
             logger.error('Invalid Host: Host is missing')
-            raise ValueError('Host Not Found in spec file')
+            raise InvalidSwaggerFile('Host Not Found in spec file')
         hosts = [host]
         self.hosts = hosts
         self.host = self.hosts[0]
