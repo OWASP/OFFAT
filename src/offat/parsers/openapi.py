@@ -28,7 +28,7 @@ class OpenAPIv3Parser(BaseParser):
     def _populate_hosts(self):
         servers = self.specification.get('servers', [])
         hosts = []
-        if not hosts:
+        if not servers:
             logger.error('Invalid Server Url: Server URLs are missing in spec file')
             raise InvalidOpenAPIv3File('Server URLs Not Found in spec file')
 
