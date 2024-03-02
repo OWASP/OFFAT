@@ -1,6 +1,11 @@
-from asyncio import run
+"""
+OWASP OFFAT Tester Utils Module
+"""
 from http import client as http_client
 from typing import Optional
+from sys import exc_info, exit
+from asyncio import run
+from asyncio.exceptions import CancelledError
 from re import search as regex_search
 
 from .post_test_processor import PostRunTests
@@ -63,10 +68,19 @@ def run_test(test_runner: TestRunner, tests: list[dict], regex_pattern: Optional
             )
         )
 
-    if skip_test_run:
-        test_results = tests
-    else:
-        test_results = run(test_runner.run_tests(tests, description))
+    try:
+        if skip_test_run:
+            test_results = tests
+        else:
+            test_results = run(test_runner.run_tests(tests, description))
+
+    except (KeyboardInterrupt, CancelledError,):
+        logger.error("[!] User Interruption Detected!")
+        exit(-1)
+
+    except Exception as e:
+        logger.error("[*] Exception occurred while running tests: %s", e, exc_info=exc_info())
+        return []
 
     if post_run_matcher_test:
         test_results = PostRunTests.matcher(test_results)
