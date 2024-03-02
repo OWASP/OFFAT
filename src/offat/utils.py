@@ -1,7 +1,10 @@
+"""
+utils module
+"""
 from json import loads as json_load, dumps as json_dumps, JSONDecodeError
-from pkg_resources import get_distribution
 from os.path import isfile
-from re import compile, match
+from re import compile as re_compile, match
+from pkg_resources import get_distribution
 from yaml import safe_load, YAMLError
 from .logger import logger
 
@@ -34,7 +37,7 @@ def read_yaml(file_path: str) -> dict:
     if not isfile(file_path):
         return {"error": "File Not Found"}
 
-    with open(file_path) as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         try:
             return safe_load(f.read())
         except YAMLError:
@@ -54,7 +57,7 @@ def read_json(file_path: str) -> dict:
     if not isfile(file_path):
         return {"error": "File Not Found"}
 
-    with open(file_path) as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         try:
             return json_load(f.read())
         except JSONDecodeError:
@@ -185,7 +188,7 @@ def is_valid_url(url: str) -> bool:
     Raises:
         Any exception occurred during operation
     '''
-    url_regex = compile(
+    url_regex = re_compile(
         r'https?://(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)'
     )
     return bool(match(url_regex, url))

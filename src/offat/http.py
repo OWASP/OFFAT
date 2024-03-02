@@ -1,6 +1,6 @@
+from os import name as os_name
 from aiohttp import ClientSession, ClientTimeout
 from aiolimiter import AsyncLimiter
-from os import name as os_name
 from tenacity import retry, stop_after_attempt, retry_if_not_exception_type
 
 import asyncio
