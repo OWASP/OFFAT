@@ -25,10 +25,9 @@ tenacity = "^8.2.3"
 api = ["fastapi", "uvicorn", "redis", "rq", "python-dotenv"]
 
 [tool.poetry.urls]
-"Home" = "https://github.com/dmdhrumilmistry/offat"
-"Bug Tracker" = "https://github.com/dmdhrumilmistry/offat/issues"
-"Support" = "https://github.com/sponsors/dmdhrumilmistry/"
-"PayPal" = "https://paypal.me/dmdhrumilmistry"
+"Home" = "https://github.com/OWASP/OFFAT"
+"Bug Tracker" = "https://github.com/OWASP/OFFAT/issues"
+"Support" = "https://github.com/sponsors/OWASP/"
 
 
 [tool.poetry.scripts]
