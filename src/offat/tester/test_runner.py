@@ -1,7 +1,7 @@
 from asyncio import ensure_future, gather
+from asyncio.exceptions import CancelledError
 from enum import Enum
-from sys import exc_info
-from traceback import print_exc
+from sys import exc_info, exit
 from rich.progress import Progress, TaskID
 
 
@@ -70,7 +70,6 @@ class TestRunner:
     async def send_request(self, test_task):
         url = test_task.get('url')
         http_method = test_task.get('method')
-        success_codes = test_task.get('success_codes', [200, 301])
         args = test_task.get('args')
         kwargs = test_task.get('kwargs')
         body_params = test_task.get('body_params')
@@ -127,17 +126,17 @@ class TestRunner:
         tasks = []
 
         for test_task in test_tasks:
-            tasks.append(
-                ensure_future(
-                    self.send_request(test_task)
-                )
-            )
+            tasks.append(ensure_future(self.send_request(test_task)))
 
         try:
             results = await gather(*tasks)
             return results
+
+        except (KeyboardInterrupt, CancelledError,):
+            logger.error("[!] User Interruption Detected!")
+            exit(-1)
+
         except Exception as e:
-            console.print(
-                f'[*] Exception occurred while gathering results: {e}')
-            print_exc()
+            logger.error("[*] Exception occurred while gathering results: %s",
+                         e, exc_info=exc_info())
             return []

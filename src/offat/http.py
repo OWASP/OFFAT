@@ -1,7 +1,7 @@
+from os import name as os_name
 from aiohttp import ClientSession, ClientTimeout
 from aiolimiter import AsyncLimiter
-from os import name as os_name
-
+from tenacity import retry, stop_after_attempt, retry_if_not_exception_type
 
 import asyncio
 import aiohttp.resolver
@@ -35,6 +35,7 @@ class AsyncRequests:
         self._limiter = AsyncLimiter(max_rate=rate_limit, time_period=1)
         self._timeout = ClientTimeout(total=timeout)
 
+    @retry(stop=stop_after_attempt(3), retry=retry_if_not_exception_type(KeyboardInterrupt or asyncio.exceptions.CancelledError))
     async def request(self, url: str, method: str = 'GET', *args, **kwargs) -> dict:
         '''Send HTTP requests asynchronously
 
