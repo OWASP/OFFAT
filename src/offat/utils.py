@@ -189,6 +189,6 @@ def is_valid_url(url: str) -> bool:
         Any exception occurred during operation
     '''
     url_regex = re_compile(
-        r'https?://(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)'
+        r'https?:\/\/[a-z.-]+(:\d+)?.*'
     )
     return bool(match(url_regex, url))
