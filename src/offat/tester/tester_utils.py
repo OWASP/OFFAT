@@ -43,7 +43,7 @@ def is_host_up(openapi_parser: SwaggerParser | OpenAPIv3Parser) -> bool:
         case _:
             proto = http_client.HTTPConnection
 
-    logger.info("Checking whether host %s:%d is available", host, port)
+    logger.info("Checking whether host %s:%s is available", host, port)
     try:
         conn = proto(host=host, port=port, timeout=5)
         conn.request("GET", "/")

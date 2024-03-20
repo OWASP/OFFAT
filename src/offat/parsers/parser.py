@@ -14,6 +14,7 @@ class BaseParser:
             self.specification = spec
             base_uri = ""
         else:
+            print(file_or_url)
             self.specification, base_uri = read_from_filename(file_or_url)
 
         try:

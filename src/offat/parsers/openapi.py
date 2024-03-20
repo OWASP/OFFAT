@@ -75,17 +75,25 @@ class OpenAPIv3Parser(BaseParser):
         '''
         for status_code in responses.keys():
             # below line could return: ["application/json", "application/xml"]
-            status_code_content_type_response = responses[status_code]['content'].keys()
+            content = responses[status_code].get('content', None)
 
-            for status_code_content_type in status_code_content_type_response:
-                status_code_content = responses[status_code]['content'][status_code_content_type].keys(
-                )
-                if 'parameters' in status_code_content:
-                    # done
-                    responses[status_code]['schema'] = responses[status_code]['content'][status_code_content_type]['parameters']
-                elif 'schema' in status_code_content:
-                    responses[status_code]['schema'] = self._get_param_definition_schema(
-                        responses[status_code]['content'][status_code_content_type])
+            if content:
+                status_code_content_type_responses = content.keys()
+                for status_code_content_type in status_code_content_type_responses:
+                    status_code_content = responses[status_code]['content'][status_code_content_type].keys()
+                    if 'parameters' in status_code_content:
+                        responses[status_code]['schema'] = responses[status_code]['content'][status_code_content_type]['parameters']
+                    elif 'schema' in status_code_content:
+                        responses[status_code]['schema'] = self._get_param_definition_schema(
+                            responses[status_code]['content'][status_code_content_type])
+       
+            else:
+                # Fetch $ref schema directly
+                ref = responses[status_code].get('$ref', None)
+                if ref:
+                    response_name = 
+                    responses[status_code]['schema'] = self.
+                    print(responses[status_code]['schema'])
 
         return responses
 
