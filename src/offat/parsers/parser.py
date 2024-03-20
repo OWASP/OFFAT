@@ -11,10 +11,9 @@ class InvalidSpecVersion(Exception):
 class BaseParser:
     def __init__(self, file_or_url: str, spec: dict = None) -> None:
         if spec:
-            self.specification = spec
+            self.specification:dict = spec
             base_uri = ""
         else:
-            print(file_or_url)
             self.specification, base_uri = read_from_filename(file_or_url)
 
         try:

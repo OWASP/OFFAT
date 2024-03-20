@@ -107,10 +107,7 @@ class OpenAPIv3Parser(BaseParser):
                 # Fetch $ref schema directly
                 ref = responses[status_code].get('$ref', None)
                 if ref:
-                    responses[status_code]['schema'] = self._get_param_definition_schema(
-                        {'schema':{'$ref':ref}}
-                    )
-                    print(responses[status_code]['schema'])
+                    responses[status_code]['schema'] = self._fetch_schema_from_spec(ref)
 
         return responses
 
