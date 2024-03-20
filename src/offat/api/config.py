@@ -10,7 +10,10 @@ from .auth_utils import generate_random_secret_key_string
 load_dotenv()
 
 app = FastAPI(
-    title='OFFAT - API'
+    title='OFFAT - API',
+    servers=[{
+        'url':'http://localhost:8000',
+    }],
 )
 
 auth_secret_key = environ.get(
