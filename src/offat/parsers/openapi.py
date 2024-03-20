@@ -13,6 +13,7 @@ class OpenAPIv3Parser(BaseParser):
     '''OpenAPI v3 Spec File Parser'''
     # while adding new method to this class, make sure same method is present in SwaggerParser class
 
+
     def __init__(self, file_or_url: str, spec: dict | None = None) -> None:
         super().__init__(file_or_url=file_or_url, spec=spec)  # noqa
         if not self.is_v3:
@@ -24,6 +25,7 @@ class OpenAPIv3Parser(BaseParser):
         self.base_url = f"{self.http_scheme}://{self.host}"
 
         self.request_response_params = self._get_request_response_params()
+
 
     def _populate_hosts(self):
         servers = self.specification.get('servers', [])
@@ -41,6 +43,7 @@ class OpenAPIv3Parser(BaseParser):
         self.hosts = hosts
         self.host = self.hosts[0]
 
+
     def _get_scheme(self):
         servers = self.specification.get('servers', [])
         schemes = []
@@ -50,6 +53,21 @@ class OpenAPIv3Parser(BaseParser):
         scheme = 'https' if 'https' in schemes else 'http'
         return scheme
 
+
+    def _fetch_schema_from_spec(self, param_schema_ref:str) -> dict:
+        schema_spec_path = param_schema_ref.split('/')[1:]
+        
+        if len(schema_spec_path) > 3:
+            logger.error('Schema spec $ref path should not be greater than 3 (excluding #)')
+            return {}
+        
+        schema_data:dict = self.specification
+        for child_ele in schema_spec_path:
+            schema_data:dict = schema_data.get(child_ele, {})
+
+        return schema_data
+    
+
     def _get_param_definition_schema(self, param: dict):
         '''Returns Model defined schema for the passed param'''
         param_schema = param.get('schema')
@@ -58,9 +76,7 @@ class OpenAPIv3Parser(BaseParser):
         if param_schema:
             param_schema_ref = param_schema.get('$ref')
             if param_schema_ref:
-                model_slug = param_schema_ref.split('/')[-1]
-                param_schema = self.specification.get(
-                    'components', {}).get('schemas', {}).get(model_slug, {})  # model schema
+                param_schema = self._fetch_schema_from_spec(param_schema_ref)
 
         return param_schema
 
@@ -91,11 +107,13 @@ class OpenAPIv3Parser(BaseParser):
                 # Fetch $ref schema directly
                 ref = responses[status_code].get('$ref', None)
                 if ref:
-                    response_name = 
-                    responses[status_code]['schema'] = self.
+                    responses[status_code]['schema'] = self._get_param_definition_schema(
+                        {'schema':{'$ref':ref}}
+                    )
                     print(responses[status_code]['schema'])
 
         return responses
+
 
     def _get_request_response_params(self):
         '''Returns Schema of requests and response params
