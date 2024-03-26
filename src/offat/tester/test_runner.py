@@ -15,18 +15,27 @@ class PayloadFor(Enum):
 
 
 class TestRunner:
-    def __init__(self, rate_limit: float = 60, headers: dict | None = None, proxy: str | None = None) -> None:
+    def __init__(
+        self,
+        rate_limit: float = 60,
+        headers: dict | None = None,
+        proxies: list[str] | None = None,
+        ssl: bool = False,
+    ) -> None:
         self._client = AsyncRequests(
-            rate_limit=rate_limit, headers=headers, proxy=proxy)
+            rate_limit=rate_limit, headers=headers, proxies=proxies, ssl=ssl
+        )
         self.progress = Progress(console=console)
         self.progress_task_id: TaskID | None = None
 
-    def _generate_payloads(self, params: list[dict], payload_for: PayloadFor = PayloadFor.BODY):
+    def _generate_payloads(
+        self, params: list[dict], payload_for: PayloadFor = PayloadFor.BODY
+    ):
         '''Generate body payload from passed data for HTTP body and query.
 
         Args:
             params (list[dict]): list of containing payload parameters
-            payload_for (PayloadFor): PayloadFor constant indicating 
+            payload_for (PayloadFor): PayloadFor constant indicating
             for which payload is be generated, default: `PayloadFor.BODY`
 
         Returns:
@@ -37,13 +46,13 @@ class TestRunner:
         '''
         if payload_for not in [PayloadFor.BODY, PayloadFor.QUERY]:
             raise ValueError(
-                '`payload_for` arg only supports `PayloadFor.BODY, PayloadFor.QUERY` value')
+                '`payload_for` arg only supports `PayloadFor.BODY, PayloadFor.QUERY` value'
+            )
 
         body_payload = {}
         query_payload = {}
 
         for param in params:
-
             param_in = param.get('in')
             param_name = param.get('name')
             param_value = param.get('value')
@@ -77,15 +86,19 @@ class TestRunner:
 
         if body_params and str(http_method).upper() not in ['GET', 'OPTIONS']:
             kwargs['json'] = self._generate_payloads(
-                body_params, payload_for=PayloadFor.BODY)
+                body_params, payload_for=PayloadFor.BODY
+            )
 
         if query_params:
             kwargs['params'] = self._generate_payloads(
-                query_params, payload_for=PayloadFor.QUERY)
+                query_params, payload_for=PayloadFor.QUERY
+            )
 
         test_result = test_task
         try:
-            response = await self._client.request(url=url, method=http_method, *args, **kwargs)
+            response = await self._client.request(
+                url=url, method=http_method, *args, **kwargs
+            )
             # add request headers to result
             test_result['request_headers'] = response.get('req_headers', [])
             # append response headers and body for analyzing data leak
@@ -122,7 +135,8 @@ class TestRunner:
         '''run tests generated from test generator module'''
         self.progress.start()
         self.progress_task_id = self.progress.add_task(
-            f'[orange] {description}', total=len(test_tasks))
+            f'[orange] {description}', total=len(test_tasks)
+        )
         tasks = []
 
         for test_task in test_tasks:
@@ -132,11 +146,17 @@ class TestRunner:
             results = await gather(*tasks)
             return results
 
-        except (KeyboardInterrupt, CancelledError,):
-            logger.error("[!] User Interruption Detected!")
+        except (
+            KeyboardInterrupt,
+            CancelledError,
+        ):
+            logger.error('[!] User Interruption Detected!')
             exit(-1)
 
         except Exception as e:
-            logger.error("[*] Exception occurred while gathering results: %s",
-                         e, exc_info=exc_info())
+            logger.error(
+                '[*] Exception occurred while gathering results: %s',
+                e,
+                exc_info=exc_info(),
+            )
             return []
