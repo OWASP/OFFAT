@@ -13,21 +13,25 @@ class PostTestFiltersEnum(Enum):
 
 class PostRunTests:
     '''class Includes tests that should be ran after running all the active test'''
+
     @staticmethod
-    def run_broken_access_control_tests(results: list[dict], test_data_config: dict) -> list[dict]:
+    def run_broken_access_control_tests(
+        results: list[dict], test_data_config: dict
+    ) -> list[dict]:
         '''
         Runs tests for broken access control
 
         Args:
             results (list[dict]): list of dict for tests results ran
-            test_data_config (dict): user based config for running tests 
+            test_data_config (dict): user based config for running tests
 
         Returns:
-            list[dict]: list of results 
+            list[dict]: list of results
 
         Raises:
             Any Exception occurred during the test.
         '''
+
         def re_match(patterns: list[str], endpoint: str) -> bool:
             '''Matches endpoint for specified patterns
 
@@ -52,8 +56,7 @@ class PostRunTests:
         actor_names = []
         for actor in actors:
             actor_name = list(actor.keys())[-1]
-            unauth_endpoint_regex = actor[actor_name].get(
-                'unauthorized_endpoints', [])
+            unauth_endpoint_regex = actor[actor_name].get('unauthorized_endpoints', [])
 
             for result in results:
                 if result.get('test_actor_name') != actor_name:
@@ -69,18 +72,16 @@ class PostRunTests:
                 actor_test_result['test_name'] = 'Broken Access Control'
                 actor_test_result['result_details'] = {
                     True: 'Endpoint might not vulnerable to BAC',  # passed
-                    # failed
-                    False: f'BAC: Endpoint is accessible to {actor_name}',
+                    False: f'BAC: Endpoint is accessible to {actor_name}',  # failed
                 }
-                actor_based_tests.append(
-                    PostRunTests.filter_status_code_based_results(actor_test_result))
+                actor_based_tests.append(actor_test_result)
 
-        return actor_based_tests
+        return PostRunTests.filter_status_code_based_results(actor_based_tests)
 
     @staticmethod
     def detect_data_exposure(results: list[dict]) -> list[dict]:
-        '''Detects data exposure against sensitive data regex 
-        patterns and returns dict of matched results  
+        '''Detects data exposure against sensitive data regex
+        patterns and returns dict of matched results
 
         Args:
             data (str): data to be analyzed for exposure
@@ -88,6 +89,7 @@ class PostRunTests:
         Returns:
             dict: dictionary with tag as dict key and matched pattern as dict value
         '''
+
         def detect_exposure(data: str) -> dict:
             # Dictionary to store detected data exposures
             detected_exposures = {}
@@ -112,6 +114,7 @@ class PostRunTests:
     # take a list and filter all at once
     def filter_status_code_based_results(results: list[dict]) -> list[dict]:
         new_results = []
+
         for result in results:
             new_result = deepcopy(result)
             response_status_code = result.get('response_status_code')
@@ -142,7 +145,8 @@ class PostRunTests:
         for result in results:
             new_result = deepcopy(result)
             new_result['result_details'] = result['result_details'].get(
-                result['result'])
+                result['result']
+            )
 
             new_results.append(new_result)
 
@@ -154,13 +158,13 @@ class PostRunTests:
 
         Args:
             results (list[dict]): list of dict for tests results ran
-            match_location (ResponseMatchLocation): Search for match at 
-            specified location (`ResponseMatchLocation.BODY`, 
+            match_location (ResponseMatchLocation): Search for match at
+            specified location (`ResponseMatchLocation.BODY`,
             `ResponseMatchLocation.HEADER`,`ResponseMatchLocation.STATUS_CODE`).
             match_regex (str): regex to match as string
 
         Returns:
-            list[dict]: list of results 
+            list[dict]: list of results
 
         Raises:
             Any Exception occurred during the test.
