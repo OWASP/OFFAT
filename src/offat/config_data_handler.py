@@ -11,7 +11,9 @@ def validate_config_file_data(test_config_data: dict):
         logger.warning('Error Occurred While reading file: %s', test_config_data)
         return False
 
-    if not test_config_data.get('actors', ):
+    if not test_config_data.get(
+        'actors',
+    ):
         logger.warning('actors are required')
         return False
 
@@ -36,7 +38,7 @@ def populate_user_data(actor_data: dict, actor_name: str, tests: list[dict]):
         request_headers[header.get('name')] = header.get('value')
 
     for test in tests:
-        #  replace key and value instead of appending
+        # TODO: replace key and value instead of appending
         test['body_params'] += body_params
         test['query_params'] += query_params
         test['path_params'] += path_params
@@ -44,7 +46,8 @@ def populate_user_data(actor_data: dict, actor_name: str, tests: list[dict]):
         test['test_actor_name'] = actor_name
         if test.get('kwargs', {}).get('headers', {}).items():
             test['kwargs']['headers'] = dict(
-                test['kwargs']['headers'], **request_headers)
+                test['kwargs']['headers'], **request_headers
+            )
         else:
             test['kwargs']['headers'] = request_headers
 
