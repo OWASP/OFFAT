@@ -22,46 +22,46 @@ def get_package_version():
 
 
 def read_yaml(file_path: str) -> dict:
-    '''Reads YAML file and returns as python dict. 
+    '''Reads YAML file and returns as python dict.
     returns file not found or yaml errors as dict.
 
     Args:
         file_path (str): path of yaml file
 
     Returns:
-        dict: YAML contents as dict else returns error 
+        dict: YAML contents as dict else returns error
     '''
     if not file_path:
-        return {"error": "ValueError, path cannot be of None type"}
+        return {'error': 'ValueError, path cannot be of None type'}
 
     if not isfile(file_path):
-        return {"error": "File Not Found"}
+        return {'error': 'File Not Found'}
 
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, 'r', encoding='utf-8') as f:
         try:
             return safe_load(f.read())
         except YAMLError:
-            return {"error": "YAML error"}
+            return {'error': 'YAML error'}
 
 
 def read_json(file_path: str) -> dict:
-    '''Reads JSON file and returns as python dict. 
+    '''Reads JSON file and returns as python dict.
     returns file not found or JSON errors as dict.
 
     Args:
         file_path (str): path of yaml file
 
     Returns:
-        dict: YAML contents as dict else returns error 
+        dict: YAML contents as dict else returns error
     '''
     if not isfile(file_path):
-        return {"error": "File Not Found"}
+        return {'error': 'File Not Found'}
 
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, 'r', encoding='utf-8') as f:
         try:
             return json_load(f.read())
         except JSONDecodeError:
-            return {"error": "JSON error"}
+            return {'error': 'JSON error'}
 
 
 def read_openapi_file(file_path: str) -> dict:
@@ -72,10 +72,10 @@ def read_openapi_file(file_path: str) -> dict:
         file_path (str): path of openapi file
 
     Returns:
-        dict: YAML contents as dict else returns error 
+        dict: YAML contents as dict else returns error
     '''
     if not isfile(file_path):
-        return {"error": "File Not Found"}
+        return {'error': 'File Not Found'}
 
     file_ext = file_path.split('.')[-1]
     match file_ext:
@@ -84,7 +84,7 @@ def read_openapi_file(file_path: str) -> dict:
         case 'yaml':
             return read_yaml(file_path)
         case _:
-            return {"error": "Invalid file extension"}
+            return {'error': 'Invalid file extension'}
 
 
 def write_json_to_file(json_data: dict, file_path: str):
@@ -96,7 +96,7 @@ def write_json_to_file(json_data: dict, file_path: str):
 
     Returns:
         bool: True is `json_data` is written into `file_path` else
-        returns False (in case of any exception) 
+        returns False (in case of any exception)
 
     Raises:
         Any exception occurred during operation
@@ -115,13 +115,15 @@ def write_json_to_file(json_data: dict, file_path: str):
         logger.error('Invalid JSON data, error while writing to %s file.', file_path)
 
     except Exception as e:
-        logger.error('Unable to write JSON data to file due to below exception:\n%s', repr(e))
+        logger.error(
+            'Unable to write JSON data to file due to below exception:\n%s', repr(e)
+        )
 
     return False
 
 
 def str_to_dict(key_values: str) -> dict:
-    '''Takes string object and converts to dict 
+    '''Takes string object and converts to dict
     String should in `Key1:Value1,Key2:Value2,Key3:Value3` format
 
     Args:
@@ -146,12 +148,12 @@ def str_to_dict(key_values: str) -> dict:
     return new_dict
 
 
-def headers_list_to_dict(headers_list_list: list[list[str]]) -> dict | None:
-    '''Takes list object and converts to dict 
+def headers_list_to_dict(headers_list_list: list[list[str]] | None) -> dict:
+    '''Takes list object and converts to dict
     String should in `[['Key1:Value1'],['Key2:Value2'],['Key3:Value3']]` format
 
     Args:
-        headers_list_list (list): headers value as list[list[str]], where str 
+        headers_list_list (list): headers value as list[list[str]], where str
         is in `key:value` format
 
     Returns:
@@ -161,7 +163,7 @@ def headers_list_to_dict(headers_list_list: list[list[str]]) -> dict | None:
         Any exception occurred during operation
     '''
     if not headers_list_list:
-        return None
+        return {}
 
     response_headers_dict: dict = dict()
 
@@ -176,7 +178,7 @@ def headers_list_to_dict(headers_list_list: list[list[str]]) -> dict | None:
 
 
 def is_valid_url(url: str) -> bool:
-    '''Accepts string as an parameter and returns bool 
+    '''Accepts string as an parameter and returns bool
     whether str is url or not
 
     Args:
@@ -188,7 +190,5 @@ def is_valid_url(url: str) -> bool:
     Raises:
         Any exception occurred during operation
     '''
-    url_regex = re_compile(
-        r'https?:\/\/[a-z.-]+(:\d+)?.*'
-    )
+    url_regex = re_compile(r'https?:\/\/[a-z.-]+(:\d+)?.*')
     return bool(match(url_regex, url))

@@ -8,7 +8,8 @@ from .utils import get_package_version, headers_list_to_dict, read_yaml
 
 
 def banner():
-    print(r'''
+    print(
+        r'''
       _/|       |\_
      /  |       |  \
     |    \     /    |
@@ -19,12 +20,13 @@ def banner():
      \_  \     /  _/
        \__  |  __/
           \ _ /
-         _/   \_   
-        / _/|\_ \  
-         /  |  \   
+         _/   \_
+        / _/|\_ \
+         /  |  \
           / v \
           OFFAT
-    ''')
+    '''
+    )
 
 
 def start():
@@ -32,24 +34,91 @@ def start():
     banner()
 
     parser = ArgumentParser(prog='offat')
-    parser.add_argument('-f', '--file', dest='fpath', type=str,
-                        help='path or url of openapi/swagger specification file', required=True)
-    parser.add_argument('-v', '--version', action='version',
-                        version=f'%(prog)s {get_package_version()}')
-    parser.add_argument('-rl', '--rate-limit', dest='rate_limit',
-                        help='API requests rate limit per second', type=float, default=60, required=False)
-    parser.add_argument('-pr', '--path-regex', dest='path_regex_pattern', type=str,
-                        help='run tests for paths matching given regex pattern', required=False, default=None)
-    parser.add_argument('-o', '--output', dest='output_file', type=str,
-                        help='path to store test results in specified format. Default format is html', required=False, default=None)
-    parser.add_argument('-of', '--format', dest='output_format', type=str, choices=[
-                        'json', 'yaml', 'html', 'table'], help='Data format to save (json, yaml, html, table). Default: table', required=False, default='table')
-    parser.add_argument('-H', '--headers', dest='headers', type=str,
-                        help='HTTP requests headers that should be sent during testing eg: User-Agent: offat', required=False, default=None, action='append', nargs='*')
-    parser.add_argument('-tdc', '--test-data-config', dest='test_data_config',
-                        help='YAML file containing user test data for tests', required=False, type=str)
-    parser.add_argument('-p', '--proxy', dest='proxy',
-                        help='Proxy server URL to route HTTP requests through (e.g., "http://proxyserver:port")', required=False, type=str)
+    parser.add_argument(
+        '-f',
+        '--file',
+        dest='fpath',
+        type=str,
+        help='path or url of openapi/swagger specification file',
+        required=True,
+    )
+    parser.add_argument(
+        '-v', '--version', action='version', version=f'%(prog)s {get_package_version()}'
+    )
+    parser.add_argument(
+        '-rl',
+        '--rate-limit',
+        dest='rate_limit',
+        help='API requests rate limit per second',
+        type=float,
+        default=60,
+        required=False,
+    )
+    parser.add_argument(
+        '-pr',
+        '--path-regex',
+        dest='path_regex_pattern',
+        type=str,
+        help='run tests for paths matching given regex pattern',
+        required=False,
+        default=None,
+    )
+    parser.add_argument(
+        '-o',
+        '--output',
+        dest='output_file',
+        type=str,
+        help='path to store test results in specified format. Default format is html',
+        required=False,
+        default=None,
+    )
+    parser.add_argument(
+        '-of',
+        '--format',
+        dest='output_format',
+        type=str,
+        choices=['json', 'yaml', 'html', 'table'],
+        help='Data format to save (json, yaml, html, table). Default: table',
+        required=False,
+        default='table',
+    )
+    parser.add_argument(
+        '-H',
+        '--headers',
+        dest='headers',
+        type=str,
+        help='HTTP requests headers that should be sent during testing eg: User-Agent: offat',
+        required=False,
+        default=None,
+        action='append',
+        nargs='*',
+    )
+    parser.add_argument(
+        '-tdc',
+        '--test-data-config',
+        dest='test_data_config',
+        help='YAML file containing user test data for tests',
+        required=False,
+        type=str,
+    )
+    parser.add_argument(
+        '-p',
+        '--proxy',
+        dest='proxies_list',
+        help='Proxy server URL to route HTTP requests through (e.g. "http://proxyserver:port")',
+        action='append',
+        required=False,
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
+        '-s',
+        '--ssl',
+        dest='ssl',
+        required=False,
+        action='store_true',
+        help='Enable SSL Verification',
+    )
     args = parser.parse_args()
 
     # convert req headers str to dict
@@ -75,7 +144,8 @@ def start():
         req_headers=headers_dict,
         rate_limit=rate_limit,
         test_data_config=test_data_config,
-        proxy=args.proxy,
+        proxies=args.proxies_list,
+        ssl=args.ssl,
     )
 
 

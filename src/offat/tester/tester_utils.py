@@ -111,13 +111,14 @@ def run_test(
 # Note: redirects are allowed by default making it easier for pentesters/researchers
 def generate_and_run_tests(
     api_parser: SwaggerParser | OpenAPIv3Parser,
-    regex_pattern: Optional[str] = None,
-    output_file: Optional[str] = None,
-    output_file_format: Optional[str] = None,
-    rate_limit: Optional[int] = None,
-    req_headers: Optional[dict] = None,
-    proxy: Optional[str] = None,
-    test_data_config: Optional[dict] = None,
+    regex_pattern: str | None = None,
+    output_file: str | None = None,
+    output_file_format: str | None = None,
+    rate_limit: int | None = None,
+    req_headers: dict | None = None,
+    proxies: list[str] | None = None,
+    test_data_config: dict | None = None,
+    ssl: bool = False,
 ):
     '''
     Generates and runs tests for provied OAS/Swagger file.
@@ -133,7 +134,8 @@ def generate_and_run_tests(
     test_runner = TestRunner(
         rate_limit=rate_limit,
         headers=req_headers,
-        proxy=proxy,
+        proxies=proxies,
+        ssl=ssl,
     )
 
     results: list = []
