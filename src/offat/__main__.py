@@ -119,6 +119,13 @@ def start():
         action='store_true',
         help='Enable SSL Verification',
     )
+    parser.add_argument(
+        '-cf',
+        '--capture-failed',
+        dest='capture_failed',
+        action='store_true',
+        help='Captures failed requests due to any exceptions into output file',
+    )
     args = parser.parse_args()
 
     # convert req headers str to dict
@@ -146,6 +153,7 @@ def start():
         test_data_config=test_data_config,
         proxies=args.proxies_list,
         ssl=args.ssl,
+        capture_failed=args.capture_failed,
     )
 
 

@@ -119,6 +119,7 @@ def generate_and_run_tests(
     proxies: list[str] | None = None,
     test_data_config: dict | None = None,
     ssl: bool = False,
+    capture_failed: bool = False,
 ):
     '''
     Generates and runs tests for provied OAS/Swagger file.

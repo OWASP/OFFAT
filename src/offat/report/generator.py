@@ -120,11 +120,20 @@ class ReportGenerator:
 
     @staticmethod
     def generate_report(
-        results: list[dict], report_format: str | None, report_path: str | None
+        results: list[dict],
+        report_format: str | None,
+        report_path: str | None,
+        capture_failed: bool = False,
     ):
         """main function used to generate report"""
         if report_path:
             report_format = report_path.split('.')[-1]
+
+        # do not store errored results if `capture_failed` is False
+        if not capture_failed:
+            results = list(
+                filter(lambda result: result.get('error', True) == False, results)
+            )
 
         formatted_results = ReportGenerator.handle_report_format(
             results=results, report_format=report_format
