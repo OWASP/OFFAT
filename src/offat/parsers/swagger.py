@@ -11,12 +11,15 @@ class InvalidSwaggerFile(Exception):
 
 class SwaggerParser(BaseParser):
     '''Swagger Spec file Parser'''
+
     # while adding new method to this class, make sure same method is present in OpenAPIv3Parser class
 
-    def __init__(self, fpath_or_url: str, spec: dict | None = None) -> None:
-        super().__init__(file_or_url=fpath_or_url, spec=spec)  # noqa
+    def __init__(
+        self, fpath_or_url: str, spec: dict | None = None, *args, **kwargs
+    ) -> None:
+        super().__init__(file_or_url=fpath_or_url, spec=spec, *args, **kwargs)  # noqa
         if self.is_v3:
-            raise InvalidSwaggerFile("Invalid OAS v3 file")
+            raise InvalidSwaggerFile('Invalid OAS v3 file')
 
         self._populate_hosts()
         self.http_scheme = self._get_scheme()
@@ -47,8 +50,7 @@ class SwaggerParser(BaseParser):
 
             if param_schema_ref:
                 model_slug = param_schema_ref.split('/')[-1]
-                param_schema = self.specification.get(
-                    'definitions', {}).get(model_slug)
+                param_schema = self.specification.get('definitions', {}).get(model_slug)
 
         return param_schema
 
@@ -67,7 +69,8 @@ class SwaggerParser(BaseParser):
                 responses[status_code]['schema'] = responses[status_code]['parameters']
             elif 'schema' in status_code_response:
                 responses[status_code]['schema'] = self._get_param_definition_schema(
-                    responses[status_code])
+                    responses[status_code]
+                )
             else:
                 continue
 
@@ -95,21 +98,23 @@ class SwaggerParser(BaseParser):
                     continue
 
                 # below var contains overall params
-                request_parameters = paths[path][http_method].get(
-                    'parameters', [])
+                request_parameters = paths[path][http_method].get('parameters', [])
                 response_params = self._get_response_definition_schema(
-                    paths[path][http_method].get('responses', {}))
+                    paths[path][http_method].get('responses', {})
+                )
 
                 # create list of parameters: Fetch object schema from OAS file
                 for param in request_parameters:
                     param['schema'] = self._get_param_definition_schema(param)
 
-                requests.append({
-                    'http_method': http_method,
-                    'path': path,
-                    'request_params': request_parameters,
-                    'response_params': response_params,
-                    'path_params': path_params,
-                })
+                requests.append(
+                    {
+                        'http_method': http_method,
+                        'path': path,
+                        'request_params': request_parameters,
+                        'response_params': response_params,
+                        'path_params': path_params,
+                    }
+                )
 
         return requests

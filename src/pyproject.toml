@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "offat"
-version = "0.16.0"
+version = "0.17.0"
 description = "Offensive API tester tool automates checks for common API vulnerabilities"
 authors = ["Dhrumil Mistry <dhrumil.mistry@owasp.org>"]
 license = "MIT"
@@ -34,6 +34,14 @@ api = ["fastapi", "uvicorn", "redis", "rq", "python-dotenv"]
 offat = "offat.__main__:start"
 offat-api = "offat.api.__main__:start"
 
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.1.1"
+
+[tool.pytest.ini_options]
+testpaths = [
+    "offat/tests",
+]
 
 [build-system]
 requires = ["poetry-core"]

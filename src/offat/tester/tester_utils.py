@@ -30,7 +30,7 @@ def is_host_up(openapi_parser: SwaggerParser | OpenAPIv3Parser) -> bool:
             port = 443 if openapi_parser.http_scheme == 'https' else 80
         case 2:
             host = tokens[0]
-            port = tokens[1]
+            port = int(tokens[1])
         case _:
             logger.warning('Invalid host: %s', openapi_parser.host)
             return False
@@ -52,7 +52,7 @@ def is_host_up(openapi_parser: SwaggerParser | OpenAPIv3Parser) -> bool:
         return res.status in range(200, 499)
     except Exception as e:
         logger.error(
-            'Unable to connect to host %s:%d due to error: %s', host, port, repr(e)
+            'Unable to connect to host %s:%s due to error: %s', host, port, repr(e)
         )
         return False
 
