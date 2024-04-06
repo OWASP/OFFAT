@@ -2,8 +2,9 @@ from copy import deepcopy
 from .fuzzer import fill_params
 from .post_test_processor import PostTestFiltersEnum
 from .fuzzer import generate_random_int
-from ..parsers import SwaggerParser, OpenAPIv3Parser
 from ..config_data_handler import populate_user_data
+from ..parsers import SwaggerParser, OpenAPIv3Parser
+from ..utils import join_uri_path
 
 
 class TestGenerator:
@@ -20,7 +21,7 @@ class TestGenerator:
         sqli_fuzz_params: Performs SQL injection (SQLi) parameter fuzzing based on the provided OpenAPIParser instance.
     """
 
-    def __init__(self,  headers: dict = None) -> None:
+    def __init__(self, headers: dict = None) -> None:
         """
         Initializes an instance of the TestGenerator class.
 
@@ -41,7 +42,7 @@ class TestGenerator:
         openapi_parser: SwaggerParser | OpenAPIv3Parser,
         success_codes: list[int] = [200, 201, 301, 302],
         *args,
-        **kwargs
+        **kwargs,
     ):
         '''Checks whether endpoint supports undocumented/unsupported HTTP methods
 
@@ -72,7 +73,7 @@ class TestGenerator:
                     'methods': [],
                     'body_params': [],
                     'query_params': [],
-                    'path_params': []
+                    'path_params': [],
                 }
 
             endpoints_index[endpoint]['endpoints'].append(fuzzed_endpoint_data)
@@ -80,11 +81,14 @@ class TestGenerator:
                 endpoints_index[endpoint]['methods'].append(method.lower())
 
             endpoints_index[endpoint]['body_params'].extend(
-                fuzzed_endpoint_data['body_params'])
+                fuzzed_endpoint_data['body_params']
+            )
             endpoints_index[endpoint]['query_params'].extend(
-                fuzzed_endpoint_data['query_params'])
+                fuzzed_endpoint_data['query_params']
+            )
             endpoints_index[endpoint]['path_params'].extend(
-                fuzzed_endpoint_data['path_params'])
+                fuzzed_endpoint_data['path_params']
+            )
 
         for endpoint, endpoint_dict in endpoints_index.items():
             methods_allowed = endpoint_dict.get('methods', [])
@@ -97,30 +101,31 @@ class TestGenerator:
             restricted_methods = http_methods - set(methods_allowed)
 
             for restricted_method in restricted_methods:
-                tasks.append({
-                    'test_name': 'UnSupported HTTP Method Check',
-                    'url': url,
-                    'endpoint': endpoint,
-                    'method': restricted_method.upper(),
-                    'malicious_payload': [],
-                    'args': args,
-                    'kwargs': kwargs,
-                    'result_details': {
-                        True: 'Endpoint does not perform any HTTP method which is not documented',  # passed
-                        False: 'Endpoint performs HTTP method which is not documented',  # failed
-                    },
-                    'body_params': body_params,
-                    'query_params': query_params,
-                    'path_params': path_params,
-                    'success_codes': success_codes,
-                    'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name
-                })
+                tasks.append(
+                    {
+                        'test_name': 'UnSupported HTTP Method Check',
+                        'url': url,
+                        'endpoint': endpoint,
+                        'method': restricted_method.upper(),
+                        'malicious_payload': [],
+                        'args': args,
+                        'kwargs': kwargs,
+                        'result_details': {
+                            True: 'Endpoint does not perform any HTTP method which is not documented',  # passed
+                            False: 'Endpoint performs HTTP method which is not documented',  # failed
+                        },
+                        'body_params': body_params,
+                        'query_params': query_params,
+                        'path_params': path_params,
+                        'success_codes': success_codes,
+                        'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name,
+                    }
+                )
 
         return tasks
 
     def __get_request_params_list(self, request_params: list[dict]):
-        '''Get list of request parameters
-        '''
+        '''Get list of request parameters'''
         payload_data = []
         for request_param in request_params:
             param_pos = request_param.get('in')
@@ -132,16 +137,20 @@ class TestGenerator:
 
                 for prop in props.keys():
                     prop_type = props[prop].get('type')
-                    payload_data.append({
-                        'in': param_pos,
-                        'name': prop,
-                        'type': prop_type,
-                        'required': prop in required_params,
-                    })
+                    payload_data.append(
+                        {
+                            'in': param_pos,
+                            'name': prop,
+                            'type': prop_type,
+                            'required': prop in required_params,
+                        }
+                    )
 
         return payload_data
 
-    def __fuzz_request_params(self, openapi_parser: SwaggerParser | OpenAPIv3Parser) -> list[dict]:
+    def __fuzz_request_params(
+        self, openapi_parser: SwaggerParser | OpenAPIv3Parser
+    ) -> list[dict]:
         """
         Fuzzes Request params available in different positions and returns a list
         of tasks
@@ -164,11 +173,14 @@ class TestGenerator:
 
             # get params based on their position in request
             request_body_params = list(
-                filter(lambda x: x.get('in') == 'body', request_params))
+                filter(lambda x: x.get('in') == 'body', request_params)
+            )
             request_query_params = list(
-                filter(lambda x: x.get('in') == 'query', request_params))
+                filter(lambda x: x.get('in') == 'query', request_params)
+            )
             path_params_in_body = list(
-                filter(lambda x: x.get('in') == 'path', request_params))
+                filter(lambda x: x.get('in') == 'path', request_params)
+            )
 
             # handle path params from path_params
             # and replace path params by value in
@@ -183,17 +195,21 @@ class TestGenerator:
                 path_param_value = path_param.get('value')
 
                 endpoint_path = endpoint_path.replace(
-                    '{' + str(path_param_name) + '}', str(path_param_value))
+                    '{' + str(path_param_name) + '}', str(path_param_value)
+                )
 
-            tasks.append({
-                'url': f'{base_url}{openapi_parser.api_base_path}{endpoint_path}',
-                'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
-                'method': path_obj.get('http_method', '').upper(),
-                'body_params': request_body_params,
-                'query_params': request_query_params,
-                'path_params': path_params,
-                # 'malicious_payload':path_params,
-            })
+            print(base_url, openapi_parser.api_base_path, endpoint_path)
+            tasks.append(
+                {
+                    'url': f'{base_url}{openapi_parser.api_base_path}{endpoint_path}',
+                    'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
+                    'method': path_obj.get('http_method', '').upper(),
+                    'body_params': request_body_params,
+                    'query_params': request_query_params,
+                    'path_params': path_params,
+                    # 'malicious_payload':path_params,
+                }
+            )
 
         return tasks
 
@@ -221,11 +237,11 @@ class TestGenerator:
         return request_params
 
     def sqli_fuzz_params_test(
-            self,
-            openapi_parser: SwaggerParser | OpenAPIv3Parser,
-            success_codes: list[int] = [500],
-            *args,
-            **kwargs
+        self,
+        openapi_parser: SwaggerParser | OpenAPIv3Parser,
+        success_codes: list[int] = [500],
+        *args,
+        **kwargs,
     ):
         '''Performs SQL injection (SQLi) parameter fuzzing based on the provided OpenAPIParser instance.
 
@@ -262,12 +278,14 @@ class TestGenerator:
                 # handle body request params
                 body_request_params = request_obj.get('body_params', [])
                 malicious_body_request_params = self.__inject_payload_in_params(
-                    body_request_params, sqli_payload)
+                    body_request_params, sqli_payload
+                )
 
                 # handle query request params
                 query_request_params = request_obj.get('query_params', [])
                 malicious_query_request_params = self.__inject_payload_in_params(
-                    query_request_params, sqli_payload)
+                    query_request_params, sqli_payload
+                )
 
                 # BUG: for few SQLi test, path params injected value is not matching with final URI path params in output
                 request_obj['test_name'] = 'SQLi Test'
@@ -284,17 +302,19 @@ class TestGenerator:
                     False: 'One or more parameter is vulnerable to SQL Injection Attack',  # failed
                 }
                 request_obj['success_codes'] = success_codes
-                request_obj['response_filter'] = PostTestFiltersEnum.STATUS_CODE_FILTER.name
+                request_obj[
+                    'response_filter'
+                ] = PostTestFiltersEnum.STATUS_CODE_FILTER.name
                 tasks.append(deepcopy(request_obj))
 
         return tasks
 
     def sqli_in_uri_path_fuzz_test(
-            self,
-            openapi_parser: SwaggerParser | OpenAPIv3Parser,
-            success_codes: list[int] = [500],
-            *args,
-            **kwargs
+        self,
+        openapi_parser: SwaggerParser | OpenAPIv3Parser,
+        success_codes: list[int] = [500],
+        *args,
+        **kwargs,
     ):
         '''Generate Tests for SQLi in endpoint path
 
@@ -315,7 +335,10 @@ class TestGenerator:
 
         # filter path containing params in path
         endpoints_with_param_in_path = list(
-            filter(lambda path_obj: '/{' in path_obj.get('path'), request_response_params))
+            filter(
+                lambda path_obj: '/{' in path_obj.get('path'), request_response_params
+            )
+        )
 
         basic_sqli_payloads = [
             "' OR 1=1 ;--",
@@ -334,7 +357,8 @@ class TestGenerator:
 
                 # get request body params
                 request_body_params = list(
-                    filter(lambda x: x.get('in') == 'body', request_params))
+                    filter(lambda x: x.get('in') == 'body', request_params)
+                )
 
                 # handle path params from path_params
                 # and replace path params by value in
@@ -343,7 +367,8 @@ class TestGenerator:
 
                 path_params = path_obj.get('path_params', [])
                 path_params_in_body = list(
-                    filter(lambda x: x.get('in') == 'path', request_params))
+                    filter(lambda x: x.get('in') == 'path', request_params)
+                )
                 path_params += path_params_in_body
                 path_params = fill_params(path_params, openapi_parser.is_v3)
 
@@ -351,38 +376,42 @@ class TestGenerator:
                     path_param_name = path_param.get('name')
                     # path_param_value = path_param.get('value')
                     endpoint_path = endpoint_path.replace(
-                        '{' + str(path_param_name) + '}', str(sqli_payload))
+                        '{' + str(path_param_name) + '}', str(sqli_payload)
+                    )
 
                 request_query_params = list(
-                    filter(lambda x: x.get('in') == 'query', request_params))
+                    filter(lambda x: x.get('in') == 'query', request_params)
+                )
 
-                tasks.append({
-                    'test_name': 'SQLi Test in URI Path with Fuzzed Params',
-                    'url': f'{base_url}{openapi_parser.api_base_path}{endpoint_path}',
-                    'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
-                    'method': path_obj.get('http_method').upper(),
-                    'body_params': request_body_params,
-                    'query_params': request_query_params,
-                    'path_params': path_params,
-                    'malicious_payload': sqli_payload,
-                    'args': args,
-                    'kwargs': kwargs,
-                    'result_details': {
-                        True: 'Endpoint is not vulnerable to SQLi',  # passed
-                        False: 'Endpoint might be vulnerable to SQli',  # failed
-                    },
-                    'success_codes': success_codes,
-                    'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name
-                })
+                tasks.append(
+                    {
+                        'test_name': 'SQLi Test in URI Path with Fuzzed Params',
+                        'url': f'{base_url}{openapi_parser.api_base_path}{endpoint_path}',
+                        'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
+                        'method': path_obj.get('http_method').upper(),
+                        'body_params': request_body_params,
+                        'query_params': request_query_params,
+                        'path_params': path_params,
+                        'malicious_payload': sqli_payload,
+                        'args': args,
+                        'kwargs': kwargs,
+                        'result_details': {
+                            True: 'Endpoint is not vulnerable to SQLi',  # passed
+                            False: 'Endpoint might be vulnerable to SQli',  # failed
+                        },
+                        'success_codes': success_codes,
+                        'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name,
+                    }
+                )
 
         return tasks
 
     def bola_fuzz_path_test(
-            self,
-            openapi_parser: SwaggerParser | OpenAPIv3Parser,
-            success_codes: list[int] = [200, 201, 301],
-            *args,
-            **kwargs
+        self,
+        openapi_parser: SwaggerParser | OpenAPIv3Parser,
+        success_codes: list[int] = [200, 201, 301],
+        *args,
+        **kwargs,
     ):
         '''Generate Tests for BOLA in endpoint path
 
@@ -403,7 +432,10 @@ class TestGenerator:
 
         # filter path containing params in path
         endpoints_with_param_in_path = list(
-            filter(lambda path_obj: '/{' in path_obj.get('path'), request_response_params))
+            filter(
+                lambda path_obj: '/{' in path_obj.get('path'), request_response_params
+            )
+        )
 
         tasks = []
         for path_obj in endpoints_with_param_in_path:
@@ -413,7 +445,8 @@ class TestGenerator:
 
             # get request body params
             request_body_params = list(
-                filter(lambda x: x.get('in') == 'body', request_params))
+                filter(lambda x: x.get('in') == 'body', request_params)
+            )
 
             # handle path params from path_params
             # and replace path params by value in
@@ -422,7 +455,8 @@ class TestGenerator:
 
             path_params = path_obj.get('path_params', [])
             path_params_in_body = list(
-                filter(lambda x: x.get('in') == 'path', request_params))
+                filter(lambda x: x.get('in') == 'path', request_params)
+            )
             path_params += path_params_in_body
             path_params = fill_params(path_params, openapi_parser.is_v3)
 
@@ -430,39 +464,43 @@ class TestGenerator:
                 path_param_name = path_param.get('name')
                 path_param_value = path_param.get('value')
                 endpoint_path = endpoint_path.replace(
-                    '{' + str(path_param_name) + '}', str(path_param_value))
+                    '{' + str(path_param_name) + '}', str(path_param_value)
+                )
 
             request_query_params = list(
-                filter(lambda x: x.get('in') == 'query', request_params))
+                filter(lambda x: x.get('in') == 'query', request_params)
+            )
 
-            tasks.append({
-                'test_name': 'BOLA Path Test with Fuzzed Params',
-                # f'{base_url}{endpoint_path}',
-                'url': f'{base_url}{openapi_parser.api_base_path}{endpoint_path}',
-                'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
-                'method': path_obj.get('http_method').upper(),
-                'body_params': request_body_params,
-                'query_params': request_query_params,
-                'path_params': path_params,
-                'malicious_payload': path_params,
-                'args': args,
-                'kwargs': kwargs,
-                'result_details': {
-                    True: 'Endpoint is not vulnerable to BOLA',  # passed
-                    False: 'Endpoint might be vulnerable to BOLA',  # failed
-                },
-                'success_codes': success_codes,
-                'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name
-            })
+            tasks.append(
+                {
+                    'test_name': 'BOLA Path Test with Fuzzed Params',
+                    # f'{base_url}{endpoint_path}',
+                    'url': f'{base_url}{openapi_parser.api_base_path}{endpoint_path}',
+                    'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
+                    'method': path_obj.get('http_method').upper(),
+                    'body_params': request_body_params,
+                    'query_params': request_query_params,
+                    'path_params': path_params,
+                    'malicious_payload': path_params,
+                    'args': args,
+                    'kwargs': kwargs,
+                    'result_details': {
+                        True: 'Endpoint is not vulnerable to BOLA',  # passed
+                        False: 'Endpoint might be vulnerable to BOLA',  # failed
+                    },
+                    'success_codes': success_codes,
+                    'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name,
+                }
+            )
 
         return tasks
 
     def bola_fuzz_trailing_slash_path_test(
-            self,
-            openapi_parser: SwaggerParser | OpenAPIv3Parser,
-            success_codes: list[int] = [200, 201, 301],
-            *args,
-            **kwargs
+        self,
+        openapi_parser: SwaggerParser | OpenAPIv3Parser,
+        success_codes: list[int] = [200, 201, 301],
+        *args,
+        **kwargs,
     ):
         '''Generate Tests for BOLA in endpoint path
 
@@ -489,11 +527,14 @@ class TestGenerator:
 
             # get params based on their position in request
             request_body_params = list(
-                filter(lambda x: x.get('in') == 'body', request_params))
+                filter(lambda x: x.get('in') == 'body', request_params)
+            )
             request_query_params = list(
-                filter(lambda x: x.get('in') == 'query', request_params))
+                filter(lambda x: x.get('in') == 'query', request_params)
+            )
             path_params_in_body = list(
-                filter(lambda x: x.get('in') == 'path', request_params))
+                filter(lambda x: x.get('in') == 'path', request_params)
+            )
 
             # handle path params from path_params
             # and replace path params by value in
@@ -507,7 +548,8 @@ class TestGenerator:
                 path_param_name = path_param.get('name')
                 path_param_value = path_param.get('value')
                 endpoint_path = endpoint_path.replace(
-                    '{' + str(path_param_name) + '}', str(path_param_value))
+                    '{' + str(path_param_name) + '}', str(path_param_value)
+                )
 
             # generate URL for BOLA attack
             url = f'{base_url}{openapi_parser.api_base_path}{endpoint_path}'
@@ -516,24 +558,26 @@ class TestGenerator:
             else:
                 url = f'{url}/{generate_random_int()}'
 
-            tasks.append({
-                'test_name': 'BOLA Path Trailing Slash Test',
-                'url': url,
-                'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
-                'method': path_obj.get('http_method').upper(),
-                'body_params': request_body_params,
-                'query_params': request_query_params,
-                'path_params': path_params,
-                'malicious_payload': [],
-                'args': args,
-                'kwargs': kwargs,
-                'result_details': {
-                    True: 'Endpoint might not vulnerable to BOLA',  # passed
-                    False: 'Endpoint might be vulnerable to BOLA',  # failed
-                },
-                'success_codes': success_codes,
-                'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name
-            })
+            tasks.append(
+                {
+                    'test_name': 'BOLA Path Trailing Slash Test',
+                    'url': url,
+                    'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
+                    'method': path_obj.get('http_method').upper(),
+                    'body_params': request_body_params,
+                    'query_params': request_query_params,
+                    'path_params': path_params,
+                    'malicious_payload': [],
+                    'args': args,
+                    'kwargs': kwargs,
+                    'result_details': {
+                        True: 'Endpoint might not vulnerable to BOLA',  # passed
+                        False: 'Endpoint might be vulnerable to BOLA',  # failed
+                    },
+                    'success_codes': success_codes,
+                    'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name,
+                }
+            )
 
         return tasks
 
@@ -543,7 +587,7 @@ class TestGenerator:
 
         Args:
             body_params ([dict]) : dict of response from openapi documentation
-            {'200':{'properties':{'schema':{'test_param':{'type':'str'}}}}} 
+            {'200':{'properties':{'schema':{'test_param':{'type':'str'}}}}}
 
         Returns:
             list[dict]: list of dict containing test case for endpoint
@@ -567,11 +611,11 @@ class TestGenerator:
         return params
 
     def bopla_fuzz_test(
-            self,
-            openapi_parser: SwaggerParser | OpenAPIv3Parser,
-            success_codes: list[int] = [200, 201, 301],
-            *args,
-            **kwargs
+        self,
+        openapi_parser: SwaggerParser | OpenAPIv3Parser,
+        success_codes: list[int] = [200, 201, 301],
+        *args,
+        **kwargs,
     ):
         '''Generate Tests for BOPLA/Mass Assignment Vulnerability
 
@@ -598,11 +642,14 @@ class TestGenerator:
 
             # get params based on their position in request
             request_body_params = list(
-                filter(lambda x: x.get('in') == 'body', request_params))
+                filter(lambda x: x.get('in') == 'body', request_params)
+            )
             request_query_params = list(
-                filter(lambda x: x.get('in') == 'query', request_params))
+                filter(lambda x: x.get('in') == 'query', request_params)
+            )
             path_params_in_body = list(
-                filter(lambda x: x.get('in') == 'path', request_params))
+                filter(lambda x: x.get('in') == 'path', request_params)
+            )
 
             # handle path params from path_params
             # and replace path params by value in
@@ -616,7 +663,8 @@ class TestGenerator:
                 path_param_name = path_param.get('name')
                 path_param_value = path_param.get('value')
                 endpoint_path = endpoint_path.replace(
-                    '{' + str(path_param_name) + '}', str(path_param_value))
+                    '{' + str(path_param_name) + '}', str(path_param_value)
+                )
 
             # assign values to response params below and add them to JSON request body
             response_body_params = self._inject_response_params(
@@ -625,25 +673,27 @@ class TestGenerator:
             )
             request_body_params += response_body_params
 
-            tasks.append({
-                'test_name': 'BOPLA Test',
-                # f'{base_url}{endpoint_path}',
-                'url': f'{base_url}{openapi_parser.api_base_path}{endpoint_path}',
-                'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
-                'method': path_obj.get('http_method', '').upper(),
-                'body_params': request_body_params,
-                'query_params': request_query_params,
-                'path_params': path_params,
-                'malicious_payload': response_body_params,
-                'args': args,
-                'kwargs': kwargs,
-                'result_details': {
-                    True: 'Endpoint might not vulnerable to BOPLA',  # passed
-                    False: 'Endpoint might be vulnerable to BOPLA',  # failed
-                },
-                'success_codes': success_codes,
-                'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name
-            })
+            tasks.append(
+                {
+                    'test_name': 'BOPLA Test',
+                    # f'{base_url}{endpoint_path}',
+                    'url': f'{base_url}{openapi_parser.api_base_path}{endpoint_path}',
+                    'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
+                    'method': path_obj.get('http_method', '').upper(),
+                    'body_params': request_body_params,
+                    'query_params': request_query_params,
+                    'path_params': path_params,
+                    'malicious_payload': response_body_params,
+                    'args': args,
+                    'kwargs': kwargs,
+                    'result_details': {
+                        True: 'Endpoint might not vulnerable to BOPLA',  # passed
+                        False: 'Endpoint might be vulnerable to BOPLA',  # failed
+                    },
+                    'success_codes': success_codes,
+                    'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name,
+                }
+            )
 
         return tasks
 
@@ -654,13 +704,13 @@ class TestGenerator:
         test_for_actor1: bool = True,
         test_for_actor2: bool = False,
         *args,
-        **kwargs
+        **kwargs,
     ):
         '''Generate Tests with user sepecified data using provided test generator method
 
         Args:
             user_data (dict): User specified YAML data as dict.
-            test_generator_method (class method): test generator class method to be used for generating API pentest tests. 
+            test_generator_method (class method): test generator class method to be used for generating API pentest tests.
             test_for_actor1 (bool): Generate tests for actor1 user data
             test_for_actor2 (bool): Generate tests for actor2 user data
             *args: Variable-length positional arguments.
@@ -688,13 +738,13 @@ class TestGenerator:
         return new_tests
 
     def __generate_injection_fuzz_params_test(
-            self,
-            openapi_parser: SwaggerParser | OpenAPIv3Parser,
-            test_name: str,
-            result_details: dict,
-            payloads_data: list[dict],
-            *args,
-            **kwargs
+        self,
+        openapi_parser: SwaggerParser | OpenAPIv3Parser,
+        test_name: str,
+        result_details: dict,
+        payloads_data: list[dict],
+        *args,
+        **kwargs,
     ):
         '''Performs injection parameter fuzzing based on the provided OpenAPIParser instance and matches injected payload using regex in response.
 
@@ -722,12 +772,14 @@ class TestGenerator:
                 # handle body request params
                 body_request_params = request_obj.get('body_params', [])
                 malicious_body_request_params = self.__inject_payload_in_params(
-                    body_request_params, payload)
+                    body_request_params, payload
+                )
 
                 # handle query request params
                 query_request_params = request_obj.get('query_params', [])
                 malicious_query_request_params = self.__inject_payload_in_params(
-                    query_request_params, payload)
+                    query_request_params, payload
+                )
 
                 request_obj['test_name'] = test_name
 
@@ -739,15 +791,20 @@ class TestGenerator:
                 request_obj['malicious_payload'] = payload
 
                 request_obj['result_details'] = result_details
-                request_obj['response_filter'] = PostTestFiltersEnum.BODY_REGEX_FILTER.name
+                request_obj[
+                    'response_filter'
+                ] = PostTestFiltersEnum.BODY_REGEX_FILTER.name
                 request_obj['response_match_regex'] = payload_dict.get(
-                    'response_match_regex')
+                    'response_match_regex'
+                )
 
                 tasks.append(deepcopy(request_obj))
 
         return tasks
 
-    def os_command_injection_fuzz_params_test(self, openapi_parser: SwaggerParser | OpenAPIv3Parser):
+    def os_command_injection_fuzz_params_test(
+        self, openapi_parser: SwaggerParser | OpenAPIv3Parser
+    ):
         '''Performs OS Command injection parameter fuzzing based on the provided OpenAPIParser instance.
 
         Args:
@@ -764,18 +821,9 @@ class TestGenerator:
         test_name = 'OS Command Injection Test'
 
         payloads_data = [
-            {
-                "request_payload": "cat /etc/passwd",
-                "response_match_regex": r"root:.*"
-            },
-            {
-                "request_payload": "cat /etc/shadow",
-                "response_match_regex": r"root:.*"
-            },
-            {
-                "request_payload": "ls -la",
-                "response_match_regex": r"total\s\d+"
-            },
+            {'request_payload': 'cat /etc/passwd', 'response_match_regex': r'root:.*'},
+            {'request_payload': 'cat /etc/shadow', 'response_match_regex': r'root:.*'},
+            {'request_payload': 'ls -la', 'response_match_regex': r'total\s\d+'},
         ]
 
         result_details = {
@@ -790,7 +838,9 @@ class TestGenerator:
             payloads_data=payloads_data,
         )
 
-    def xss_html_injection_fuzz_params_test(self, openapi_parser: SwaggerParser | OpenAPIv3Parser):
+    def xss_html_injection_fuzz_params_test(
+        self, openapi_parser: SwaggerParser | OpenAPIv3Parser
+    ):
         '''Performs OS Command injection parameter fuzzing based on the provided OpenAPIParser instance.
 
         Args:
@@ -808,16 +858,16 @@ class TestGenerator:
 
         payloads_data = [
             {
-                "request_payload": "<script>confirm(1)</script>",
-                "response_match_regex": r"<script[^>]*>.*<\/script>",
+                'request_payload': '<script>confirm(1)</script>',
+                'response_match_regex': r'<script[^>]*>.*<\/script>',
             },
             {
-                "request_payload": "<script>alert(1)</script>",
-                "response_match_regex": r"<script[^>]*>.*<\/script>",
+                'request_payload': '<script>alert(1)</script>',
+                'response_match_regex': r'<script[^>]*>.*<\/script>',
             },
             {
-                "request_payload": "<img src=x onerror='javascript:confirm(1)'>",
-                "response_match_regex": r"<img[^>]*>",
+                'request_payload': "<img src=x onerror='javascript:confirm(1)'>",
+                'response_match_regex': r'<img[^>]*>',
             },
         ]
 

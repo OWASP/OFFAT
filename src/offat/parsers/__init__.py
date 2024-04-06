@@ -9,7 +9,9 @@ from ..logger import logger
 
 
 def create_parser(
-    fpath_or_url: str, spec: dict | None = None
+    fpath_or_url: str,
+    spec: dict | None = None,
+    server_url: str | None = None,
 ) -> SwaggerParser | OpenAPIv3Parser | None:
     '''returns parser based on doc file'''
     if fpath_or_url and is_valid_url(fpath_or_url):
@@ -29,12 +31,14 @@ def create_parser(
             exit(-1)
 
     try:
-        parser = BaseParser(file_or_url=fpath_or_url, spec=spec)
+        parser = BaseParser(file_or_url=fpath_or_url, spec=spec, server_url=server_url)
     except OSError:
         logger.error('File Not Found')
         exit(-1)
 
     if parser.is_v3:
-        return OpenAPIv3Parser(file_or_url=fpath_or_url, spec=spec)
+        return OpenAPIv3Parser(
+            file_or_url=fpath_or_url, spec=spec, server_url=server_url
+        )
 
-    return SwaggerParser(fpath_or_url=fpath_or_url, spec=spec)
+    return SwaggerParser(fpath_or_url=fpath_or_url, spec=spec, server_url=server_url)

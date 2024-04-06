@@ -2,10 +2,12 @@
 utils module
 """
 from json import loads as json_load, dumps as json_dumps, JSONDecodeError
-from os.path import isfile
 from re import compile as re_compile, match
-from pkg_resources import get_distribution
+from urllib.parse import urlparse, urljoin
+from os.path import isfile
+from importlib.metadata import version
 from yaml import safe_load, YAMLError
+
 from .logger import logger
 
 
@@ -18,7 +20,7 @@ def get_package_version():
     Returns:
         String: current package version
     '''
-    return get_distribution('offat').version
+    return version('offat')
 
 
 def read_yaml(file_path: str) -> dict:
@@ -190,5 +192,74 @@ def is_valid_url(url: str) -> bool:
     Raises:
         Any exception occurred during operation
     '''
-    url_regex = re_compile(r'https?:\/\/[a-z.-]+(:\d+)?.*')
+    url_regex = re_compile(
+        r'https?:\/\/([a-z.-]|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})+(:\d+)?.*'
+    )
     return bool(match(url_regex, url))
+
+
+def parse_server_url(url: str) -> tuple:
+    '''Parses url and returns scheme, host, port and basepath.
+
+    Args:
+        url (str): url to be parsed
+
+    Returns:
+        tuple: (scheme:str, host:str, port:int|None, basepath:str|None)
+
+    Raises:
+        Any exception occurred during operation
+    '''
+    # TODO: implement url parse security https://docs.python.org/3/library/urllib.parse.html#url-parsing-security
+    parsed_url = urlparse(url)
+
+    netloc = parsed_url.netloc
+    port = 443 if parsed_url.scheme == 'https' else 80
+    if ':' in netloc:
+        tokens = netloc.split(':')
+        host = tokens[0]
+        try:
+            port = int(tokens[1])
+        except ValueError:
+            logger.error(
+                'Invalid Port Number: failed to parse port in url. Using port %d according to scheme %s',
+                port,
+                parsed_url.scheme,
+            )
+    else:
+        host = netloc
+
+    if parsed_url.scheme not in ['http', 'https']:
+        raise ValueError('only http and https schemes are allowed')
+
+    return parsed_url.scheme, host, port, parsed_url.path
+
+
+def join_uri_path(*args: str, remove_prefix: str = '/') -> str:
+    '''constructs url from passed args using urljoin
+
+    Args:
+        *args (str): parts of uri
+        remove_prefix (str): prefix to be removed from uri path before
+        joining with previous uri path.
+
+    Returns:
+        str: constructed uri
+
+    Raises:
+        Any exception occurred during operation
+
+    Example:
+    ```python
+    from offat.utils import join_uri_path
+
+    url = join_uri_path('https://example.com:443','/v2/', '/pet/findByStatus/')
+    print(url)
+    # output: https://example.com:443/pet/findByStatus/
+    ```
+    '''
+    url = args[0]
+    for uri in args[1:]:
+        url = urljoin(url, uri.removeprefix(remove_prefix))
+
+    return url

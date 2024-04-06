@@ -36,6 +36,7 @@ class Proxies:
             True if the proxy URL seems valid and a basic connection can be established, False otherwise.
         """
         # Check for valid URL format
+        # TODO: implement url parse security: https://docs.python.org/3/library/urllib.parse.html#url-parsing-security
         parsed_url = urlparse(proxy_url)
         if all([parsed_url.scheme, parsed_url.netloc]):
             return True

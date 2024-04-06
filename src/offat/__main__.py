@@ -126,6 +126,14 @@ def start():
         action='store_true',
         help='Captures failed requests due to any exceptions into output file',
     )
+    parser.add_argument(
+        '--server',
+        dest='server_url',
+        type=str,
+        default=None,
+        required=False,
+        help='server/host base url to overwrite from OAS/Swagger file',
+    )
     args = parser.parse_args()
 
     # convert req headers str to dict
@@ -142,7 +150,7 @@ def start():
         test_data_config = validate_config_file_data(test_data_config)
 
     # parse args and run tests
-    api_parser = create_parser(args.fpath)
+    api_parser = create_parser(args.fpath, server_url=args.server_url)
     generate_and_run_tests(
         api_parser=api_parser,
         regex_pattern=args.path_regex_pattern,

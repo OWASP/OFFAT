@@ -11,13 +11,15 @@ class InvalidOpenAPIv3File(Exception):
 
 class OpenAPIv3Parser(BaseParser):
     '''OpenAPI v3 Spec File Parser'''
+
     # while adding new method to this class, make sure same method is present in SwaggerParser class
 
-
-    def __init__(self, file_or_url: str, spec: dict | None = None) -> None:
-        super().__init__(file_or_url=file_or_url, spec=spec)  # noqa
+    def __init__(
+        self, file_or_url: str, spec: dict | None = None, *args, **kwargs
+    ) -> None:
+        super().__init__(file_or_url=file_or_url, spec=spec, *args, **kwargs)  # noqa
         if not self.is_v3:
-            raise InvalidOpenAPIv3File("Invalid OAS v3 file")
+            raise InvalidOpenAPIv3File('Invalid OAS v3 file')
 
         self._populate_hosts()
         self.http_scheme = self._get_scheme()
@@ -25,7 +27,6 @@ class OpenAPIv3Parser(BaseParser):
         self.base_url = f"{self.http_scheme}://{self.host}"
 
         self.request_response_params = self._get_request_response_params()
-
 
     def _populate_hosts(self):
         servers = self.specification.get('servers', [])
@@ -35,14 +36,17 @@ class OpenAPIv3Parser(BaseParser):
             raise InvalidOpenAPIv3File('Server URLs Not Found in spec file')
 
         for server in servers:
-            host = server.get('url', '').removeprefix(
-                'https://').removeprefix('http://').removesuffix('/')
+            host = (
+                server.get('url', '')
+                .removeprefix('https://')
+                .removeprefix('http://')
+                .removesuffix('/')
+            )
             host = None if host == '' else host
             hosts.append(host)
 
         self.hosts = hosts
         self.host = self.hosts[0]
-
 
     def _get_scheme(self):
         servers = self.specification.get('servers', [])
@@ -53,20 +57,20 @@ class OpenAPIv3Parser(BaseParser):
         scheme = 'https' if 'https' in schemes else 'http'
         return scheme
 
-
-    def _fetch_schema_from_spec(self, param_schema_ref:str) -> dict:
+    def _fetch_schema_from_spec(self, param_schema_ref: str) -> dict:
         schema_spec_path = param_schema_ref.split('/')[1:]
-        
+
         if len(schema_spec_path) > 3:
-            logger.error('Schema spec $ref path should not be greater than 3 (excluding #)')
+            logger.error(
+                'Schema spec $ref path should not be greater than 3 (excluding #)'
+            )
             return {}
-        
-        schema_data:dict = self.specification
+
+        schema_data: dict = self.specification
         for child_ele in schema_spec_path:
-            schema_data:dict = schema_data.get(child_ele, {})
+            schema_data: dict = schema_data.get(child_ele, {})
 
         return schema_data
-    
 
     def _get_param_definition_schema(self, param: dict):
         '''Returns Model defined schema for the passed param'''
@@ -96,13 +100,20 @@ class OpenAPIv3Parser(BaseParser):
             if content:
                 status_code_content_type_responses = content.keys()
                 for status_code_content_type in status_code_content_type_responses:
-                    status_code_content = responses[status_code]['content'][status_code_content_type].keys()
+                    status_code_content = responses[status_code]['content'][
+                        status_code_content_type
+                    ].keys()
                     if 'parameters' in status_code_content:
-                        responses[status_code]['schema'] = responses[status_code]['content'][status_code_content_type]['parameters']
+                        responses[status_code]['schema'] = responses[status_code][
+                            'content'
+                        ][status_code_content_type]['parameters']
                     elif 'schema' in status_code_content:
-                        responses[status_code]['schema'] = self._get_param_definition_schema(
-                            responses[status_code]['content'][status_code_content_type])
-       
+                        responses[status_code][
+                            'schema'
+                        ] = self._get_param_definition_schema(
+                            responses[status_code]['content'][status_code_content_type]
+                        )
+
             else:
                 # Fetch $ref schema directly
                 ref = responses[status_code].get('$ref', None)
@@ -110,7 +121,6 @@ class OpenAPIv3Parser(BaseParser):
                     responses[status_code]['schema'] = self._fetch_schema_from_spec(ref)
 
         return responses
-
 
     def _get_request_response_params(self):
         '''Returns Schema of requests and response params
@@ -133,43 +143,52 @@ class OpenAPIv3Parser(BaseParser):
                 if http_method not in ['get', 'put', 'post', 'delete', 'options']:
                     continue
 
-                request_parameters = paths[path][http_method].get(
-                    'parameters', [])
+                request_parameters = paths[path][http_method].get('parameters', [])
 
                 # create list of parameters: Fetch object schema from OAS file
                 body_params = []
 
-                body_parameter_keys = paths[path][http_method].get(
-                    'requestBody', {}).get('content', {})
+                body_parameter_keys = (
+                    paths[path][http_method].get('requestBody', {}).get('content', {})
+                )
 
                 for body_parameter_key in body_parameter_keys:
-                    body_parameters_dict = paths[path][http_method]['requestBody']['content'][body_parameter_key]
+                    body_parameters_dict = paths[path][http_method]['requestBody'][
+                        'content'
+                    ][body_parameter_key]
 
                     required = paths[path][http_method]['requestBody'].get('required')
-                    description = paths[path][http_method]['requestBody'].get('description')
+                    description = paths[path][http_method]['requestBody'].get(
+                        'description'
+                    )
                     body_param = self._get_param_definition_schema(body_parameters_dict)
 
-                    body_params.append({
-                        'in': 'body',
-                        'name': body_parameter_key,
-                        'description': description,
-                        'required': required,
-                        'schema': body_param,
-                    })
+                    body_params.append(
+                        {
+                            'in': 'body',
+                            'name': body_parameter_key,
+                            'description': description,
+                            'required': required,
+                            'schema': body_param,
+                        }
+                    )
 
                 response_params = []
                 response_params = self._get_response_definition_schema(
-                    paths[path][http_method].get('responses', {}))
+                    paths[path][http_method].get('responses', {})
+                )
 
                 # add body param to request param
                 request_parameters += body_params
-                requests.append({
-                    'http_method': http_method,
-                    'path': path,
-                    'request_params': request_parameters,
-                    'response_params': response_params,
-                    'path_params': path_params,
-                    'body_params': body_params,
-                })
+                requests.append(
+                    {
+                        'http_method': http_method,
+                        'path': path,
+                        'request_params': request_parameters,
+                        'response_params': response_params,
+                        'path_params': path_params,
+                        'body_params': body_params,
+                    }
+                )
 
         return requests
