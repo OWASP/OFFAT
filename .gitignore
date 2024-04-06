@@ -199,8 +199,11 @@ specs.yaml
 specs.json
 swagger.yaml
 swagger.json
+oas.yml
 *.json
 
 ## unknown data
 .DS_Store
-oas.yml
+
+## local testing scripts
+test.py

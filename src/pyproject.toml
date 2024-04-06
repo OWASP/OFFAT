@@ -35,6 +35,14 @@ offat = "offat.__main__:start"
 offat-api = "offat.api.__main__:start"
 
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.1.1"
+
+[tool.pytest.ini_options]
+testpaths = [
+    "offat/tests",
+]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
