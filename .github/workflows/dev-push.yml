@@ -1,8 +1,9 @@
-name: "Dev Release: Build and Push OWASP OFFAT Docker Images to DockerHub"
+name: "Build and Push Dev/main OWASP OFFAT Docker Images to DockerHub"
 
 on:
   push:
     branches:
+      - "main"
       - "dev"
 
 jobs:
@@ -24,9 +25,9 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: ./src/
-          file: ./src/DockerFiles/base-Dockerfile
+          file: ./src/DockerFiles/wolfi-base-Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat-base:dev
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat-base:${{ github.head_ref || github.ref_name }}
           platforms: linux/amd64,linux/arm64
       - name: Build and push offat docker image
         uses: docker/build-push-action@v3
@@ -34,7 +35,7 @@ jobs:
           context: ./src/
           file: ./src/DockerFiles/dev/cli-Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat:dev
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat:${{ github.head_ref || github.ref_name }}
           platforms: linux/amd64,linux/arm64
       - name: Build and push offat-api docker image
         uses: docker/build-push-action@v3
@@ -42,7 +43,7 @@ jobs:
           context: ./src/
           file: ./src/DockerFiles/dev/backend-api-Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat-api:dev
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat-api:${{ github.head_ref || github.ref_name }}
           platforms: linux/amd64,linux/arm64
       - name: Build and push offat-api-worker docker image
         uses: docker/build-push-action@v3
@@ -50,5 +51,5 @@ jobs:
           context: ./src/
           file: ./src/DockerFiles/dev/backend-api-worker-Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat-api-worker:dev
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat-api-worker:${{ github.head_ref || github.ref_name }}
           platforms: linux/amd64,linux/arm64
