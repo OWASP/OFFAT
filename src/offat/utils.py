@@ -259,7 +259,12 @@ def join_uri_path(*args: str, remove_prefix: str = '/') -> str:
     ```
     '''
     url = args[0]
+    if not url.endswith('/'):
+        url += '/'
+
     for uri in args[1:]:
+        if not url.endswith('/'):
+            url += '/'
         url = urljoin(url, uri.removeprefix(remove_prefix))
 
     return url

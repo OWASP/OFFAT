@@ -95,7 +95,7 @@ class TestGenerator:
             body_params = endpoint_dict.get('body_params', [])
             path_params = endpoint_dict.get('path_params', [])
             query_params = endpoint_dict.get('query_params', [])
-            url = f'{openapi_parser.base_url}{endpoint}'
+            url = join_uri_path(openapi_parser.base_url, endpoint)
 
             http_methods: set = {'get', 'post', 'put', 'delete', 'options'}
             restricted_methods = http_methods - set(methods_allowed)
@@ -198,11 +198,14 @@ class TestGenerator:
                     '{' + str(path_param_name) + '}', str(path_param_value)
                 )
 
-            print(base_url, openapi_parser.api_base_path, endpoint_path)
             tasks.append(
                 {
-                    'url': f'{base_url}{openapi_parser.api_base_path}{endpoint_path}',
-                    'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
+                    'url': join_uri_path(
+                        base_url, openapi_parser.api_base_path, endpoint_path
+                    ),
+                    'endpoint': join_uri_path(
+                        openapi_parser.api_base_path, endpoint_path
+                    ),
                     'method': path_obj.get('http_method', '').upper(),
                     'body_params': request_body_params,
                     'query_params': request_query_params,
@@ -386,8 +389,12 @@ class TestGenerator:
                 tasks.append(
                     {
                         'test_name': 'SQLi Test in URI Path with Fuzzed Params',
-                        'url': f'{base_url}{openapi_parser.api_base_path}{endpoint_path}',
-                        'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
+                        'url': join_uri_path(
+                            base_url, openapi_parser.api_base_path, endpoint_path
+                        ),
+                        'endpoint': join_uri_path(
+                            openapi_parser.api_base_path, endpoint_path
+                        ),
                         'method': path_obj.get('http_method').upper(),
                         'body_params': request_body_params,
                         'query_params': request_query_params,
@@ -475,8 +482,12 @@ class TestGenerator:
                 {
                     'test_name': 'BOLA Path Test with Fuzzed Params',
                     # f'{base_url}{endpoint_path}',
-                    'url': f'{base_url}{openapi_parser.api_base_path}{endpoint_path}',
-                    'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
+                    'url': join_uri_path(
+                        base_url, openapi_parser.api_base_path, endpoint_path
+                    ),
+                    'endpoint': join_uri_path(
+                        openapi_parser.api_base_path, endpoint_path
+                    ),
                     'method': path_obj.get('http_method').upper(),
                     'body_params': request_body_params,
                     'query_params': request_query_params,
@@ -552,7 +563,7 @@ class TestGenerator:
                 )
 
             # generate URL for BOLA attack
-            url = f'{base_url}{openapi_parser.api_base_path}{endpoint_path}'
+            url = join_uri_path(base_url, openapi_parser.api_base_path, endpoint_path)
             if url.endswith('/'):
                 url = f'{url}{generate_random_int()}'
             else:
@@ -562,7 +573,9 @@ class TestGenerator:
                 {
                     'test_name': 'BOLA Path Trailing Slash Test',
                     'url': url,
-                    'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
+                    'endpoint': join_uri_path(
+                        openapi_parser.api_base_path, endpoint_path
+                    ),
                     'method': path_obj.get('http_method').upper(),
                     'body_params': request_body_params,
                     'query_params': request_query_params,
@@ -677,8 +690,12 @@ class TestGenerator:
                 {
                     'test_name': 'BOPLA Test',
                     # f'{base_url}{endpoint_path}',
-                    'url': f'{base_url}{openapi_parser.api_base_path}{endpoint_path}',
-                    'endpoint': f'{openapi_parser.api_base_path}{endpoint_path}',
+                    'url': join_uri_path(
+                        base_url, openapi_parser.api_base_path, endpoint_path
+                    ),
+                    'endpoint': join_uri_path(
+                        openapi_parser.api_base_path, endpoint_path
+                    ),
                     'method': path_obj.get('http_method', '').upper(),
                     'body_params': request_body_params,
                     'query_params': request_query_params,
@@ -866,7 +883,7 @@ class TestGenerator:
                 'response_match_regex': r'<script[^>]*>.*<\/script>',
             },
             {
-                'request_payload': "<img src=x onerror='javascript:confirm(1)'>",
+                'request_payload': "<img src=x onerror='javascript:confirm(1),>",
                 'response_match_regex': r'<img[^>]*>',
             },
         ]
