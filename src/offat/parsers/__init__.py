@@ -1,6 +1,5 @@
-from sys import exit
-from requests import get as http_get
 from json import loads as json_load, JSONDecodeError
+from requests import get as http_get
 from .openapi import OpenAPIv3Parser
 from .swagger import SwaggerParser
 from .parser import BaseParser

@@ -28,7 +28,6 @@ class BaseParser:
         elif server_url:
             scheme, host, port, basepath = parse_server_url(url=server_url)
             basepath = '/' if basepath == '' else basepath
-
             self.specification['host'] = f'{host}:{port}'
             self.specification['schemes'] = [scheme]
             self.specification['basePath'] = basepath

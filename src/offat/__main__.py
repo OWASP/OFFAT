@@ -151,7 +151,6 @@ def start():
 
     # parse args and run tests
     api_parser = create_parser(args.fpath, server_url=args.server_url)
-    # print(api_parser.host, api_parser.base_url, api_parser.api_base_path)
     generate_and_run_tests(
         api_parser=api_parser,
         regex_pattern=args.path_regex_pattern,

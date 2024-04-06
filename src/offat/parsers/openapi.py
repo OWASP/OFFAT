@@ -2,6 +2,7 @@
 module to parse OAS v3 documentation JSON/YAML files.
 '''
 from .parser import BaseParser
+from ..utils import parse_server_url
 from ..logger import logger
 
 
@@ -21,9 +22,20 @@ class OpenAPIv3Parser(BaseParser):
         if not self.is_v3:
             raise InvalidOpenAPIv3File('Invalid OAS v3 file')
 
-        self._populate_hosts()
         self.http_scheme = self._get_scheme()
-        self.api_base_path = self.specification.get('basePath', '')
+
+        # save hosts in self.hosts
+        self._populate_hosts()
+
+        # raise error if host data not found
+        if not (self.hosts and self.hosts[0]):
+            raise ValueError('Host is invalid or not found')
+
+        # parse and set host data
+        host_dict = self.hosts[0]
+        self.http_scheme = host_dict['scheme']
+        self.host = f'{host_dict["host"]}:{host_dict["port"]}'
+        self.api_base_path = host_dict['basepath']
         self.base_url = f"{self.http_scheme}://{self.host}"
 
         self.request_response_params = self._get_request_response_params()
@@ -36,17 +48,25 @@ class OpenAPIv3Parser(BaseParser):
             raise InvalidOpenAPIv3File('Server URLs Not Found in spec file')
 
         for server in servers:
-            host = (
-                server.get('url', '')
-                .removeprefix('https://')
-                .removeprefix('http://')
-                .removesuffix('/')
+            # host = (
+            #     server.get('url', '')
+            #     .removeprefix('https://')
+            #     .removeprefix('http://')
+            #     .removesuffix('/')
+            # )
+            # host = None if host == '' else host
+            scheme, host, port, basepath = parse_server_url(url=server.get('url'))
+
+            hosts.append(
+                {
+                    'scheme': scheme,
+                    'host': host,
+                    'port': port,
+                    'basepath': basepath,
+                }
             )
-            host = None if host == '' else host
-            hosts.append(host)
 
         self.hosts = hosts
-        self.host = self.hosts[0]
 
     def _get_scheme(self):
         servers = self.specification.get('servers', [])
