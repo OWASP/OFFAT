@@ -178,7 +178,7 @@ def generate_and_run_tests(
     )
 
     # OS Command Injection Fuzz Test
-    test_name = 'Checking for OS Command Injection Vulnerability with fuzzed params and checking response body:'
+    test_name = 'Checking for OS Command Injection Vulnerability with fuzzed params and checking response body:'  # noqa: E501
     logger.info(test_name)
     os_command_injection_tests = test_generator.os_command_injection_fuzz_params_test(
         api_parser
@@ -192,7 +192,7 @@ def generate_and_run_tests(
     )
 
     # XSS/HTML Injection Fuzz Test
-    test_name = 'Checking for XSS/HTML Injection Vulnerability with fuzzed params and checking response body:'
+    test_name = 'Checking for XSS/HTML Injection Vulnerability with fuzzed params and checking response body:'  # noqa: E501
     logger.info(test_name)
     os_command_injection_tests = test_generator.xss_html_injection_fuzz_params_test(
         api_parser
@@ -234,7 +234,7 @@ def generate_and_run_tests(
     )
 
     # Mass Assignment / BOPLA
-    test_name = 'Checking for Mass Assignment Vulnerability with fuzzed params and checking response status codes:'
+    test_name = 'Checking for Mass Assignment Vulnerability with fuzzed params and checking response status codes:'  # noqa: E501
     logger.info(test_name)
     bopla_tests = test_generator.bopla_fuzz_test(
         api_parser, success_codes=[200, 201, 301]
@@ -269,7 +269,7 @@ def generate_and_run_tests(
         )
 
         # BOLA path test with fuzzed + user data + trailing slash
-        test_name = 'Checking for BOLA in PATH with trailing slash id using fuzzed and user provided params:'
+        test_name = 'Checking for BOLA in PATH with trailing slash id using fuzzed and user provided params:'  # noqa: E501
         logger.info(test_name)
         bola_trailing_slash_path_user_data_tests = test_generator.test_with_user_data(
             test_data_config,
@@ -285,7 +285,7 @@ def generate_and_run_tests(
         )
 
         # OS Command Injection Fuzz Test
-        test_name = 'Checking for OS Command Injection Vulnerability with fuzzed & user params and checking response body:'
+        test_name = 'Checking for OS Command Injection Vulnerability with fuzzed & user params and checking response body:'  # noqa: E501
         logger.info(test_name)
         os_command_injection_with_user_data_tests = test_generator.test_with_user_data(
             test_data_config,
@@ -301,7 +301,7 @@ def generate_and_run_tests(
         )
 
         # XSS/HTML Injection Fuzz Test
-        test_name = 'Checking for XSS/HTML Injection Vulnerability with fuzzed & user params and checking response body:'
+        test_name = 'Checking for XSS/HTML Injection Vulnerability with fuzzed & user params and checking response body:'  # noqa: E501
         logger.info(test_name)
         os_command_injection_with_user_data_tests = test_generator.test_with_user_data(
             test_data_config,
