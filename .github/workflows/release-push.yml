@@ -19,11 +19,46 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # Build and publish version tag image
       - name: Build and push offat-base docker image
         uses: docker/build-push-action@v3
         with:
           context: ./src/
-          file: ./src/DockerFiles/base-Dockerfile
+          file: ./src/DockerFiles/wolfi-base-Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat-base:${{ github.event.release.tag_name }}
+          platforms: linux/amd64,linux/arm64
+      - name: Build and push offat docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./src/
+          file: ./src/DockerFiles/main/cli-Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat:${{ github.event.release.tag_name }}
+          platforms: linux/amd64,linux/arm64
+      - name: Build and push offat-api docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./src/
+          file: ./src/DockerFiles/main/backend-api-Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat-api:${{ github.event.release.tag_name }}
+          platforms: linux/amd64,linux/arm64
+      - name: Build and push offat-api-worker docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./src/
+          file: ./src/DockerFiles/main/backend-api-worker-Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat-api-worker:${{ github.event.release.tag_name }}
+          platforms: linux/amd64,linux/arm64
+
+      # Build and publish latest tag image
+      - name: Build and push offat-base docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./src/
+          file: ./src/DockerFiles/wolfi-base-Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat-base:latest
           platforms: linux/amd64,linux/arm64
