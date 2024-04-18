@@ -12,7 +12,8 @@ from .post_test_processor import PostRunTests
 from .test_generator import TestGenerator
 from .test_runner import TestRunner
 from ..report.generator import ReportGenerator
-from ..logger import logger
+from ..report.summary import ResultSummarizer
+from ..logger import logger, console
 from ..parsers import SwaggerParser, OpenAPIv3Parser
 
 
@@ -335,12 +336,20 @@ def generate_and_run_tests(
             results=results,
             report_format=output_file_format,
             report_path=output_file,
+            capture_failed=capture_failed,
         )
 
     ReportGenerator.generate_report(
         results=results,
         report_format='table',
         report_path=None,
+        capture_failed=capture_failed,
     )
+
+    result_summary = ResultSummarizer.generate_count_summary(
+        results, table_title='Results Summary'
+    )
+
+    console.print(result_summary)
 
     return results
