@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "offat"
-version = "0.17.0"
+version = "0.17.1"
 description = "Offensive API tester tool automates checks for common API vulnerabilities"
 authors = ["Dhrumil Mistry <dhrumil.mistry@owasp.org>"]
 license = "MIT"
