@@ -26,12 +26,14 @@ Automatically Tests for vulnerabilities after generating tests from openapi spec
 -   API for Automating tests and Integrating Tool with other platforms/tools
 -   CLI tool
 -   Proxy Support
--   Dockerized Project for Easy Usage
+-   Secure Dockerized Project for Easy Usage
 -   Open Source Tool with MIT License
 
 ## Demo
 
 [![asciicast](https://asciinema.org/a/9MSwl7UafIVT3iJn13OcvWXeF.svg)](https://asciinema.org/a/9MSwl7UafIVT3iJn13OcvWXeF)
+
+> Note: The columns for 'data_leak' and 'result' in the table represent independent aspects. It's possible for there to be a data leak in the endpoint, yet the result for that endpoint may still be marked as 'Success'. This is because the 'result' column doesn't necessarily reflect the overall test result; it may indicate success even in the presence of a data leak.
 
 ## PyPi Downloads
 
@@ -262,14 +264,14 @@ offat -f swagger_file.json -p http://localhost:8080 --no-ssl -o output.json
                     type: str
     ```
 
-> If you're using Termux or windows, then use `pip` instead of `pip3`.  
+> If you're using Termux or windows, then use `pip` instead of `pip3`.
 > Few features are only for linux os, hence they might not work on windows and require admin priviliges.
 
 ### Open In Google Cloud Shell
 
--   Temporary Session  
+-   Temporary Session
     [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/OWASP/OFFAT.git&ephemeral=true&show=terminal&cloudshell_print=./DISCLAIMER.md)
--   Perisitent Session  
+-   Perisitent Session
     [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/OWASP/OFFAT.git&ephemeral=false&show=terminal&cloudshell_print=./DISCLAIMER.md)
 
 ## Have any Ideas 💡 or issue
