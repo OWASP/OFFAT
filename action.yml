@@ -1,0 +1,56 @@
+name: 'OWASP OFFAT CICD Scanner'
+description: 'Autonomously assesses your API for prevalent vulnerabilities in CICD pipelines'
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  file:
+    description: 'path or url of openapi/swagger specification file'
+    required: true
+
+  rate_limit:
+    description: 'API requests rate limit per second. default: 60'
+    required: false
+    default: '60'
+
+  artifact_retention_days:
+    description: 'artifact retention period in days. default: 2'
+    required: false
+    default: '2'
+
+runs:
+  using: composite
+  steps:
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5.1.0
+        with:
+          python-version: '3.12'
+
+      - name: Install OFFAT
+        run: pip install -U offat
+        shell: bash
+
+      - name: Run Scanner
+        env:
+          scanner_file: ${{ inputs.file }}
+          scanner_rate_limit: ${{ inputs.rate_limit }}
+
+        run: |
+          mkdir -p ./offat-tmp/
+          offat --file $scanner_file --rate-limit $scanner_rate_limit -of json -o ./offat-tmp/results.json --capture-failed -H 'User-Agent: github-action-offat'
+        shell: bash
+
+      - name: Upload Scan Results to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: offat-results.json
+          path: ./offat-tmp/results.json
+          retention-days: ${{ inputs.artifact_retention_days }}
+          # retention period docs: https://docs.github.com/en/actions/learn-github-actions/usage-limits-billing-and-administration#artifact-and-log-retention-policy
+
+      - name: CleanUp
+        run: rm -rf ./offat-tmp/
+        shell: bash
+
+
