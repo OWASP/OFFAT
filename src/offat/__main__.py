@@ -68,7 +68,7 @@ def start():
         '--output',
         dest='output_file',
         type=str,
-        help='path to store test results in specified format. Default format is html',
+        help='path to store test results',
         required=False,
         default=None,
     )
