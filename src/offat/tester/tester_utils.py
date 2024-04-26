@@ -77,6 +77,7 @@ def run_test(
 
     try:
         if skip_test_run:
+            logger.warning('Skipping test run for: %s', description)
             test_results = tests
         else:
             test_results = run(test_runner.run_tests(tests, description))
@@ -96,9 +97,9 @@ def run_test(
 
     if post_run_matcher_test:
         test_results = PostRunTests.matcher(test_results)
-
-    # update test result for status based code filter
-    test_results = PostRunTests.filter_status_code_based_results(test_results)
+    else:
+        # update test result for status based code filter
+        test_results = PostRunTests.filter_status_code_based_results(test_results)
 
     # update tests result success/failure details
     test_results = PostRunTests.update_result_details(test_results)
@@ -143,7 +144,7 @@ def generate_and_run_tests(
     results: list = []
 
     # test for unsupported http methods
-    test_name = 'Checking for Unsupported HTTP Methods/Verbs:'
+    test_name = 'Checking for Unsupported HTTP Methods/Verbs'
     logger.info(test_name)
     unsupported_http_endpoint_tests = test_generator.check_unsupported_http_methods(
         api_parser
@@ -157,7 +158,7 @@ def generate_and_run_tests(
     )
 
     # sqli fuzz test
-    test_name = 'Checking for SQLi vulnerability:'
+    test_name = 'Checking for SQLi vulnerability'
     logger.info(test_name)
     sqli_fuzz_tests = test_generator.sqli_fuzz_params_test(api_parser)
     results += run_test(
@@ -167,7 +168,7 @@ def generate_and_run_tests(
         description=f'(FUZZED) {test_name}',
     )
 
-    test_name = 'Checking for SQLi vulnerability in URI Path:'
+    test_name = 'Checking for SQLi vulnerability in URI Path'
     logger.info(test_name)
     sqli_fuzz_tests = test_generator.sqli_in_uri_path_fuzz_test(api_parser)
     results += run_test(
@@ -178,7 +179,7 @@ def generate_and_run_tests(
     )
 
     # OS Command Injection Fuzz Test
-    test_name = 'Checking for OS Command Injection Vulnerability with fuzzed params and checking response body:'  # noqa: E501
+    test_name = 'Checking for OS Command Injection Vulnerability with fuzzed params and checking response body'  # noqa: E501
     logger.info(test_name)
     os_command_injection_tests = test_generator.os_command_injection_fuzz_params_test(
         api_parser
@@ -188,11 +189,11 @@ def generate_and_run_tests(
         tests=os_command_injection_tests,
         regex_pattern=regex_pattern,
         post_run_matcher_test=True,
-        description='(FUZZED) Checking for OS Command Injection:',
+        description='(FUZZED) Checking for OS Command Injection',
     )
 
     # XSS/HTML Injection Fuzz Test
-    test_name = 'Checking for XSS/HTML Injection Vulnerability with fuzzed params and checking response body:'  # noqa: E501
+    test_name = 'Checking for XSS/HTML Injection Vulnerability with fuzzed params and checking response body'  # noqa: E501
     logger.info(test_name)
     os_command_injection_tests = test_generator.xss_html_injection_fuzz_params_test(
         api_parser
@@ -202,11 +203,11 @@ def generate_and_run_tests(
         tests=os_command_injection_tests,
         regex_pattern=regex_pattern,
         post_run_matcher_test=True,
-        description='(FUZZED) Checking for XSS/HTML Injection:',
+        description='(FUZZED) Checking for XSS/HTML Injection',
     )
 
     # BOLA path tests with fuzzed data
-    test_name = 'Checking for BOLA in PATH using fuzzed params:'
+    test_name = 'Checking for BOLA in PATH using fuzzed params'
     logger.info(test_name)
     bola_fuzzed_path_tests = test_generator.bola_fuzz_path_test(
         api_parser, success_codes=[200, 201, 301]
@@ -220,7 +221,7 @@ def generate_and_run_tests(
 
     # BOLA path test with fuzzed data + trailing slash
     test_name = (
-        'Checking for BOLA in PATH with trailing slash and id using fuzzed params:'
+        'Checking for BOLA in PATH with trailing slash and id using fuzzed params'
     )
     logger.info(test_name)
     bola_trailing_slash_path_tests = test_generator.bola_fuzz_trailing_slash_path_test(
@@ -230,7 +231,7 @@ def generate_and_run_tests(
         test_runner=test_runner,
         tests=bola_trailing_slash_path_tests,
         regex_pattern=regex_pattern,
-        description='(FUZZED) Checking for BOLA in PATH with trailing slash:',
+        description='(FUZZED) Checking for BOLA in PATH with trailing slash',
     )
 
     # Mass Assignment / BOPLA
@@ -243,7 +244,19 @@ def generate_and_run_tests(
         test_runner=test_runner,
         tests=bopla_tests,
         regex_pattern=regex_pattern,
-        description='(FUZZED) Checking for Mass Assignment Vulnerability:',
+        description='(FUZZED) Checking for BOPLA/Mass Assignment Vulnerability',
+    )
+
+    # SSTI Vulnerability
+    test_name = 'Checking for SSTI vulnerability with fuzzed params and checking response body'  # noqa: E501
+    logger.info(test_name)
+    ssti_tests = test_generator.ssti_fuzz_params_test(api_parser)
+    results += run_test(
+        test_runner=test_runner,
+        tests=ssti_tests,
+        regex_pattern=regex_pattern,
+        description='(FUZZED) Checking for SSTI Vulnerability',
+        post_run_matcher_test=True,
     )
 
     # Tests with User provided Data
@@ -251,9 +264,7 @@ def generate_and_run_tests(
         logger.info('[bold] Testing with user provided data [/bold]')
 
         # # BOLA path tests with fuzzed + user provided data
-        test_name = (
-            'Checking for BOLA in PATH using fuzzed and user provided params:',
-        )
+        test_name = 'Checking for BOLA in PATH using fuzzed and user provided params'
         logger.info(test_name)
         bola_fuzzed_user_data_tests = test_generator.test_with_user_data(
             test_data_config,
@@ -265,7 +276,7 @@ def generate_and_run_tests(
             test_runner=test_runner,
             tests=bola_fuzzed_user_data_tests,
             regex_pattern=regex_pattern,
-            description='(USER + FUZZED) Checking for BOLA in PATH:',
+            description='(USER + FUZZED) Checking for BOLA in PATH',
         )
 
         # BOLA path test with fuzzed + user data + trailing slash
@@ -281,11 +292,11 @@ def generate_and_run_tests(
             test_runner=test_runner,
             tests=bola_trailing_slash_path_user_data_tests,
             regex_pattern=regex_pattern,
-            description='(USER + FUZZED) Checking for BOLA in PATH with trailing slash:',
+            description='(USER + FUZZED) Checking for BOLA in PATH with trailing slash',
         )
 
         # OS Command Injection Fuzz Test
-        test_name = 'Checking for OS Command Injection Vulnerability with fuzzed & user params and checking response body:'  # noqa: E501
+        test_name = 'Checking for OS Command Injection Vulnerability with fuzzed & user params and checking response body'  # noqa: E501
         logger.info(test_name)
         os_command_injection_with_user_data_tests = test_generator.test_with_user_data(
             test_data_config,
@@ -301,7 +312,7 @@ def generate_and_run_tests(
         )
 
         # XSS/HTML Injection Fuzz Test
-        test_name = 'Checking for XSS/HTML Injection Vulnerability with fuzzed & user params and checking response body:'  # noqa: E501
+        test_name = 'Checking for XSS/HTML Injection Vulnerability with fuzzed & user params and checking response body'  # noqa: E501
         logger.info(test_name)
         os_command_injection_with_user_data_tests = test_generator.test_with_user_data(
             test_data_config,
@@ -313,11 +324,27 @@ def generate_and_run_tests(
             tests=os_command_injection_with_user_data_tests,
             regex_pattern=regex_pattern,
             post_run_matcher_test=True,
-            description='(USER + FUZZED) Checking for XSS/HTML Injection:',
+            description='(USER + FUZZED) Checking for XSS/HTML Injection Vulnerability',
+        )
+
+        # STTI Vulnerability
+        test_name = 'Checking for SSTI vulnerability with fuzzed params & user data and checking response body'  # noqa: E501
+        logger.info(test_name)
+        ssti_with_user_data_tests = test_generator.test_with_user_data(
+            test_data_config,
+            test_generator.ssti_fuzz_params_test,
+            openapi_parser=api_parser,
+        )
+        results += run_test(
+            test_runner=test_runner,
+            tests=ssti_with_user_data_tests,
+            regex_pattern=regex_pattern,
+            description='(USER + FUZZED) Checking for SSTI Vulnerability',
+            post_run_matcher_test=True,
         )
 
         # Broken Access Control Test
-        test_name = 'Checking for Broken Access Control:'
+        test_name = 'Checking for Broken Access Control'
         logger.info(test_name)
         bac_results = PostRunTests.run_broken_access_control_tests(
             results, test_data_config
