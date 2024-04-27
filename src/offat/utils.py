@@ -311,11 +311,12 @@ def get_unique_params(list1: list[dict], list2: list[dict]) -> list[dict]:
     Returns:
         list of dict: The updated list1 with values from list2.
     '''
-    unique_path_params_names = []
-    unique_path_params = []
+    unique_params_names = []
+    unique_params = []
     for path_param in list1 + list2:
-        if path_param.get('name') not in unique_path_params_names:
-            unique_path_params.append(path_param)
-            unique_path_params_names.append(path_param.get('name'))
+        param_name = path_param.get('name')
+        if param_name not in unique_params_names:
+            unique_params.append(path_param)
+            unique_params_names.append(param_name)
 
-    return unique_path_params
+    return unique_params

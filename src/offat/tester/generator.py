@@ -671,8 +671,8 @@ class TestGenerator:
             # endpoint path
             endpoint_path: str = path_obj.get('path')
             path_params = path_obj.get('path_params', [])
-            path_params += path_params_in_body
             path_params = fill_params(path_params, openapi_parser.is_v3)
+            path_params = get_unique_params(path_params_in_body, path_params)
 
             for path_param in path_params:
                 path_param_name = path_param.get('name')
