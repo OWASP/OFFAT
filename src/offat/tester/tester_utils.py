@@ -9,8 +9,8 @@ from asyncio.exceptions import CancelledError
 from re import search as regex_search
 
 from .post_test_processor import PostRunTests
-from .test_generator import TestGenerator
-from .test_runner import TestRunner
+from .generator import TestGenerator
+from .runner import TestRunner
 from ..report.generator import ReportGenerator
 from ..report.summary import ResultSummarizer
 from ..logger import logger, console
@@ -110,6 +110,26 @@ def run_test(
     return test_results
 
 
+def reduce_data_list(data_list: list[dict] | str) -> list[dict] | str:
+    """
+    Reduces a list of dictionaries to only include 'name' and 'value' keys.
+
+    Args:
+        data_list (list[dict] | str): The input data list to be reduced.
+
+    Returns:
+        list[dict] | str: The reduced data list with only 'name' and 'value' keys.
+
+    """
+    if isinstance(data_list, list):
+        return [
+            {'name': param.get('name'), 'value': param.get('value')}
+            for param in data_list
+        ]
+
+    return data_list
+
+
 # Note: redirects are allowed by default making it easier for pentesters/researchers
 def generate_and_run_tests(
     api_parser: SwaggerParser | OpenAPIv3Parser,
@@ -124,9 +144,25 @@ def generate_and_run_tests(
     capture_failed: bool = False,
     remove_unused_data: bool = True,
 ):
-    '''
-    Generates and runs tests for provied OAS/Swagger file.
-    '''
+    """
+    Generates and runs tests for the provided OAS/Swagger file.
+
+    Args:
+        api_parser: An instance of SwaggerParser or OpenAPIv3Parser representing the parsed API specification.
+        regex_pattern: A string representing the regex pattern to match against the response body (optional).
+        output_file: A string representing the path to the output file (optional).
+        output_file_format: A string representing the format of the output file (optional).
+        rate_limit: An integer representing the rate limit for the tests (optional).
+        req_headers: A dictionary representing the request headers (optional).
+        proxies: A list of strings representing the proxies to be used (optional).
+        test_data_config: A dictionary representing the configuration for user-provided test data (optional).
+        ssl: A boolean indicating whether to use SSL for the requests (default: False).
+        capture_failed: A boolean indicating whether to capture failed tests in the report (default: False).
+        remove_unused_data: A boolean indicating whether to remove unused data (default: True).
+
+    Returns:
+        A list of test results.
+    """
     if not is_host_up(openapi_parser=api_parser):
         logger.error(
             'Stopping tests due to unavailibility of host: %s', api_parser.host
@@ -362,29 +398,13 @@ def generate_and_run_tests(
         for result in results:
             result.pop('kwargs', None)
             result.pop('args', None)
-            body_params = result.get('body_params', [{}])
-            query_params = result.get('query_params', [{}])
-            path_params = result.get('path_params', [{}])
-            malicious_payload = result.get('malicious_payload', '')
 
-            if isinstance(malicious_payload, list):
-                result['malicious_payload'] = [
-                    {'name': param.get('name'), 'value': param.get('value')}
-                    for param in malicious_payload
-                ]
-
-            result['body_params'] = [
-                {'name': param.get('name'), 'value': param.get('value')}
-                for param in body_params
-            ]
-            result['query_params'] = [
-                {'name': param.get('name'), 'value': param.get('value')}
-                for param in query_params
-            ]
-            result['path_params'] = [
-                {'name': param.get('name'), 'value': param.get('value')}
-                for param in path_params
-            ]
+            result['body_params'] = reduce_data_list(result.get('body_params', [{}]))
+            result['query_params'] = reduce_data_list(result.get('query_params', [{}]))
+            result['path_params'] = reduce_data_list(result.get('path_params', [{}]))
+            result['malicious_payload'] = reduce_data_list(
+                result.get('malicious_payload', [])
+            )
 
     # save file to output if output flag is present
     if output_file_format != 'table':
