@@ -1,39 +1,23 @@
+"""
+Module contains the functions to validate the test
+configuration data and populate user data for tests.
+"""
 from copy import deepcopy
 from .logger import logger
-
-
-def overwrite_user_params(list1: list[dict], list2: list[dict]) -> list[dict]:
-    """
-    Update values in list1 based on the corresponding "name" values in list2.
-
-    Args:
-        list1 (list of dict): The list of dictionaries to be updated.
-        list2 (list of dict): The list of dictionaries containing values to update from.
-
-    Returns:
-        list of dict: The updated list1 with values from list2.
-
-    Example:
-        ```python
-        list1 = [{'name': 'id', 'value': 67}, {'name': 'email', 'value': 'old@example.com'}]
-        list2 = [{'name': 'id', 'value': 10}, {'name': 'email', 'value': 'new@example.com'}]
-        updated_list = update_values(list1, list2)
-        print(updated_list)
-        # Output: [{'name': 'id', 'value': 10}, {'name': 'email', 'value': 'new@example.com'}]
-        ```
-    """
-    # Create a dictionary for faster lookup
-    lookup_dict = {item['name']: item['value'] for item in list2}
-
-    # Update values in list1 using index lookup
-    for item in list1:
-        if item['name'] in lookup_dict:
-            item['value'] = lookup_dict[item['name']]
-
-    return list1
+from .utils import update_values
 
 
 def validate_config_file_data(test_config_data: dict):
+    """
+    Validates the provided test configuration data.
+
+    Args:
+        test_config_data (dict): The test configuration data to be validated.
+
+    Returns:
+        bool or dict: Returns False if the data is invalid, otherwise returns the validated test configuration data.
+
+    """
     if not isinstance(test_config_data, dict):
         logger.warning('Invalid data format')
         return False
@@ -42,9 +26,7 @@ def validate_config_file_data(test_config_data: dict):
         logger.warning('Error Occurred While reading file: %s', test_config_data)
         return False
 
-    if not test_config_data.get(
-        'actors',
-    ):
+    if not test_config_data.get('actors'):
         logger.warning('actors are required')
         return False
 
@@ -57,6 +39,17 @@ def validate_config_file_data(test_config_data: dict):
 
 
 def populate_user_data(actor_data: dict, actor_name: str, tests: list[dict]):
+    """
+    Populates user data for tests.
+
+    Args:
+        actor_data (dict): The data of the actor.
+        actor_name (str): The name of the actor.
+        tests (list[dict]): The list of tests.
+
+    Returns:
+        list[dict]: The updated list of tests.
+    """
     tests = deepcopy(tests)
     headers = actor_data.get('request_headers', [])
     body_params = actor_data.get('body', [])
@@ -69,15 +62,11 @@ def populate_user_data(actor_data: dict, actor_name: str, tests: list[dict]):
         request_headers[header.get('name')] = header.get('value')
 
     for test in tests:
-        test['body_params'] = overwrite_user_params(
-            deepcopy(test['body_params']), body_params
-        )
-        test['query_params'] = overwrite_user_params(
+        test['body_params'] = update_values(deepcopy(test['body_params']), body_params)
+        test['query_params'] = update_values(
             deepcopy(test['query_params']), query_params
         )
-        test['path_params'] += overwrite_user_params(
-            deepcopy(test['path_params']), path_params
-        )
+        test['path_params'] += update_values(deepcopy(test['path_params']), path_params)
         # for post test processing tests such as broken authentication
         test['test_actor_name'] = actor_name
         if test.get('kwargs', {}).get('headers', {}).items():

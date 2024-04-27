@@ -191,7 +191,7 @@ def generate_and_run_tests(
         test_runner=test_runner,
         tests=unsupported_http_endpoint_tests,
         regex_pattern=regex_pattern,
-        description='(FUZZED) ' + test_name,
+        description=f'(FUZZED) {test_name}',
     )
 
     # sqli fuzz test

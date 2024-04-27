@@ -4,7 +4,7 @@ from .post_test_processor import PostTestFiltersEnum
 from .fuzzer import generate_random_int
 from ..config_data_handler import populate_user_data
 from ..parsers import SwaggerParser, OpenAPIv3Parser
-from ..utils import join_uri_path
+from ..utils import join_uri_path, get_unique_params
 
 
 class TestGenerator:
@@ -97,7 +97,7 @@ class TestGenerator:
             query_params = endpoint_dict.get('query_params', [])
             url = join_uri_path(openapi_parser.base_url, endpoint)
 
-            http_methods: set = {'get', 'post', 'put', 'delete', 'options'}
+            http_methods: set = {'get', 'post', 'put', 'patch', 'delete', 'options'}
             restricted_methods = http_methods - set(methods_allowed)
 
             for restricted_method in restricted_methods:
@@ -182,13 +182,15 @@ class TestGenerator:
                 filter(lambda x: x.get('in') == 'path', request_params)
             )
 
-            # handle path params from path_params
-            # and replace path params by value in
-            # endpoint path
+            # get endpoint path
             endpoint_path: str = path_obj.get('path')
+
+            # get path params and fill them
             path_params = path_obj.get('path_params', [])
-            path_params += path_params_in_body
             path_params = fill_params(path_params, openapi_parser.is_v3)
+
+            # get unique path params
+            path_params = get_unique_params(path_params, path_params_in_body)
 
             for path_param in path_params:
                 path_param_name = path_param.get('name')
@@ -455,17 +457,14 @@ class TestGenerator:
                 filter(lambda x: x.get('in') == 'body', request_params)
             )
 
-            # handle path params from path_params
-            # and replace path params by value in
-            # endpoint path
             endpoint_path: str = path_obj.get('path')
 
             path_params = path_obj.get('path_params', [])
             path_params_in_body = list(
                 filter(lambda x: x.get('in') == 'path', request_params)
             )
-            path_params += path_params_in_body
             path_params = fill_params(path_params, openapi_parser.is_v3)
+            path_params = get_unique_params(path_params_in_body, path_params)
 
             for path_param in path_params:
                 path_param_name = path_param.get('name')
@@ -547,13 +546,15 @@ class TestGenerator:
                 filter(lambda x: x.get('in') == 'path', request_params)
             )
 
-            # handle path params from path_params
-            # and replace path params by value in
-            # endpoint path
+            # get endpoint path
             endpoint_path: str = path_obj.get('path')
+
+            # get path params and fill them
             path_params = path_obj.get('path_params', [])
-            path_params += path_params_in_body
             path_params = fill_params(path_params, openapi_parser.is_v3)
+
+            # get unique path params
+            path_params = get_unique_params(path_params, path_params_in_body)
 
             for path_param in path_params:
                 path_param_name = path_param.get('name')
@@ -564,10 +565,11 @@ class TestGenerator:
 
             # generate URL for BOLA attack
             url = join_uri_path(base_url, openapi_parser.api_base_path, endpoint_path)
+            malicious_payload = generate_random_int()
             if url.endswith('/'):
-                url = f'{url}{generate_random_int()}'
+                url = f'{url}{malicious_payload}'
             else:
-                url = f'{url}/{generate_random_int()}'
+                url = f'{url}/{malicious_payload}'
 
             tasks.append(
                 {
@@ -580,7 +582,7 @@ class TestGenerator:
                     'body_params': request_body_params,
                     'query_params': request_query_params,
                     'path_params': path_params,
-                    'malicious_payload': [],
+                    'malicious_payload': malicious_payload,
                     'args': args,
                     'kwargs': kwargs,
                     'result_details': {
