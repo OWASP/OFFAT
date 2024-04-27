@@ -16,6 +16,7 @@ Automatically Tests for vulnerabilities after generating tests from openapi spec
 -   [x] Broken Access Control
 -   [x] Basic Command Injection
 -   [x] Basic XSS/HTML Injection test
+-   [x] Basic SSTI test
 -   [ ] Broken Authentication
 
 ## Features
@@ -28,12 +29,47 @@ Automatically Tests for vulnerabilities after generating tests from openapi spec
 -   Proxy Support
 -   Secure Dockerized Project for Easy Usage
 -   Open Source Tool with MIT License
+-   Github Action
 
 ## Demo
 
 [![asciicast](https://asciinema.org/a/9MSwl7UafIVT3iJn13OcvWXeF.svg)](https://asciinema.org/a/9MSwl7UafIVT3iJn13OcvWXeF)
 
 > Note: The columns for 'data_leak' and 'result' in the table represent independent aspects. It's possible for there to be a data leak in the endpoint, yet the result for that endpoint may still be marked as 'Success'. This is because the 'result' column doesn't necessarily reflect the overall test result; it may indicate success even in the presence of a data leak.
+
+## Github Action
+
+-   Create github action secret `url` for your repo
+-   Setup github action workflow in your repo `.github/workflows/offat.yml`
+
+```yml
+name: OWASP OFFAT Sample Workflow
+
+on:
+    push:
+        branches:
+            - dev
+            - main
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: "download swagger/OAS file"
+              run: curl ${url} -o /tmp/swagger.json
+              env:
+                  url: ${{ secrets.url }}
+
+            - name: "OWASP OFFAT CICD Scanner"
+              uses: OWASP/OFFAT@main # OWASP/OFFAT@v0.17.3
+              with:
+                  file: /tmp/swagger.json # or ${{ secrets.url }}
+                  rate_limit: 120
+                  artifact_retention_days: 1
+```
+
+> Prefer locking action to specific version `OWASP/OFFAT@v0.17.3` instead of using `OWASP/OFFAT@main` and bump OFFAT action version after testing.
 
 ## PyPi Downloads
 
