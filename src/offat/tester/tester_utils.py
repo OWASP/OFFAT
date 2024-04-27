@@ -422,6 +422,11 @@ def generate_and_run_tests(
         capture_failed=capture_failed,
     )
 
+    console.print(
+        "The columns for 'data_leak' and 'result' in the table represent independent aspects. It's possible for there to be a data leak in the endpoint, yet the result for that endpoint may still be marked as 'Success'. This is because the 'result' column doesn't necessarily reflect the overall test result; it may indicate success even in the presence of a data leak."
+    )
+
+    console.rule()
     result_summary = ResultSummarizer.generate_count_summary(
         results, table_title='Results Summary'
     )
