@@ -268,3 +268,55 @@ def join_uri_path(*args: str, remove_prefix: str = '/') -> str:
         url = urljoin(url, uri.removeprefix(remove_prefix))
 
     return url
+
+
+def update_values(list1: list[dict], list2: list[dict]) -> list[dict]:
+    """
+    Update values in list1 based on the corresponding "name" values in list2.
+
+    Args:
+        list1 (list of dict): The list of dictionaries to be updated.
+        list2 (list of dict): The list of dictionaries containing values to update from.
+
+    Returns:
+        list of dict: The updated list1 with values from list2.
+
+    Example:
+        ```python
+        list1 = [{'name': 'id', 'value': 67}, {'name': 'email', 'value': 'old@example.com'}]
+        list2 = [{'name': 'id', 'value': 10}, {'name': 'email', 'value': 'new@example.com'}]
+        updated_list = update_values(list1, list2)
+        print(updated_list)
+        # Output: [{'name': 'id', 'value': 10}, {'name': 'email', 'value': 'new@example.com'}]
+        ```
+    """
+    # Create a dictionary for faster lookup
+    lookup_dict = {item['name']: item['value'] for item in list2}
+
+    # Update values in list1 using index lookup
+    for item in list1:
+        if item['name'] in lookup_dict:
+            item['value'] = lookup_dict[item['name']]
+
+    return list1
+
+
+def get_unique_params(list1: list[dict], list2: list[dict]) -> list[dict]:
+    '''Returns unique path params from list1 and list2
+
+    Args:
+        list1 (list of dict): The list of dictionaries to be updated.
+        list2 (list of dict): The list of dictionaries containing values to update from.
+
+    Returns:
+        list of dict: The updated list1 with values from list2.
+    '''
+    unique_params_names = []
+    unique_params = []
+    for path_param in list1 + list2:
+        param_name = path_param.get('name')
+        if param_name not in unique_params_names:
+            unique_params.append(path_param)
+            unique_params_names.append(param_name)
+
+    return unique_params
