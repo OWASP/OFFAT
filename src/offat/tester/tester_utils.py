@@ -9,8 +9,8 @@ from asyncio.exceptions import CancelledError
 from re import search as regex_search
 
 from .post_test_processor import PostRunTests
-from .test_generator import TestGenerator
-from .test_runner import TestRunner
+from .generator import TestGenerator
+from .runner import TestRunner
 from ..report.generator import ReportGenerator
 from ..report.summary import ResultSummarizer
 from ..logger import logger, console
@@ -77,6 +77,7 @@ def run_test(
 
     try:
         if skip_test_run:
+            logger.warning('Skipping test run for: %s', description)
             test_results = tests
         else:
             test_results = run(test_runner.run_tests(tests, description))
@@ -96,9 +97,9 @@ def run_test(
 
     if post_run_matcher_test:
         test_results = PostRunTests.matcher(test_results)
-
-    # update test result for status based code filter
-    test_results = PostRunTests.filter_status_code_based_results(test_results)
+    else:
+        # update test result for status based code filter
+        test_results = PostRunTests.filter_status_code_based_results(test_results)
 
     # update tests result success/failure details
     test_results = PostRunTests.update_result_details(test_results)
@@ -107,6 +108,26 @@ def run_test(
     test_results = PostRunTests.detect_data_exposure(test_results)
 
     return test_results
+
+
+def reduce_data_list(data_list: list[dict] | str) -> list[dict] | str:
+    """
+    Reduces a list of dictionaries to only include 'name' and 'value' keys.
+
+    Args:
+        data_list (list[dict] | str): The input data list to be reduced.
+
+    Returns:
+        list[dict] | str: The reduced data list with only 'name' and 'value' keys.
+
+    """
+    if isinstance(data_list, list):
+        return [
+            {'name': param.get('name'), 'value': param.get('value')}
+            for param in data_list
+        ]
+
+    return data_list
 
 
 # Note: redirects are allowed by default making it easier for pentesters/researchers
@@ -121,10 +142,27 @@ def generate_and_run_tests(
     test_data_config: dict | None = None,
     ssl: bool = False,
     capture_failed: bool = False,
+    remove_unused_data: bool = True,
 ):
-    '''
-    Generates and runs tests for provied OAS/Swagger file.
-    '''
+    """
+    Generates and runs tests for the provided OAS/Swagger file.
+
+    Args:
+        api_parser: An instance of SwaggerParser or OpenAPIv3Parser representing the parsed API specification.
+        regex_pattern: A string representing the regex pattern to match against the response body (optional).
+        output_file: A string representing the path to the output file (optional).
+        output_file_format: A string representing the format of the output file (optional).
+        rate_limit: An integer representing the rate limit for the tests (optional).
+        req_headers: A dictionary representing the request headers (optional).
+        proxies: A list of strings representing the proxies to be used (optional).
+        test_data_config: A dictionary representing the configuration for user-provided test data (optional).
+        ssl: A boolean indicating whether to use SSL for the requests (default: False).
+        capture_failed: A boolean indicating whether to capture failed tests in the report (default: False).
+        remove_unused_data: A boolean indicating whether to remove unused data (default: True).
+
+    Returns:
+        A list of test results.
+    """
     if not is_host_up(openapi_parser=api_parser):
         logger.error(
             'Stopping tests due to unavailibility of host: %s', api_parser.host
@@ -143,7 +181,7 @@ def generate_and_run_tests(
     results: list = []
 
     # test for unsupported http methods
-    test_name = 'Checking for Unsupported HTTP Methods/Verbs:'
+    test_name = 'Checking for Unsupported HTTP Methods/Verbs'
     logger.info(test_name)
     unsupported_http_endpoint_tests = test_generator.check_unsupported_http_methods(
         api_parser
@@ -153,11 +191,11 @@ def generate_and_run_tests(
         test_runner=test_runner,
         tests=unsupported_http_endpoint_tests,
         regex_pattern=regex_pattern,
-        description='(FUZZED) ' + test_name,
+        description=f'(FUZZED) {test_name}',
     )
 
     # sqli fuzz test
-    test_name = 'Checking for SQLi vulnerability:'
+    test_name = 'Checking for SQLi vulnerability'
     logger.info(test_name)
     sqli_fuzz_tests = test_generator.sqli_fuzz_params_test(api_parser)
     results += run_test(
@@ -167,7 +205,7 @@ def generate_and_run_tests(
         description=f'(FUZZED) {test_name}',
     )
 
-    test_name = 'Checking for SQLi vulnerability in URI Path:'
+    test_name = 'Checking for SQLi vulnerability in URI Path'
     logger.info(test_name)
     sqli_fuzz_tests = test_generator.sqli_in_uri_path_fuzz_test(api_parser)
     results += run_test(
@@ -178,7 +216,7 @@ def generate_and_run_tests(
     )
 
     # OS Command Injection Fuzz Test
-    test_name = 'Checking for OS Command Injection Vulnerability with fuzzed params and checking response body:'  # noqa: E501
+    test_name = 'Checking for OS Command Injection Vulnerability with fuzzed params and checking response body'  # noqa: E501
     logger.info(test_name)
     os_command_injection_tests = test_generator.os_command_injection_fuzz_params_test(
         api_parser
@@ -188,11 +226,11 @@ def generate_and_run_tests(
         tests=os_command_injection_tests,
         regex_pattern=regex_pattern,
         post_run_matcher_test=True,
-        description='(FUZZED) Checking for OS Command Injection:',
+        description='(FUZZED) Checking for OS Command Injection',
     )
 
     # XSS/HTML Injection Fuzz Test
-    test_name = 'Checking for XSS/HTML Injection Vulnerability with fuzzed params and checking response body:'  # noqa: E501
+    test_name = 'Checking for XSS/HTML Injection Vulnerability with fuzzed params and checking response body'  # noqa: E501
     logger.info(test_name)
     os_command_injection_tests = test_generator.xss_html_injection_fuzz_params_test(
         api_parser
@@ -202,11 +240,11 @@ def generate_and_run_tests(
         tests=os_command_injection_tests,
         regex_pattern=regex_pattern,
         post_run_matcher_test=True,
-        description='(FUZZED) Checking for XSS/HTML Injection:',
+        description='(FUZZED) Checking for XSS/HTML Injection',
     )
 
     # BOLA path tests with fuzzed data
-    test_name = 'Checking for BOLA in PATH using fuzzed params:'
+    test_name = 'Checking for BOLA in PATH using fuzzed params'
     logger.info(test_name)
     bola_fuzzed_path_tests = test_generator.bola_fuzz_path_test(
         api_parser, success_codes=[200, 201, 301]
@@ -220,7 +258,7 @@ def generate_and_run_tests(
 
     # BOLA path test with fuzzed data + trailing slash
     test_name = (
-        'Checking for BOLA in PATH with trailing slash and id using fuzzed params:'
+        'Checking for BOLA in PATH with trailing slash and id using fuzzed params'
     )
     logger.info(test_name)
     bola_trailing_slash_path_tests = test_generator.bola_fuzz_trailing_slash_path_test(
@@ -230,7 +268,7 @@ def generate_and_run_tests(
         test_runner=test_runner,
         tests=bola_trailing_slash_path_tests,
         regex_pattern=regex_pattern,
-        description='(FUZZED) Checking for BOLA in PATH with trailing slash:',
+        description='(FUZZED) Checking for BOLA in PATH with trailing slash',
     )
 
     # Mass Assignment / BOPLA
@@ -243,7 +281,19 @@ def generate_and_run_tests(
         test_runner=test_runner,
         tests=bopla_tests,
         regex_pattern=regex_pattern,
-        description='(FUZZED) Checking for Mass Assignment Vulnerability:',
+        description='(FUZZED) Checking for BOPLA/Mass Assignment Vulnerability',
+    )
+
+    # SSTI Vulnerability
+    test_name = 'Checking for SSTI vulnerability with fuzzed params and checking response body'  # noqa: E501
+    logger.info(test_name)
+    ssti_tests = test_generator.ssti_fuzz_params_test(api_parser)
+    results += run_test(
+        test_runner=test_runner,
+        tests=ssti_tests,
+        regex_pattern=regex_pattern,
+        description='(FUZZED) Checking for SSTI Vulnerability',
+        post_run_matcher_test=True,
     )
 
     # Tests with User provided Data
@@ -251,9 +301,7 @@ def generate_and_run_tests(
         logger.info('[bold] Testing with user provided data [/bold]')
 
         # # BOLA path tests with fuzzed + user provided data
-        test_name = (
-            'Checking for BOLA in PATH using fuzzed and user provided params:',
-        )
+        test_name = 'Checking for BOLA in PATH using fuzzed and user provided params'
         logger.info(test_name)
         bola_fuzzed_user_data_tests = test_generator.test_with_user_data(
             test_data_config,
@@ -265,7 +313,7 @@ def generate_and_run_tests(
             test_runner=test_runner,
             tests=bola_fuzzed_user_data_tests,
             regex_pattern=regex_pattern,
-            description='(USER + FUZZED) Checking for BOLA in PATH:',
+            description='(USER + FUZZED) Checking for BOLA in PATH',
         )
 
         # BOLA path test with fuzzed + user data + trailing slash
@@ -281,11 +329,11 @@ def generate_and_run_tests(
             test_runner=test_runner,
             tests=bola_trailing_slash_path_user_data_tests,
             regex_pattern=regex_pattern,
-            description='(USER + FUZZED) Checking for BOLA in PATH with trailing slash:',
+            description='(USER + FUZZED) Checking for BOLA in PATH with trailing slash',
         )
 
         # OS Command Injection Fuzz Test
-        test_name = 'Checking for OS Command Injection Vulnerability with fuzzed & user params and checking response body:'  # noqa: E501
+        test_name = 'Checking for OS Command Injection Vulnerability with fuzzed & user params and checking response body'  # noqa: E501
         logger.info(test_name)
         os_command_injection_with_user_data_tests = test_generator.test_with_user_data(
             test_data_config,
@@ -301,7 +349,7 @@ def generate_and_run_tests(
         )
 
         # XSS/HTML Injection Fuzz Test
-        test_name = 'Checking for XSS/HTML Injection Vulnerability with fuzzed & user params and checking response body:'  # noqa: E501
+        test_name = 'Checking for XSS/HTML Injection Vulnerability with fuzzed & user params and checking response body'  # noqa: E501
         logger.info(test_name)
         os_command_injection_with_user_data_tests = test_generator.test_with_user_data(
             test_data_config,
@@ -313,11 +361,27 @@ def generate_and_run_tests(
             tests=os_command_injection_with_user_data_tests,
             regex_pattern=regex_pattern,
             post_run_matcher_test=True,
-            description='(USER + FUZZED) Checking for XSS/HTML Injection:',
+            description='(USER + FUZZED) Checking for XSS/HTML Injection Vulnerability',
+        )
+
+        # STTI Vulnerability
+        test_name = 'Checking for SSTI vulnerability with fuzzed params & user data and checking response body'  # noqa: E501
+        logger.info(test_name)
+        ssti_with_user_data_tests = test_generator.test_with_user_data(
+            test_data_config,
+            test_generator.ssti_fuzz_params_test,
+            openapi_parser=api_parser,
+        )
+        results += run_test(
+            test_runner=test_runner,
+            tests=ssti_with_user_data_tests,
+            regex_pattern=regex_pattern,
+            description='(USER + FUZZED) Checking for SSTI Vulnerability',
+            post_run_matcher_test=True,
         )
 
         # Broken Access Control Test
-        test_name = 'Checking for Broken Access Control:'
+        test_name = 'Checking for Broken Access Control'
         logger.info(test_name)
         bac_results = PostRunTests.run_broken_access_control_tests(
             results, test_data_config
@@ -329,6 +393,18 @@ def generate_and_run_tests(
             skip_test_run=True,
             description=test_name,
         )
+
+    if remove_unused_data:
+        for result in results:
+            result.pop('kwargs', None)
+            result.pop('args', None)
+
+            result['body_params'] = reduce_data_list(result.get('body_params', [{}]))
+            result['query_params'] = reduce_data_list(result.get('query_params', [{}]))
+            result['path_params'] = reduce_data_list(result.get('path_params', [{}]))
+            result['malicious_payload'] = reduce_data_list(
+                result.get('malicious_payload', [])
+            )
 
     # save file to output if output flag is present
     if output_file_format != 'table':
@@ -346,6 +422,11 @@ def generate_and_run_tests(
         capture_failed=capture_failed,
     )
 
+    console.print(
+        "The columns for 'data_leak' and 'result' in the table represent independent aspects. It's possible for there to be a data leak in the endpoint, yet the result for that endpoint may still be marked as 'Success'. This is because the 'result' column doesn't necessarily reflect the overall test result; it may indicate success even in the presence of a data leak."
+    )
+
+    console.rule()
     result_summary = ResultSummarizer.generate_count_summary(
         results, table_title='Results Summary'
     )
