@@ -122,6 +122,7 @@ def generate_and_run_tests(
     test_data_config: dict | None = None,
     ssl: bool = False,
     capture_failed: bool = False,
+    remove_unused_data: bool = True,
 ):
     '''
     Generates and runs tests for provied OAS/Swagger file.
@@ -356,6 +357,34 @@ def generate_and_run_tests(
             skip_test_run=True,
             description=test_name,
         )
+
+    if remove_unused_data:
+        for result in results:
+            result.pop('kwargs', None)
+            result.pop('args', None)
+            body_params = result.get('body_params', [{}])
+            query_params = result.get('query_params', [{}])
+            path_params = result.get('path_params', [{}])
+            malicious_payload = result.get('malicious_payload', '')
+
+            if isinstance(malicious_payload, list):
+                result['malicious_payload'] = [
+                    {'name': param.get('name'), 'value': param.get('value')}
+                    for param in malicious_payload
+                ]
+
+            result['body_params'] = [
+                {'name': param.get('name'), 'value': param.get('value')}
+                for param in body_params
+            ]
+            result['query_params'] = [
+                {'name': param.get('name'), 'value': param.get('value')}
+                for param in query_params
+            ]
+            result['path_params'] = [
+                {'name': param.get('name'), 'value': param.get('value')}
+                for param in path_params
+            ]
 
     # save file to output if output flag is present
     if output_file_format != 'table':
