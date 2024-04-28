@@ -1,6 +1,6 @@
-'''
+"""
 module for interacting with HTTP layer
-'''
+"""
 from random import choice
 from os import name as os_name
 from urllib.parse import urlparse
@@ -13,14 +13,14 @@ import asyncio
 import aiohttp.resolver
 
 aiohttp.resolver.DefaultResolver = aiohttp.resolver.AsyncResolver
-if os_name == 'nt':
+if os_name == "nt":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 class Proxies:
-    '''
+    """
     class for handling proxies
-    '''
+    """
 
     def __init__(self, proxies: list[str] | None) -> None:
         self.p_list = proxies
@@ -44,18 +44,18 @@ class Proxies:
         return False
 
     def get_random_proxy(self) -> str | None:
-        '''
+        """
         Returns random proxy from the list
-        '''
+        """
         if not self.p_list:
             return None
         return choice(self.p_list)
 
 
 class AsyncRequests:
-    '''
+    """
     AsyncRequests class helps to send HTTP requests with rate limiting options.
-    '''
+    """
 
     def __init__(
         self,
@@ -66,7 +66,7 @@ class AsyncRequests:
         timeout: float = 60,
         ssl: bool = False,
     ) -> None:
-        '''AsyncRequests class constructor
+        """AsyncRequests class constructor
 
         Args:
             rate_limit (int): number of requests per seconds
@@ -78,7 +78,7 @@ class AsyncRequests:
 
         Returns:
             None
-        '''
+        """
         self._headers = headers
         self._proxy = Proxies(proxies=proxies)
         self._allow_redirects = allow_redirects
@@ -92,8 +92,8 @@ class AsyncRequests:
             KeyboardInterrupt or asyncio.exceptions.CancelledError
         ),
     )
-    async def request(self, url: str, *args, method: str = 'GET', **kwargs) -> dict:
-        '''Send HTTP requests asynchronously
+    async def request(self, url: str, *args, method: str = "GET", **kwargs) -> dict:
+        """Send HTTP requests asynchronously
 
         Args:
             url (str): URL of the webpage/endpoint
@@ -102,26 +102,26 @@ class AsyncRequests:
 
         Returns:
             dict: returns request and response data as dict
-        '''
+        """
         async with self._limiter:
             async with ClientSession(
                 headers=self._headers, timeout=self._timeout
             ) as session:
                 method = str(method).upper()
                 match method:
-                    case 'GET':
+                    case "GET":
                         req_method = session.get
-                    case 'POST':
+                    case "POST":
                         req_method = session.post
-                    case 'PUT':
+                    case "PUT":
                         req_method = session.put
-                    case 'PATCH':
+                    case "PATCH":
                         req_method = session.patch
-                    case 'HEAD':
+                    case "HEAD":
                         req_method = session.head
-                    case 'OPTIONS':
+                    case "OPTIONS":
                         req_method = session.options
-                    case 'DELETE':
+                    case "DELETE":
                         req_method = session.delete
                     case _:
                         req_method = session.get
@@ -135,14 +135,14 @@ class AsyncRequests:
                     **kwargs,
                 ) as response:
                     resp_data = {
-                        'status': response.status,
-                        'req_url': str(response.request_info.real_url),
-                        'query_url': str(response.url),
-                        'req_method': response.request_info.method,
-                        'req_headers': dict(**response.request_info.headers),
-                        'res_redirection': str(response.history),
-                        'res_headers': dict(response.headers),
-                        'res_body': await response.text(),
+                        "status": response.status,
+                        "req_url": str(response.request_info.real_url),
+                        "query_url": str(response.url),
+                        "req_method": response.request_info.method,
+                        "req_headers": dict(**response.request_info.headers),
+                        "res_redirection": str(response.history),
+                        "res_headers": dict(response.headers),
+                        "res_body": await response.text(),
                     }
 
                 return resp_data
