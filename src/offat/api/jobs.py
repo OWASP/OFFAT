@@ -18,6 +18,6 @@ def scan_api(body_data: CreateScanModel):
         )
         return results
     except Exception as e:
-        logger.error('Error occurred while creating a job: %s', repr(e))
+        logger.error("Error occurred while creating a job: %s", repr(e))
         logger.debug("Debug Data:", exc_info=exc_info())
-        return [{'error': str(e)}]
+        return [{"error": str(e)}]

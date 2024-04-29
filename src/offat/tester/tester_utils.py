@@ -232,12 +232,12 @@ def generate_and_run_tests(
     # XSS/HTML Injection Fuzz Test
     test_name = 'Checking for XSS/HTML Injection Vulnerability with fuzzed params and checking response body'  # noqa: E501
     logger.info(test_name)
-    os_command_injection_tests = test_generator.xss_html_injection_fuzz_params_test(
+    xss_injection_tests = test_generator.xss_html_injection_fuzz_params_test(
         api_parser
     )
     results += run_test(
         test_runner=test_runner,
-        tests=os_command_injection_tests,
+        tests=xss_injection_tests,
         regex_pattern=regex_pattern,
         post_run_matcher_test=True,
         description='(FUZZED) Checking for XSS/HTML Injection',
