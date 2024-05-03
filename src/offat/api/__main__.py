@@ -5,16 +5,16 @@ import importlib.resources
 def get_offat_installation_dir():
     try:
         # For non-editable installation
-        return importlib.resources.files('offat')
+        return importlib.resources.files("offat")
     except ImportError:
         # For editable installation (pip install -e .)
-        return importlib.resources.files('.')
+        return importlib.resources.files(".")
 
 
 def start():
     installation_dir = get_offat_installation_dir()
     run(
-        app='offat.api.app:app',
+        app="offat.api.app:app",
         host="0.0.0.0",
         port=8000,
         workers=2,
@@ -23,5 +23,5 @@ def start():
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     start()

@@ -12,12 +12,12 @@ def create_parser(
     spec: dict | None = None,
     server_url: str | None = None,
 ) -> SwaggerParser | OpenAPIv3Parser | None:
-    '''returns parser based on doc file'''
+    """returns parser based on doc file"""
     if fpath_or_url and is_valid_url(fpath_or_url):
         res = http_get(fpath_or_url, timeout=3)
         if res.status_code != 200:
             logger.error(
-                'server returned status code %d offat expects 200 status code',
+                "server returned status code %d offat expects 200 status code",
                 res.status_code,
             )
             exit(-1)
@@ -26,13 +26,13 @@ def create_parser(
             spec = json_load(res.text)
             fpath_or_url = None
         except JSONDecodeError:
-            logger.error('Invalid json data spec file url')
+            logger.error("Invalid json data spec file url")
             exit(-1)
 
     try:
         parser = BaseParser(file_or_url=fpath_or_url, spec=spec, server_url=server_url)
     except OSError:
-        logger.error('File Not Found')
+        logger.error("File Not Found")
         exit(-1)
 
     if parser.is_v3:
