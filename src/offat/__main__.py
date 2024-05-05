@@ -155,6 +155,7 @@ def start():
     api_parser: SwaggerParser | OpenAPIv3Parser = create_parser(
         args.fpath, server_url=args.server_url
     )
+
     generate_and_run_tests(
         api_parser=api_parser,
         regex_pattern=args.path_regex_pattern,

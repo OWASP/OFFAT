@@ -158,6 +158,7 @@ class TestGenerator:
             # handle path params from request_params
             request_params = path_obj.get('request_params', [])
             request_params = fill_params(request_params, openapi_parser.is_v3)
+            security = path_obj.get('security', [])
 
             # get params based on their position in request
             request_body_params = list(
@@ -200,7 +201,7 @@ class TestGenerator:
                     'body_params': request_body_params,
                     'query_params': request_query_params,
                     'path_params': path_params,
-                    # 'malicious_payload':path_params,
+                    'security': security,
                 }
             )
 
@@ -340,8 +341,7 @@ class TestGenerator:
         # filter path containing params in path
         endpoints_with_param_in_path = list(
             filter(
-                # type: ignore
-                lambda path_obj: '/{' in path_obj.get('path'),
+                lambda path_obj: '/{' in path_obj.get('path'),  # type: ignore
                 request_response_params,  # type: ignore
             )  # type: ignore
         )
@@ -979,3 +979,103 @@ class TestGenerator:
             result_details=result_details,
             payloads_data=payloads_data,
         )
+
+    def missing_auth_fuzz_test(
+        self,
+        openapi_parser: SwaggerParser | OpenAPIv3Parser,
+        *args,
+        success_codes: list[int] | None = None,  # type: ignore
+        **kwargs,
+    ):
+        '''Generate Tests for API endpoints which documents security authentication but doesn't check for authentication properly
+
+        Args:
+            openapi_parser (OpenAPIParser): An instance of the OpenAPIParser class
+            containing the parsed OpenAPI specification.
+            success_codes (list[int], optional): A list of HTTP success codes to consider
+            as successful BOLA responses. Defaults to [200, 201, 301].
+            *args: Variable-length positional arguments.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            list[dict]: list of dict containing test case for endpoint
+
+        Raises:
+            Any exceptions raised during the execution.
+        '''
+        if success_codes is None:
+            success_codes: list[int] = [200, 201, 301]
+
+        base_url: str = openapi_parser.base_url
+        request_response_params: list[dict] = openapi_parser.request_response_params
+
+        # pop authorization header from kwargs.headers dict
+        kwargs.get('headers', {}).pop('Authorization', None)
+        kwargs.get('headers', {}).pop('X-Api-Key', None)
+
+        # filter endpoints which has security definition in their documentation
+        endpoints_with_security = list(
+            filter(
+                lambda path_obj: path_obj.get('security')
+                and path_obj.get('security') != [{}],
+                request_response_params,  # type: ignore
+            )  # type: ignore
+        )
+
+        tasks = []
+        for path_obj in endpoints_with_security:
+            # handle path params from request_params
+            request_params = path_obj.get('request_params', [])
+            request_params = fill_params(request_params, openapi_parser.is_v3)
+
+            # get request body params
+            request_body_params = list(
+                filter(lambda x: x.get('in') == 'body', request_params)
+            )
+
+            endpoint_path: str = path_obj.get('path')  # type: ignore
+
+            path_params = path_obj.get('path_params', [])
+            path_params_in_body = list(
+                filter(lambda x: x.get('in') == 'path', request_params)
+            )
+            path_params = fill_params(path_params, openapi_parser.is_v3)
+            path_params = get_unique_params(path_params_in_body, path_params)
+
+            for path_param in path_params:
+                path_param_name = path_param.get('name')
+                path_param_value = path_param.get('value')
+                endpoint_path = endpoint_path.replace(
+                    '{' + str(path_param_name) + '}', str(path_param_value)
+                )
+
+            request_query_params = list(
+                filter(lambda x: x.get('in') == 'query', request_params)
+            )
+
+            tasks.append(
+                {
+                    'test_name': 'Missing Authentication Test with Fuzzed Params',
+                    'url': join_uri_path(
+                        base_url, openapi_parser.api_base_path, endpoint_path
+                    ),
+                    'endpoint': join_uri_path(
+                        openapi_parser.api_base_path, endpoint_path
+                    ),
+                    'method': path_obj.get('http_method').upper(),  # type: ignore
+                    'body_params': request_body_params,
+                    'query_params': request_query_params,
+                    'path_params': path_params,
+                    'malicious_payload': 'Security Payload Missing',
+                    'args': args,
+                    'kwargs': kwargs,
+                    'result_details': {
+                        True: 'Endpoint implements security authentication as defined',  # passed
+                        False: 'Endpoint fails to implement security authentication as defined',  # failed
+                    },
+                    'success_codes': success_codes,
+                    'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name,
+                }
+            )
+
+        return tasks
