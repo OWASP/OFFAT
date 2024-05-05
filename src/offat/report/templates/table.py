@@ -75,6 +75,9 @@ class TestResultTable:
             if result.get('response_match_regex'):
                 del result['response_match_regex']
 
+            if result.get('security') or result.get('security') == []:
+                del result['security']
+
             if result.get('data_leak'):
                 result['data_leak'] = '[bold red]Leak Found \u00d7[/bold red]'
             else:
