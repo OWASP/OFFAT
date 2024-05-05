@@ -232,9 +232,7 @@ def generate_and_run_tests(
     # XSS/HTML Injection Fuzz Test
     test_name = 'Checking for XSS/HTML Injection Vulnerability with fuzzed params and checking response body'  # noqa: E501
     logger.info(test_name)
-    xss_injection_tests = test_generator.xss_html_injection_fuzz_params_test(
-        api_parser
-    )
+    xss_injection_tests = test_generator.xss_html_injection_fuzz_params_test(api_parser)
     results += run_test(
         test_runner=test_runner,
         tests=xss_injection_tests,
@@ -294,6 +292,18 @@ def generate_and_run_tests(
         regex_pattern=regex_pattern,
         description='(FUZZED) Checking for SSTI Vulnerability',
         post_run_matcher_test=True,
+    )
+
+    # Missing Authorization Test
+    test_name = 'Checking for Missing Authorization'
+    logger.info(test_name)
+    missing_auth_tests = test_generator.missing_auth_fuzz_test(api_parser)
+    results += run_test(
+        test_runner=test_runner,
+        tests=missing_auth_tests,
+        regex_pattern=regex_pattern,
+        description=f'(FUZZED) {test_name}',
+        post_run_matcher_test=False,
     )
 
     # Tests with User provided Data
@@ -378,6 +388,22 @@ def generate_and_run_tests(
             regex_pattern=regex_pattern,
             description='(USER + FUZZED) Checking for SSTI Vulnerability',
             post_run_matcher_test=True,
+        )
+
+        # Missing Authorization Test
+        test_name = 'Checking for Missing Authorization with user data'
+        logger.info(test_name)
+        missing_auth_tests = test_generator.test_with_user_data(
+            test_data_config,
+            test_generator.missing_auth_fuzz_test,
+            openapi_parser=api_parser,
+        )
+        results += run_test(
+            test_runner=test_runner,
+            tests=missing_auth_tests,
+            regex_pattern=regex_pattern,
+            description=f'(USER + FUZZED) {test_name}',
+            post_run_matcher_test=False,
         )
 
         # Broken Access Control Test

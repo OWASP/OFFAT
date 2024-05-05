@@ -8,28 +8,28 @@ Automatically Tests for vulnerabilities after generating tests from openapi spec
 
 ## Security Checks
 
--   [x] Restricted HTTP Methods
--   [x] SQLi
--   [x] BOLA (Might need few bug fixes)
--   [x] Data Exposure (Detects Common Data Exposures)
--   [x] BOPLA / Mass Assignment
--   [x] Broken Access Control
--   [x] Basic Command Injection
--   [x] Basic XSS/HTML Injection test
--   [x] Basic SSTI test
--   [ ] Broken Authentication
+- [x] Restricted HTTP Methods
+- [x] SQLi
+- [x] BOLA (Might need few bug fixes)
+- [x] Data Exposure (Detects Common Data Exposures)
+- [x] BOPLA / Mass Assignment
+- [x] Broken Access Control
+- [x] Basic Command Injection
+- [x] Basic XSS/HTML Injection test
+- [x] Basic SSTI test
+- [ ] Broken Authentication
 
 ## Features
 
--   Few Security Checks from OWASP API Top 10
--   Automated Testing
--   User Config Based Testing
--   API for Automating tests and Integrating Tool with other platforms/tools
--   CLI tool
--   Proxy Support
--   Secure Dockerized Project for Easy Usage
--   Open Source Tool with MIT License
--   Github Action
+- Few Security Checks from OWASP API Top 10
+- Automated Testing
+- User Config Based Testing
+- API for Automating tests and Integrating Tool with other platforms/tools
+- CLI tool
+- Proxy Support
+- Secure Dockerized Project for Easy Usage
+- Open Source Tool with MIT License
+- Github Action
 
 ## Demo
 
@@ -39,34 +39,34 @@ Automatically Tests for vulnerabilities after generating tests from openapi spec
 
 ## Github Action
 
--   Create github action secret `url` for your repo
--   Setup github action workflow in your repo `.github/workflows/offat.yml`
+- Create github action secret `url` for your repo
+- Setup github action workflow in your repo `.github/workflows/offat.yml`
 
 ```yml
 name: OWASP OFFAT Sample Workflow
 
 on:
-    push:
-        branches:
-            - dev
-            - main
+  push:
+    branches:
+      - dev
+      - main
 
 jobs:
-    test:
-        runs-on: ubuntu-latest
+  test:
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: "download swagger/OAS file"
-              run: curl ${url} -o /tmp/swagger.json
-              env:
-                  url: ${{ secrets.url }}
+    steps:
+      - name: "download swagger/OAS file"
+        run: curl ${url} -o /tmp/swagger.json
+        env:
+          url: ${{ secrets.url }}
 
-            - name: "OWASP OFFAT CICD Scanner"
-              uses: OWASP/OFFAT@main # OWASP/OFFAT@v0.17.3
-              with:
-                  file: /tmp/swagger.json # or ${{ secrets.url }}
-                  rate_limit: 120
-                  artifact_retention_days: 1
+      - name: "OWASP OFFAT CICD Scanner"
+        uses: OWASP/OFFAT@main # OWASP/OFFAT@v0.17.3
+        with:
+          file: /tmp/swagger.json # or ${{ secrets.url }}
+          rate_limit: 120
+          artifact_retention_days: 1
 ```
 
 > Prefer locking action to specific version `OWASP/OFFAT@v0.17.3` instead of using `OWASP/OFFAT@main` and bump OFFAT action version after testing.
@@ -89,13 +89,13 @@ The disclaimer advises users to use the open-source project for ethical and legi
 
 ### Using pip
 
--   Install main branch using pip
+- Install main branch using pip
 
     ```bash
     python3 -m pip install git+https://github.com/OWASP/OFFAT.git
     ```
 
--   Install Release from PyPi
+- Install Release from PyPi
 
     ```bash
     python3 -m pip install offat        # only cli tool
@@ -106,214 +106,218 @@ The disclaimer advises users to use the open-source project for ethical and legi
 
 ### Docker
 
--   Build Image
+- Build Image
 
     ```bash
-    make build-local-images
+    make local
     ```
 
--   CLI Tool
+- CLI Tool
 
-    ```bash
-    docker run --rm dmdhrumilmistry/offat
-    ```
+  ```bash
+  docker run --rm dmdhrumilmistry/offat
+  ```
 
--   API
+- API
 
-    ```bash
-    docker compose up -d
-    ```
+  ```bash
+  docker compose up -d
+  ```
 
-    > POST `openapi` documentation to `/api/v1/scan/` endpoint with its valid `type` (json/yaml); `job_id` will be returned.
+  > POST `openapi` documentation to `/api/v1/scan/` endpoint with its valid `type` (json/yaml); `job_id` will be returned.
 
 ### Manual Method
 
--   Open terminal
+- Open terminal
 
--   Install git package
+- Install git package
 
-    ```bash
-    sudo apt install git python3 -y
-    ```
+  ```bash
+  sudo apt install git python3 -y
+  ```
 
--   Install [Poetry](https://python-poetry.org/docs/master#installing-with-the-official-installer)
+- Install [Poetry](https://python-poetry.org/docs/master#installing-with-the-official-installer)
 
--   clone the repository to your machine
+- clone the repository to your machine
 
-    ```bash
-    git clone https://github.com/OWASP/OFFAT.git
-    ```
+  ```bash
+  git clone https://github.com/OWASP/OFFAT.git
+  ```
 
--   Change directory
+- Change directory
 
-    ```bash
-    cd offat
-    ```
+  ```bash
+  cd offat
+  ```
 
--   install with poetry
+- install with poetry
 
-    ```bash
-    # without options
-    poetry install
-    ```
+  ```bash
+  # without options
+  poetry install
+  ```
 
 ## Start OffAT
 
 ### API
 
--   Start API Server
+- Start API Server
 
-    ```bash
-    python -m offat.api
+  ```bash
+  python -m offat.api
 
-    # OR
+  # OR
 
-    offat-api
-    ```
+  offat-api
+  ```
 
--   API Documentation can be found at <http://localhost:8000/docs>
+- API Documentation can be found at <http://localhost:8000/docs>
 
 ### CLI Tool
 
--   Run offat
+- Run offat
 
-    ```bash
-    offat -f swagger_file.json              # using file
-    offat -f https://example.com/docs.json  # using url
-    ```
+  ```bash
+  offat -f swagger_file.json              # using file
+  offat -f https://example.com/docs.json  # using url
+  ```
 
--   To get all the commands use `help`
+- To get all the commands use `help`
 
-    ```bash
-    offat -h
-    ```
+  ```bash
+  offat -h
+  ```
 
--   Save result in `json`, `yaml` or `html` formats.
+- Save result in `json`, `yaml` or `html` formats.
 
-    ```bash
-    offat -f swagger_file.json -o output.json           # json
-    offat -f swagger_file.json -o output.html -of html  # html
-    offat -f swagger_file.json -o output.yaml -of yaml  # yaml
-    ```
+  ```bash
+  offat -f swagger_file.json -o output.json -of html  # json
+  offat -f swagger_file.json -o output.html -of html  # html
+  offat -f swagger_file.json -o output.yaml -of yaml  # yaml
+  ```
 
 > `json` format is default output format.
 > `yaml` format needs to be sanitized before usage since it dumps data as python objects.
 > `html` format needs more visualization.
 
--   Run tests only for endpoint paths matching regex pattern
+- Run tests only for endpoint paths matching regex pattern
 
-    ```bash
-    offat -f swagger_file.json -pr '/user'
-    ```
+  ```bash
+  offat -f swagger_file.json -pr '/user'
+  ```
 
--   Add headers to requests
+- Add headers to requests
 
-    ```bash
-    offat -f swagger_file.json -H 'Accept: application/json' -H 'Authorization: Bearer YourJWTToken'
-    ```
+  ```bash
+  offat -f swagger_file.json -H 'Accept: application/json' -H 'Authorization: Bearer YourJWTToken'
+  ```
 
--   Run Test with Requests Rate Limited
+- Run Test with Requests Rate Limited
 
-    ```bash
-    offat -f swagger_file.json -rl 1000 -dr 0.001
-    ```
+  ```bash
+  offat -f swagger_file.json -rl 1000
+  ```
 
-    > `rl`: requests rate limit, `dr`: delay between requests
+  > `rl`: requests rate limit per second
 
--   Use along with proxy
+- Use along with proxy
 
-```bash
-offat -f swagger_file.json -p http://localhost:8080 --no-ssl -o output.json
-```
+  ```bash
+  # without ssl check
+  offat -f swagger_file.json -p http://localhost:8080 -o output.json -of json # ssl checks are disabled by default to avoid certificate installations
 
-> Make sure that proxy can handle multiple requests at the same time
+  # with ssl check enforced
+  offat -f swagger_file.json -p http://localhost:8080 -o output.json -of json --ssl
+  ```
 
--   Use user provided inputs for generating tests
+  > Make sure that proxy can handle multiple requests at the same time
 
-    ```bash
-    offat -f swagger_file.json -tdc test_data_config.yaml
-    ```
+- Use user provided inputs for generating tests
 
-    `test_data_config.yaml`
+  ```bash
+  offat -f swagger_file.json -tdc test_data_config.yaml
+  ```
 
-    ```yaml
-    actors:
-        - actor1:
-              request_headers:
-                  - name: Authorization
-                    value: Bearer [Token1]
-                  - name: User-Agent
-                    value: offat-actor1
+  `test_data_config.yaml`
 
-              query:
-                  - name: id
-                    value: 145
-                    type: int
-                  - name: country
-                    value: uk
-                    type: str
-                  - name: city
-                    value: london
-                    type: str
+  ```yaml
+  actors:
+    - actor1:
+      request_headers:
+        - name: Authorization
+          value: Bearer [Token1]
+        - name: User-Agent
+          value: offat-actor1
 
-              body:
-                  - name: name
-                    value: actorone
-                    type: str
-                  - name: email
-                    value: actorone@example.com
-                    type: str
-                  - name: phone
-                    value: +11233211230
-                    type: str
+      query:
+        - name: id
+          value: 145
+          type: int
+        - name: country
+          value: uk
+          type: str
+        - name: city
+          value: london
+          type: str
 
-              unauthorized_endpoints: # For broken access control
-                  - "/store/order/.*"
+      body:
+        - name: name
+          value: actorone
+          type: str
+        - name: email
+          value: actorone@example.com
+          type: str
+        - name: phone
+          value: +11233211230
+          type: str
 
-        - actor2:
-              request_headers:
-                  - name: Authorization
-                    value: Bearer [Token2]
-                  - name: User-Agent
-                    value: offat-actor2
+      unauthorized_endpoints: # For broken access control
+        - "/store/order/.*"
 
-              query:
-                  - name: id
-                    value: 199
-                    type: int
-                  - name: country
-                    value: uk
-                    type: str
-                  - name: city
-                    value: leeds
-                    type: str
+    - actor2:
+        request_headers:
+          - name: Authorization
+            value: Bearer [Token2]
+          - name: User-Agent
+            value: offat-actor2
 
-              body:
-                  - name: name
-                    value: actortwo
-                    type: str
-                  - name: email
-                    value: actortwo@example.com
-                    type: str
-                  - name: phone
-                    value: +41912312311
-                    type: str
-    ```
+        query:
+          - name: id
+            value: 199
+            type: int
+          - name: country
+            value: uk
+            type: str
+          - name: city
+            value: leeds
+            type: str
+
+        body:
+          - name: name
+            value: actortwo
+            type: str
+          - name: email
+            value: actortwo@example.com
+            type: str
+          - name: phone
+            value: +41912312311
+            type: str
+  ```
 
 > If you're using Termux or windows, then use `pip` instead of `pip3`.
 > Few features are only for linux os, hence they might not work on windows and require admin priviliges.
 
 ### Open In Google Cloud Shell
 
--   Temporary Session
-    [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/OWASP/OFFAT.git&ephemeral=true&show=terminal&cloudshell_print=./DISCLAIMER.md)
--   Perisitent Session
-    [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/OWASP/OFFAT.git&ephemeral=false&show=terminal&cloudshell_print=./DISCLAIMER.md)
+- Temporary Session
+  [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/OWASP/OFFAT.git&ephemeral=true&show=terminal&cloudshell_print=./DISCLAIMER.md)
+- Perisitent Session
+  [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/OWASP/OFFAT.git&ephemeral=false&show=terminal&cloudshell_print=./DISCLAIMER.md)
 
 ## Have any Ideas 💡 or issue
 
--   Create an issue
--   Fork the repo, update script and create a Pull Request
+- Create an issue
+- Fork the repo, update script and create a Pull Request
 
 ## Contributing
 
@@ -321,4 +325,4 @@ Refer [CONTRIBUTIONS.md](/CONTRIBUTING.md) for contributing to the project.
 
 ## LICENSE
 
-Offat is distributed under `MIT` License. Refer [License](/LICENSE.md) for more information.
+OWASP OFFAT is distributed under `MIT` License. Refer [License](/LICENSE.md) for more information.
