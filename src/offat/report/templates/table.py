@@ -94,5 +94,6 @@ class TestResultTable:
             del result['redirection']
             del result['query_params']
             del result['path_params']
+            del result['curl_command']
 
         return results

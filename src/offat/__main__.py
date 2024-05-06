@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from .parsers.openapi import OpenAPIv3Parser
 from .parsers.swagger import SwaggerParser
 from .config_data_handler import validate_config_file_data
-from .tester.tester_utils import generate_and_run_tests
+from .tester.handler import generate_and_run_tests
 from .parsers import create_parser
 from .utils import get_package_version, headers_list_to_dict, read_yaml
 

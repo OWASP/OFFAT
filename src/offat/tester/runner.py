@@ -4,9 +4,9 @@ from enum import Enum
 from sys import exc_info, exit
 from rich.progress import Progress, TaskID
 
-
 from ..http import AsyncRequests
 from ..logger import logger, console
+from ..utils import result_to_curl
 
 
 class PayloadFor(Enum):
@@ -146,6 +146,9 @@ class TestRunner:
             logger.debug('Exception Debug Data:', exc_info=exc_info())
             logger.error('Unable to send request due to error: %s', e)
             logger.error(locals())
+
+        # generate curl command for reproducing result
+        test_result['curl_command'] = result_to_curl(test_result)
 
         # advance progress bar
         if self.progress_task_id:

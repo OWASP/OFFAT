@@ -3,10 +3,11 @@ utils module
 """
 from json import loads as json_load, dumps as json_dumps, JSONDecodeError
 from re import compile as re_compile, match
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse, urljoin, quote_plus
 from os.path import isfile
 from importlib.metadata import version
 from yaml import safe_load, YAMLError
+
 
 from .logger import logger
 
@@ -320,3 +321,48 @@ def get_unique_params(list1: list[dict], list2: list[dict]) -> list[dict]:
             unique_params_names.append(param_name)
 
     return unique_params
+
+
+def result_to_curl(result: dict):
+    """
+    Converts a dictionary representing an HTTP request to a cURL command.
+
+    Args:
+        result (dict): A dictionary containing the details of the HTTP request.
+
+    Returns:
+        str: The cURL command generated from the given request details.
+    """
+    url = result.get('url')
+    method = result.get('method')
+    query_params = result.get('query_params', None)
+    request_headers: dict = result.get('request_headers', {})
+    body_params: dict = result.get('body_params', {})
+
+    # generate query params
+    query_param_str = (
+        '&'.join(
+            [
+                f'{param.get("name")}={quote_plus(str(param.get("value")))}'
+                for param in query_params
+            ]
+        )
+        if query_params
+        else ''
+    )
+
+    # generate headers str
+    request_headers.pop('Content-Length', None)
+    request_headers_str = (
+        '-H '.join([f'"{hkey}: {hval}" ' for hkey, hval in request_headers.items()])
+        if request_headers
+        else ''
+    )
+
+    # generate JSON body params
+    body = {bparam.get('name'): bparam.get('value') for bparam in body_params}
+    body_str = f"-d '{json_dumps(body)}'" if body else ''
+
+    curl_command = f"curl -X {method} \"{url}?{query_param_str}\" {request_headers_str} {body_str}".strip()
+
+    return curl_command
