@@ -68,7 +68,7 @@ def generate_and_run_tests(
     logger.info('Host %s is up', api_parser.host)
 
     test_runner = TestRunner(
-        rate_limit=rate_limit,  # type: ignore
+        rate_limit=rate_limit,
         headers=req_headers,
         proxies=proxies,
         ssl=ssl,
@@ -76,238 +76,218 @@ def generate_and_run_tests(
 
     results: list = []
 
-    # test for unsupported http methods
-    test_name = 'Checking for Unsupported HTTP Methods/Verbs'
-    logger.info(test_name)
-    unsupported_http_endpoint_tests = test_generator.check_unsupported_http_methods(
-        api_parser
-    )
+    test_list = []
 
-    results += run_test(
-        test_runner=test_runner,
-        tests=unsupported_http_endpoint_tests,
-        regex_pattern=regex_pattern,
-        description=f'(FUZZED) {test_name}',
+    # test for unsupported http methods
+    test_list.append(
+        {
+            'test_name': 'Checking for Unsupported HTTP Methods/Verbs',
+            'tests': test_generator.check_unsupported_http_methods(api_parser),
+            'type': 'FUZZED',
+        }
     )
 
     # sqli fuzz test
-    test_name = 'Checking for SQLi vulnerability'
-    logger.info(test_name)
-    sqli_fuzz_tests = test_generator.sqli_fuzz_params_test(api_parser)
-    results += run_test(
-        test_runner=test_runner,
-        tests=sqli_fuzz_tests,
-        regex_pattern=regex_pattern,
-        description=f'(FUZZED) {test_name}',
+    test_list.append(
+        {
+            'test_name': 'Checking for SQLi vulnerability',
+            'tests': test_generator.sqli_fuzz_params_test(api_parser),
+            'type': 'FUZZED',
+        }
     )
 
-    test_name = 'Checking for SQLi vulnerability in URI Path'
-    logger.info(test_name)
-    sqli_fuzz_tests = test_generator.sqli_in_uri_path_fuzz_test(api_parser)
-    results += run_test(
-        test_runner=test_runner,
-        tests=sqli_fuzz_tests,
-        regex_pattern=regex_pattern,
-        description=f'(FUZZED) {test_name}',
+    test_list.append(
+        {
+            'test_name': 'Checking for SQLi vulnerability in URI Path',
+            'tests': test_generator.sqli_in_uri_path_fuzz_test(api_parser),
+            'type': 'FUZZED',
+        }
     )
 
     # OS Command Injection Fuzz Test
-    test_name = 'Checking for OS Command Injection Vulnerability with fuzzed params and checking response body'  # noqa: E501
-    logger.info(test_name)
-    os_command_injection_tests = test_generator.os_command_injection_fuzz_params_test(
-        api_parser
-    )
-    results += run_test(
-        test_runner=test_runner,
-        tests=os_command_injection_tests,
-        regex_pattern=regex_pattern,
-        post_run_matcher_test=True,
-        description='(FUZZED) Checking for OS Command Injection',
+    test_list.append(
+        {
+            'test_name': 'Checking for OS Command Injection Vulnerability with fuzzed params and checking response body',  # noqa: E501
+            'tests': test_generator.os_command_injection_fuzz_params_test(api_parser),
+            'type': 'FUZZED',
+            'post_run_matcher_test': True,
+        }
     )
 
     # XSS/HTML Injection Fuzz Test
-    test_name = 'Checking for XSS/HTML Injection Vulnerability with fuzzed params and checking response body'  # noqa: E501
-    logger.info(test_name)
-    xss_injection_tests = test_generator.xss_html_injection_fuzz_params_test(api_parser)
-    results += run_test(
-        test_runner=test_runner,
-        tests=xss_injection_tests,
-        regex_pattern=regex_pattern,
-        post_run_matcher_test=True,
-        description='(FUZZED) Checking for XSS/HTML Injection',
+    test_list.append(
+        {
+            'test_name': 'Checking for XSS/HTML Injection Vulnerability with fuzzed params and checking response body',  # noqa: E501
+            'tests': test_generator.xss_html_injection_fuzz_params_test(api_parser),
+            'type': 'FUZZED',
+            'post_run_matcher_test': True,
+        }
     )
 
     # BOLA path tests with fuzzed data
-    test_name = 'Checking for BOLA in PATH using fuzzed params'
-    logger.info(test_name)
-    bola_fuzzed_path_tests = test_generator.bola_fuzz_path_test(
-        api_parser, success_codes=[200, 201, 301]
-    )
-    results += run_test(
-        test_runner=test_runner,
-        tests=bola_fuzzed_path_tests,
-        regex_pattern=regex_pattern,
-        description='(FUZZED) Checking for BOLA in PATH:',
+    test_list.append(
+        {
+            'test_name': 'Checking for BOLA in PATH using fuzzed params',
+            'tests': test_generator.bola_fuzz_path_test(
+                api_parser, success_codes=[200, 201, 301]
+            ),
+            'type': 'FUZZED',
+        }
     )
 
     # BOLA path test with fuzzed data + trailing slash
-    test_name = (
-        'Checking for BOLA in PATH with trailing slash and id using fuzzed params'
-    )
-    logger.info(test_name)
-    bola_trailing_slash_path_tests = test_generator.bola_fuzz_trailing_slash_path_test(
-        api_parser, success_codes=[200, 201, 301]
-    )
-    results += run_test(
-        test_runner=test_runner,
-        tests=bola_trailing_slash_path_tests,
-        regex_pattern=regex_pattern,
-        description='(FUZZED) Checking for BOLA in PATH with trailing slash',
+    test_list.append(
+        {
+            'test_name': 'Checking for BOLA in PATH with trailing slash and id using fuzzed params',
+            'tests': test_generator.bola_fuzz_trailing_slash_path_test(
+                api_parser, success_codes=[200, 201, 301]
+            ),
+            'type': 'FUZZED',
+        }
     )
 
     # Mass Assignment / BOPLA
-    test_name = 'Checking for Mass Assignment Vulnerability with fuzzed params and checking response status codes:'  # noqa: E501
-    logger.info(test_name)
-    bopla_tests = test_generator.bopla_fuzz_test(
-        api_parser, success_codes=[200, 201, 301]
-    )
-    results += run_test(
-        test_runner=test_runner,
-        tests=bopla_tests,
-        regex_pattern=regex_pattern,
-        description='(FUZZED) Checking for BOPLA/Mass Assignment Vulnerability',
+    test_list.append(
+        {
+            'test_name': 'Checking for Mass Assignment Vulnerability with fuzzed params and checking response status codes:',  # noqa: E501
+            'tests': test_generator.bopla_fuzz_test(
+                api_parser, success_codes=[200, 201, 301]
+            ),
+            'type': 'FUZZED',
+        }
     )
 
     # SSTI Vulnerability
-    test_name = 'Checking for SSTI vulnerability with fuzzed params and checking response body'  # noqa: E501
-    logger.info(test_name)
-    ssti_tests = test_generator.ssti_fuzz_params_test(api_parser)
-    results += run_test(
-        test_runner=test_runner,
-        tests=ssti_tests,
-        regex_pattern=regex_pattern,
-        description='(FUZZED) Checking for SSTI Vulnerability',
-        post_run_matcher_test=True,
+    test_list.append(
+        {
+            'test_name': 'Checking for SSTI vulnerability with fuzzed params and checking response body',  # noqa: E501
+            'tests': test_generator.ssti_fuzz_params_test(api_parser),
+            'type': 'FUZZED',
+            'post_run_matcher_test': True,
+        }
     )
 
     # Missing Authorization Test
-    test_name = 'Checking for Missing Authorization'
-    logger.info(test_name)
-    missing_auth_tests = test_generator.missing_auth_fuzz_test(api_parser)
-    results += run_test(
-        test_runner=test_runner,
-        tests=missing_auth_tests,
-        regex_pattern=regex_pattern,
-        description=f'(FUZZED) {test_name}',
-        post_run_matcher_test=False,
+    test_list.append(
+        {
+            'test_name': 'Checking for Missing Authorization',
+            'tests': test_generator.missing_auth_fuzz_test(api_parser),
+            'type': 'FUZZED',
+        }
     )
 
     # Tests with User provided Data
     if bool(test_data_config):
         logger.info('[bold] Testing with user provided data [/bold]')
 
-        # # BOLA path tests with fuzzed + user provided data
-        test_name = 'Checking for BOLA in PATH using fuzzed and user provided params'
-        logger.info(test_name)
-        bola_fuzzed_user_data_tests = test_generator.test_with_user_data(
-            test_data_config,
-            test_generator.bola_fuzz_path_test,
-            openapi_parser=api_parser,
-            success_codes=[200, 201, 301],
-        )
-        results += run_test(
-            test_runner=test_runner,
-            tests=bola_fuzzed_user_data_tests,
-            regex_pattern=regex_pattern,
-            description='(USER + FUZZED) Checking for BOLA in PATH',
+        # BOLA path tests with fuzzed + user provided data
+        test_list.append(
+            {
+                'test_name': 'Checking for BOLA in PATH using fuzzed and user provided params',
+                'tests': test_generator.test_with_user_data(
+                    test_data_config,
+                    test_generator.bola_fuzz_path_test,
+                    openapi_parser=api_parser,
+                    success_codes=[200, 201, 301],
+                ),
+                'type': 'USER + FUZZED',
+            }
         )
 
         # BOLA path test with fuzzed + user data + trailing slash
-        test_name = 'Checking for BOLA in PATH with trailing slash id using fuzzed and user provided params:'  # noqa: E501
-        logger.info(test_name)
-        bola_trailing_slash_path_user_data_tests = test_generator.test_with_user_data(
-            test_data_config,
-            test_generator.bola_fuzz_trailing_slash_path_test,
-            openapi_parser=api_parser,
-            success_codes=[200, 201, 301],
-        )
-        results += run_test(
-            test_runner=test_runner,
-            tests=bola_trailing_slash_path_user_data_tests,
-            regex_pattern=regex_pattern,
-            description='(USER + FUZZED) Checking for BOLA in PATH with trailing slash',
+        test_list.append(
+            {
+                'test_name': 'Checking for BOLA in PATH with trailing slash id using fuzzed and user provided params:',  # noqa: E501
+                'tests': test_generator.test_with_user_data(
+                    test_data_config,
+                    test_generator.bola_fuzz_trailing_slash_path_test,
+                    openapi_parser=api_parser,
+                    success_codes=[200, 201, 301],
+                ),
+                'type': 'USER + FUZZED',
+            }
         )
 
         # OS Command Injection Fuzz Test
-        test_name = 'Checking for OS Command Injection Vulnerability with fuzzed & user params and checking response body'  # noqa: E501
-        logger.info(test_name)
-        os_command_injection_with_user_data_tests = test_generator.test_with_user_data(
-            test_data_config,
-            test_generator.os_command_injection_fuzz_params_test,
-            openapi_parser=api_parser,
-        )
-        results += run_test(
-            test_runner=test_runner,
-            tests=os_command_injection_with_user_data_tests,
-            regex_pattern=regex_pattern,
-            post_run_matcher_test=True,
-            description='(USER + FUZZED) Checking for OS Command Injection Vulnerability:',
+        test_list.append(
+            {
+                'test_name': 'Checking for OS Command Injection Vulnerability with fuzzed & user params and checking response body',  # noqa: E501
+                'tests': test_generator.test_with_user_data(
+                    test_data_config,
+                    test_generator.os_command_injection_fuzz_params_test,
+                    openapi_parser=api_parser,
+                ),
+                'type': 'USER + FUZZED',
+                'post_run_matcher_test': True,
+            }
         )
 
         # XSS/HTML Injection Fuzz Test
-        test_name = 'Checking for XSS/HTML Injection Vulnerability with fuzzed & user params and checking response body'  # noqa: E501
-        logger.info(test_name)
-        os_command_injection_with_user_data_tests = test_generator.test_with_user_data(
-            test_data_config,
-            test_generator.xss_html_injection_fuzz_params_test,
-            openapi_parser=api_parser,
-        )
-        results += run_test(
-            test_runner=test_runner,
-            tests=os_command_injection_with_user_data_tests,
-            regex_pattern=regex_pattern,
-            post_run_matcher_test=True,
-            description='(USER + FUZZED) Checking for XSS/HTML Injection Vulnerability',
+        test_list.append(
+            {
+                'test_name': 'Checking for XSS/HTML Injection Vulnerability with fuzzed & user params and checking response body',  # noqa: E501
+                'tests': test_generator.test_with_user_data(
+                    test_data_config,
+                    test_generator.xss_html_injection_fuzz_params_test,
+                    openapi_parser=api_parser,
+                ),
+                'type': 'USER + FUZZED',
+                'post_run_matcher_test': True,
+            }
         )
 
         # STTI Vulnerability
-        test_name = 'Checking for SSTI vulnerability with fuzzed params & user data and checking response body'  # noqa: E501
-        logger.info(test_name)
-        ssti_with_user_data_tests = test_generator.test_with_user_data(
-            test_data_config,
-            test_generator.ssti_fuzz_params_test,
-            openapi_parser=api_parser,
-        )
-        results += run_test(
-            test_runner=test_runner,
-            tests=ssti_with_user_data_tests,
-            regex_pattern=regex_pattern,
-            description='(USER + FUZZED) Checking for SSTI Vulnerability',
-            post_run_matcher_test=True,
+        test_list.append(
+            {
+                'test_name': 'Checking for SSTI vulnerability with fuzzed params & user data and checking response body',  # noqa: E501
+                'tests': test_generator.test_with_user_data(
+                    test_data_config,
+                    test_generator.ssti_fuzz_params_test,
+                    openapi_parser=api_parser,
+                ),
+                'type': 'USER + FUZZED',
+                'post_run_matcher_test': True,
+            }
         )
 
         # Missing Authorization Test
-        test_name = 'Checking for Missing Authorization with user data'
-        logger.info(test_name)
-        missing_auth_tests = test_generator.test_with_user_data(
-            test_data_config,
-            test_generator.missing_auth_fuzz_test,
-            openapi_parser=api_parser,
-        )
-        results += run_test(
-            test_runner=test_runner,
-            tests=missing_auth_tests,
-            regex_pattern=regex_pattern,
-            description=f'(USER + FUZZED) {test_name}',
-            post_run_matcher_test=False,
+        test_list.append(
+            {
+                'test_name': 'Checking for Missing Authorization with user data',
+                'tests': test_generator.test_with_user_data(
+                    test_data_config,
+                    test_generator.missing_auth_fuzz_test,
+                    openapi_parser=api_parser,
+                ),
+                'type': 'USER + FUZZED',
+                'post_run_matcher_test': True,
+            }
         )
 
+    for test in test_list:
+        if 'post_run_matcher_test' not in test:
+            test['post_run_matcher_test'] = False
+
+        logger.info(test['test_name'])
+
+        results += run_test(
+            test_runner=test_runner,
+            tests=test['tests'],
+            regex_pattern=regex_pattern,
+            post_run_matcher_test=test['post_run_matcher_test'],
+            description=f'({test["type"]}) {test["test_name"]}',
+        )
+
+    # After we collected all the results, we can now test them for
+    #  access without restrictions
+    if bool(test_data_config):
         # Broken Access Control Test
         test_name = 'Checking for Broken Access Control'
         logger.info(test_name)
         bac_results = PostRunTests.run_broken_access_control_tests(
             results, test_data_config
         )
+
         results += run_test(
             test_runner=test_runner,
             tests=bac_results,
