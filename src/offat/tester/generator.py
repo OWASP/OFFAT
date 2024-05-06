@@ -804,19 +804,19 @@ class TestGenerator:
         for payload_dict in payloads_data:
             for request_obj in fuzzed_request_list:
                 payload = payload_dict['request_payload']
-
-                # handle body request params
                 body_request_params = request_obj.get('body_params', [])
+                query_request_params = request_obj.get('query_params', [])
+                # endpoint can be fuzzed if it has query/body params
+                if len(body_request_params) == 0 and len(query_request_params) == 0:
+                    continue
+
+                # handle body and query request params
                 malicious_body_request_params = self.__inject_payload_in_params(
                     body_request_params, payload
                 )
-
-                # handle query request params
-                query_request_params = request_obj.get('query_params', [])
                 malicious_query_request_params = self.__inject_payload_in_params(
                     query_request_params, payload
                 )
-
                 request_obj['test_name'] = test_name
 
                 request_obj['body_params'] = malicious_body_request_params
@@ -993,7 +993,7 @@ class TestGenerator:
             openapi_parser (OpenAPIParser): An instance of the OpenAPIParser class
             containing the parsed OpenAPI specification.
             success_codes (list[int], optional): A list of HTTP success codes to consider
-            as successful BOLA responses. Defaults to [200, 201, 301].
+            as test failed responses. Defaults to [200, 201, 301].
             *args: Variable-length positional arguments.
             **kwargs: Arbitrary keyword arguments.
 

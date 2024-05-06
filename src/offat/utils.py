@@ -352,7 +352,8 @@ def result_to_curl(result: dict):
     )
 
     # generate headers str
-    request_headers.pop('Content-Length', None)
+    if isinstance(request_headers, dict):
+        request_headers.pop('Content-Length', None)
     request_headers_str = (
         '-H '.join([f'"{hkey}: {hval}" ' for hkey, hval in request_headers.items()])
         if request_headers
