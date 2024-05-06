@@ -680,6 +680,9 @@ class TestGenerator:
                 filter(lambda x: x.get('in') == 'path', request_params)
             )
 
+            if len(request_body_params) == 0 and len(request_query_params) == 0:
+                continue
+
             # handle path params from path_params
             # and replace path params by value in
             # endpoint path
