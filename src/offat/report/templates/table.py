@@ -51,6 +51,21 @@ class TestResultTable:
                 filter(lambda x: not x.get('result') or x.get('data_leak'), results)
             )
 
+        keys_to_remove = [
+            'url',
+            'test_name',
+            'response_filter',
+            'body_params',
+            'request_headers',
+            'redirection',
+            'query_params',
+            'path_params',
+            'curl_command',
+            'response_match_regex',
+            'regex_match_result',
+            'success_codes',
+        ]
+
         # remove keys based on conditions or update their values
         for result in results:
             if result['result']:
@@ -66,15 +81,6 @@ class TestResultTable:
                 result['status_code'] = result.get('response_status_code')
                 del result['response_status_code']
 
-            if result.get('success_codes'):
-                del result['success_codes']
-
-            if result.get('regex_match_result'):
-                del result['regex_match_result']
-
-            if result.get('response_match_regex'):
-                del result['response_match_regex']
-
             if result.get('security') or result.get('security') == []:
                 del result['security']
 
@@ -86,14 +92,8 @@ class TestResultTable:
             if not isinstance(result.get('malicious_payload'), str):
                 del result['malicious_payload']
 
-            del result['url']
-            del result['test_name']
-            del result['response_filter']
-            del result['body_params']
-            del result['request_headers']
-            del result['redirection']
-            del result['query_params']
-            del result['path_params']
-            del result['curl_command']
+            for key in keys_to_remove:
+                if key in result:
+                    del result[key]
 
         return results
