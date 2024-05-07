@@ -97,6 +97,8 @@ class PostRunTests:
             for pattern_name, pattern in sensitive_data_regex_patterns.items():
                 matches = findall(pattern, data)
                 if matches:
+                    if isinstance(matches, list) and isinstance(matches[0], tuple):
+                        matches = [tuple(filter(None, item)) for item in matches]
                     detected_exposures[pattern_name] = matches
             return detected_exposures
 
