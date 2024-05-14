@@ -25,4 +25,13 @@ sensitive_data_regex_patterns = {
     'AWSSecretKey': r'\b[0-9a-zA-Z/+]{40}\b',
     'AWSResourceURL': r'\b([A-Za-z0-9-_]*\.[A-Za-z0-9-_]*\.amazonaws.com*)\b',
     'AWSArnId': r'\barn:aws:[A-Za-z0-9-_]*\:[A-Za-z0-9-_]*\:[A-Za-z0-9-_]*\:[A-Za-z0-9-/_]*\b',
+    # Google Tokens
+    'Google' : r'google_oauth_token|google_oauth|google_b64',
+    # Slack
+    'Slack' : r'xoxo-[0-9a-z]+-[0-9a-z]+-[0-9a-z]+-[0-9a-z]+',
+    # Postgres DSN postgresql://[user[:password]@][netloc][:port][/dbname][?param1=value1&...]
+    'PostgresDSN' : r'postgresql:\/\/|pgsql:',
+    'MySQLDSN' : 'mysql://',
+    'RedisDSN' : 'redis://',
+    'OutlookWebhook' : 'https://outlook.office.com/webhook/'
 }
