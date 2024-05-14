@@ -32,4 +32,5 @@ sensitive_data_regex_patterns = {
     # Postgres DSN postgresql://[user[:password]@][netloc][:port][/dbname][?param1=value1&...]
     'PostgresDSN' : r'postgresql:\/\/|pgsql:',
     'MySQLDSN' : r'mysql://',
+    'RedisDSN' : r'redis://',
 }
