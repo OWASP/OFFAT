@@ -325,7 +325,7 @@ def generate_and_run_tests(
     )
 
     console.print(
-        "The columns for 'data_leak' and 'result' in the table represent independent aspects. It's possible for there to be a data leak in the endpoint, yet the result for that endpoint may still be marked as 'Success'. This is because the 'result' column doesn't necessarily reflect the overall test result; it may indicate success even in the presence of a data leak."
+        "The columns for 'data_leak' and 'vulnerable' in the table represent independent aspects. It's possible for there to be a data leak in the endpoint, yet the result for that endpoint may still be marked as 'Success'. This is because the 'vulnerable' column doesn't necessarily reflect the overall test result; it may indicate success even in the presence of a data leak."
     )
 
     console.rule()

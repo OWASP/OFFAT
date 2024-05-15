@@ -122,9 +122,9 @@ class TestGenerator:
                         'malicious_payload': [],
                         'args': args,
                         'kwargs': kwargs,
-                        'result_details': {
-                            True: "Endpoint doesn't perform any HTTP verb which is not documented",
-                            False: 'Endpoint performs HTTP verb which is not documented',
+                        'vuln_details': {
+                            True: 'Endpoint performs HTTP verb which is not documented',
+                            False: "Endpoint doesn't perform any HTTP verb which is not documented",
                         },
                         'body_params': body_params,
                         'query_params': query_params,
@@ -297,9 +297,9 @@ class TestGenerator:
 
                 request_obj['malicious_payload'] = sqli_payload
 
-                request_obj['result_details'] = {
-                    True: 'Parameters are not vulnerable to SQLi Payload',  # passed
-                    False: 'One or more parameter is vulnerable to SQL Injection Attack',  # failed
+                request_obj['vuln_details'] = {
+                    True: 'One or more parameter is vulnerable to SQL Injection Attack',
+                    False: 'Parameters are not vulnerable to SQLi Payload',
                 }
                 request_obj['success_codes'] = success_codes
                 request_obj[
@@ -404,9 +404,9 @@ class TestGenerator:
                         'malicious_payload': sqli_payload,
                         'args': args,
                         'kwargs': kwargs,
-                        'result_details': {
-                            True: 'Endpoint is not vulnerable to SQLi',  # passed
-                            False: 'Endpoint might be vulnerable to SQli',  # failed
+                        'vuln_details': {
+                            True: 'Endpoint might be vulnerable to SQli',
+                            False: 'Endpoint is not vulnerable to SQLi',
                         },
                         'success_codes': success_codes,
                         'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name,
@@ -498,9 +498,9 @@ class TestGenerator:
                     'malicious_payload': path_params,
                     'args': args,
                     'kwargs': kwargs,
-                    'result_details': {
-                        True: 'Endpoint is not vulnerable to BOLA',  # passed
-                        False: 'Endpoint might be vulnerable to BOLA',  # failed
+                    'vuln_details': {
+                        True: 'Endpoint might be vulnerable to BOLA',
+                        False: 'Endpoint is not vulnerable to BOLA',
                     },
                     'success_codes': success_codes,
                     'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name,
@@ -594,9 +594,9 @@ class TestGenerator:
                     'malicious_payload': malicious_payload,
                     'args': args,
                     'kwargs': kwargs,
-                    'result_details': {
-                        True: 'Endpoint might not vulnerable to BOLA',  # passed
-                        False: 'Endpoint might be vulnerable to BOLA',  # failed
+                    'vuln_details': {
+                        True: 'Endpoint might be vulnerable to BOLA',
+                        False: 'Endpoint might not vulnerable to BOLA',
                     },
                     'success_codes': success_codes,
                     'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name,
@@ -721,9 +721,9 @@ class TestGenerator:
                     'malicious_payload': response_body_params,
                     'args': args,
                     'kwargs': kwargs,
-                    'result_details': {
-                        True: 'Endpoint might not vulnerable to BOPLA',  # passed
-                        False: 'Endpoint might be vulnerable to BOPLA',  # failed
+                    'vuln_details': {
+                        True: 'Endpoint might be vulnerable to BOPLA',
+                        False: 'Endpoint might not vulnerable to BOPLA',
                     },
                     'success_codes': success_codes,
                     'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name,
@@ -777,7 +777,7 @@ class TestGenerator:
         self,
         openapi_parser: SwaggerParser | OpenAPIv3Parser,
         test_name: str,
-        result_details: dict,
+        vuln_details: dict,
         payloads_data: list[dict],
         *args,
         **kwargs,
@@ -829,7 +829,7 @@ class TestGenerator:
 
                 request_obj['malicious_payload'] = payload
 
-                request_obj['result_details'] = result_details
+                request_obj['vuln_details'] = vuln_details
                 request_obj[
                     'response_filter'
                 ] = PostTestFiltersEnum.BODY_REGEX_FILTER.name
@@ -868,15 +868,15 @@ class TestGenerator:
             {'request_payload': 'ls -la', 'response_match_regex': r'total\s\d+'},
         ]
 
-        result_details = {
-            True: 'Parameters are not vulnerable to OS Command Injection',  # passed
-            False: 'One or more parameter is vulnerable to OS Command Injection Attack',  # failed
+        vuln_details = {
+            True: 'One or more parameter is vulnerable to OS Command Injection Attack',
+            False: 'Parameters are not vulnerable to OS Command Injection',
         }
 
         return self.__generate_injection_fuzz_params_test(
             openapi_parser=openapi_parser,
             test_name=test_name,
-            result_details=result_details,
+            vuln_details=vuln_details,
             payloads_data=payloads_data,
         )
 
@@ -915,15 +915,15 @@ class TestGenerator:
             },
         ]
 
-        result_details = {
-            True: 'Parameters are not vulnerable to XSS/HTML Injection Attack',  # passed
-            False: 'One or more parameter is vulnerable to XSS/HTML Injection Attack',  # failed
+        vuln_details = {
+            False: 'Parameters are not vulnerable to XSS/HTML Injection Attack',
+            True: 'One or more parameter is vulnerable to XSS/HTML Injection Attack',
         }
 
         return self.__generate_injection_fuzz_params_test(
             openapi_parser=openapi_parser,
             test_name=test_name,
-            result_details=result_details,
+            vuln_details=vuln_details,
             payloads_data=payloads_data,
         )
 
@@ -971,15 +971,15 @@ class TestGenerator:
             {'request_payload': r'*{7*7}', 'response_match_regex': r'49'},
         ]
 
-        result_details = {
-            True: 'Parameters are not vulnerable to SSTI Attack',  # passed
-            False: 'One or more parameter is vulnerable to SSTI Attack',  # failed
+        vuln_details = {
+            True: 'One or more parameter is vulnerable to SSTI Attack',
+            False: 'Parameters are not vulnerable to SSTI Attack',
         }
 
         return self.__generate_injection_fuzz_params_test(
             openapi_parser=openapi_parser,
             test_name=test_name,
-            result_details=result_details,
+            vuln_details=vuln_details,
             payloads_data=payloads_data,
         )
 
@@ -1072,9 +1072,9 @@ class TestGenerator:
                     'malicious_payload': 'Security Payload Missing',
                     'args': args,
                     'kwargs': kwargs,
-                    'result_details': {
-                        True: 'Endpoint implements security authentication as defined',  # passed
-                        False: 'Endpoint fails to implement security authentication as defined',  # failed
+                    'vuln_details': {
+                        True: 'Endpoint fails to implement security authentication as defined',
+                        False: 'Endpoint implements security authentication as defined',
                     },
                     'success_codes': success_codes,
                     'response_filter': PostTestFiltersEnum.STATUS_CODE_FILTER.name,
