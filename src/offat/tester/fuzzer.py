@@ -99,7 +99,7 @@ def fuzz_type_value(param_type: str, param_name: str):
 def fill_params(params: list[dict], is_v3: bool) -> list[dict]:
     """fills params for OAS/swagger specs"""
     schema_params = []
-    for index in range(len(params)):
+    for index, _ in enumerate(params):
         param_type = (
             params[index].get("schema", {}).get("type")
             if is_v3
@@ -125,6 +125,7 @@ def fill_params(params: list[dict], is_v3: bool) -> list[dict]:
                         "name": param_name,
                         "required": param_is_required,
                         "value": param_value,
+                        "type": param_type
                     }
                 ]
 
