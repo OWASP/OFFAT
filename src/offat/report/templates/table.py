@@ -48,7 +48,10 @@ class TestResultTable:
     ):
         if filter_passed_results:
             results = list(
-                filter(lambda x: not x.get('result') or x.get('data_leak'), results)
+                filter(
+                    lambda result: result.get('vulnerable') or result.get('data_leak'),
+                    results,
+                )
             )
 
         keys_to_remove = [
@@ -68,10 +71,10 @@ class TestResultTable:
 
         # remove keys based on conditions or update their values
         for result in results:
-            if result['result']:
-                result['result'] = '[bold green]Passed \u2713[/bold green]'
+            if result['vulnerable']:
+                result['vulnerable'] = '[bold red]True \u00d7[/bold red]'
             else:
-                result['result'] = '[bold red]Failed \u00d7[/bold red]'
+                result['vulnerable'] = '[bold green]False \u2713[/bold green]'
 
             if not is_leaking_data:
                 del result['response_headers']

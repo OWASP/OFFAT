@@ -22,26 +22,26 @@ class ResultSummarizer:
             dict: name (str) as key and its associated count (int)
         """
         if filter_errors:
-            results = list(filter(lambda result: result.get("error", False), results))
+            results = list(filter(lambda result: result.get('error', False), results))
 
         error_count = 0
         data_leak_count = 0
-        failed_count = 0
-        success_count = 0
+        immune_count = 0
+        vulnerable_count = 0
         for result in results:
-            error_count += 1 if result.get("error", False) else 0
-            data_leak_count += 1 if result.get("data_leak", False) else 0
+            error_count += 1 if result.get('error', False) else 0
+            data_leak_count += 1 if result.get('data_leak', False) else 0
 
-            if result.get("result"):
-                success_count += 1
+            if result.get('vulnerable'):
+                vulnerable_count += 1
             else:
-                failed_count += 1
+                immune_count += 1
 
         count_dict = {
-            "errors": error_count,
-            "data_leaks": data_leak_count,
-            "failed": failed_count,
-            "success": success_count,
+            'errors': error_count,
+            'data_leaks': data_leak_count,
+            'immune': immune_count,
+            'vulnerable': vulnerable_count,
         }
 
         return count_dict
@@ -50,7 +50,7 @@ class ResultSummarizer:
     def generate_count_summary(
         results: list[dict],
         filter_errors: bool = False,
-        output_format: str = "table",
+        output_format: str = 'table',
         table_title: str | None = None,
     ) -> Table | str:
         """
@@ -70,8 +70,8 @@ class ResultSummarizer:
             results=results, filter_errors=filter_errors
         )
         match output_format:
-            case "markdown":
-                output = ""
+            case 'markdown':
+                output = ''
                 if table_title:
                     output += f"**{table_title}**\n"
 
@@ -80,8 +80,8 @@ class ResultSummarizer:
 
             case _:  # table format
                 output = Table(
-                    Column(header="⚔️", overflow="fold", justify="center"),
-                    Column(header="Endpoints Count", overflow="fold"),
+                    Column(header='⚔️', overflow='fold', justify='center'),
+                    Column(header='Endpoints Count', overflow='fold'),
                     title=table_title,
                 )
 
