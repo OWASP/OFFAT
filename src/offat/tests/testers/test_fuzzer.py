@@ -1,4 +1,3 @@
-import jsondiff
 
 import unittest
 from ...tester.fuzzer import fill_params
