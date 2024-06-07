@@ -118,7 +118,7 @@ def start():
         '--ssl_verify',
         dest='ssl_verify',
         required=False,
-        action='store_false',
+        action='store_true',
         help='Enable SSL Verification',
     )
     parser.add_argument(
