@@ -61,7 +61,7 @@ def generate_and_run_tests(
     """
     if not is_host_up(openapi_parser=api_parser):
         logger.error(
-            'Stopping tests due to unavailibility of host: %s', api_parser.host
+            'Stopping tests due to unavailability of host: %s', api_parser.host
         )
         return
 
