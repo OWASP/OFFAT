@@ -2,6 +2,7 @@
 OWASP OFFAT Tester Utils Module
 """
 from http import client as http_client
+import ssl
 from sys import exc_info
 from typing import Optional
 from asyncio import run
@@ -15,10 +16,11 @@ from ..logger import logger
 from ..parsers import SwaggerParser, OpenAPIv3Parser
 
 
-def is_host_up(openapi_parser: SwaggerParser | OpenAPIv3Parser) -> bool:
+def is_host_up(openapi_parser: SwaggerParser | OpenAPIv3Parser, ssl_verify: bool = True) -> bool:
     '''checks whether the host from openapi doc is available or not.
     Returns True is host is available else returns False'''
     tokens = openapi_parser.host.split(':')
+    use_ssl = False
     match len(tokens):
         case 1:
             host = tokens[0]
@@ -34,13 +36,24 @@ def is_host_up(openapi_parser: SwaggerParser | OpenAPIv3Parser) -> bool:
 
     match port:
         case 443:
+            use_ssl = True
             proto = http_client.HTTPSConnection
         case _:
             proto = http_client.HTTPConnection
 
     logger.info('Checking whether host %s:%s is available', host, port)
     try:
-        conn = proto(host=host, port=port, timeout=5)
+        if not use_ssl:
+            conn = proto(host=host, port=port, timeout=5)
+        else:
+            if ssl_verify:
+                conn = proto(host=host, port=port, timeout=5)
+            else:
+                conn = proto(
+                    host=host,
+                    port=port,
+                    timeout=5,
+                    context = ssl._create_unverified_context())
         conn.request('GET', '/')
         res = conn.getresponse()
         logger.info('Host returned status code: %d', res.status)

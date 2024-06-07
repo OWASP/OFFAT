@@ -24,10 +24,13 @@ class TestRunner:
         rate_limit: float = 60,
         headers: dict | None = None,
         proxies: list[str] | None = None,
-        ssl: bool = False,
+        ssl_verify: bool = True,
     ) -> None:
         self._client = AsyncRequests(
-            rate_limit=rate_limit, headers=headers, proxies=proxies, ssl=ssl
+            rate_limit=rate_limit,
+            headers=headers,
+            proxies=proxies,
+            ssl_verify=ssl_verify
         )
         self.progress = Progress(console=console)
         self.progress_task_id: TaskID | None = None
