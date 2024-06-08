@@ -5,9 +5,9 @@ from offat.parsers import create_parser
 from offat.logger import logger
 
 
-def scan_api(body_data: CreateScanModel):
+def scan_api(body_data: CreateScanModel, ssl_verify: bool=True):
     try:
-        api_parser = create_parser(fpath_or_url=None, spec=body_data.openAPI)
+        api_parser = create_parser(fpath_or_url=None, spec=body_data.openAPI, ssl_verify=ssl_verify)
 
         results = generate_and_run_tests(
             api_parser=api_parser,

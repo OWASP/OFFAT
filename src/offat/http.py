@@ -64,7 +64,7 @@ class AsyncRequests:
         proxies: list[str] | None = [],
         allow_redirects: bool = True,
         timeout: float = 60,
-        ssl: bool = False,
+        ssl_verify: bool = True,
     ) -> None:
         """AsyncRequests class constructor
 
@@ -74,7 +74,7 @@ class AsyncRequests:
             headers (dict): overrides default headers while sending HTTP requests
             proxy (str): proxy URL to be used while sending requests
             timeout (float): total timeout parameter of aiohttp.ClientTimeout
-            ssl (bool): enforces tls/ssl verification if True
+            ssl_verify (bool): enforces tls/ssl verification if True
 
         Returns:
             None
@@ -84,7 +84,7 @@ class AsyncRequests:
         self._allow_redirects = allow_redirects
         self._limiter = AsyncLimiter(max_rate=rate_limit, time_period=1)
         self._timeout = ClientTimeout(total=timeout)
-        self._ssl = ssl
+        self._ssl_verify = ssl_verify
 
     @retry(
         stop=stop_after_attempt(3),
@@ -130,7 +130,7 @@ class AsyncRequests:
                     url,
                     allow_redirects=self._allow_redirects,
                     proxy=self._proxy.get_random_proxy(),
-                    ssl=self._ssl,
+                    ssl=self._ssl_verify,
                     *args,
                     **kwargs,
                 ) as response:
