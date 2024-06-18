@@ -25,7 +25,6 @@ def generate_and_run_tests(
     req_headers: dict | None = None,
     proxies: list[str] | None = None,
     test_data_config: dict | None = None,
-    ssl: bool = False,
     capture_failed: bool = False,
     remove_unused_data: bool = True,
 ):
@@ -49,8 +48,6 @@ def generate_and_run_tests(
         (optional).
         test_data_config: A dictionary representing the configuration
         for user-provided test data (optional).
-        ssl: A boolean indicating whether to use SSL for the requests
-        (default: False).
         capture_failed: A boolean indicating whether to capture failed
         tests in the report (default: False).
         remove_unused_data: A boolean indicating whether to remove
@@ -61,7 +58,7 @@ def generate_and_run_tests(
     """
     if not is_host_up(openapi_parser=api_parser):
         logger.error(
-            'Stopping tests due to unavailibility of host: %s', api_parser.host
+            'Stopping tests due to unavailability of host: %s', api_parser.host
         )
         return
 
@@ -71,7 +68,6 @@ def generate_and_run_tests(
         rate_limit=rate_limit,
         headers=req_headers,
         proxies=proxies,
-        ssl=ssl,
     )
 
     results: list = []
