@@ -40,4 +40,4 @@ jobs:
             - name: Publish package
               uses: pypa/gh-action-pypi-publish@v1.8.10
               with:
-                  packages_dir: src/dist
+                  packages-dir: src/dist
