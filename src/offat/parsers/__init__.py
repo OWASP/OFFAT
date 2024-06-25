@@ -11,10 +11,11 @@ def create_parser(
     fpath_or_url: str,
     spec: dict | None = None,
     server_url: str | None = None,
+    ssl_verify: bool = True,
 ) -> SwaggerParser | OpenAPIv3Parser:
     """returns parser based on doc file"""
     if fpath_or_url and is_valid_url(fpath_or_url):
-        res = http_get(fpath_or_url, timeout=3)
+        res = http_get(fpath_or_url, timeout=3, verify=ssl_verify)
         if res.status_code != 200:
             logger.error(
                 'server returned status code %d offat expects 200 status code',

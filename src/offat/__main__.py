@@ -115,8 +115,8 @@ def start():
     )
     parser.add_argument(
         '-s',
-        '--ssl',
-        dest='ssl',
+        '--ssl-verify',
+        dest='ssl_verify',
         required=False,
         action='store_true',
         help='Enable SSL Verification',
@@ -153,7 +153,8 @@ def start():
 
     # parse args and run tests
     api_parser: SwaggerParser | OpenAPIv3Parser = create_parser(
-        args.fpath, server_url=args.server_url
+        args.fpath, server_url=args.server_url,
+        ssl_verify=args.ssl_verify
     )
 
     generate_and_run_tests(
@@ -165,7 +166,6 @@ def start():
         rate_limit=rate_limit,
         test_data_config=test_data_config,
         proxies=args.proxies_list,
-        ssl=args.ssl,
         capture_failed=args.capture_failed,
     )
 
