@@ -1,4 +1,5 @@
 from os import uname, environ
+from textwrap import dedent
 
 from fastapi import status, Request, Response
 from offat.api.config import app, task_queue, task_timeout, auth_secret_key
@@ -15,7 +16,12 @@ if (
     and environ.get('OBJC_DISABLE_INITIALIZE_FORK_SAFETY') != 'YES'
 ):
     logger.warning(
-        'Mac Users might need to configure OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES in env\nVisit StackOverFlow link for more info: https://stackoverflow.com/questions/50168647/multiprocessing-causes-python-to-crash-and-gives-an-error-may-have-been-in-progr'
+        dedent(
+            '''Mac Users might need to configure OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES in env
+    Visit StackOverFlow link for more info:
+    https://stackoverflow.com/questions/50168647/multiprocessing-causes-python-to-crash-and-gives-an-error-may-have-been-in-progr
+    '''
+        )
     )
 
 
