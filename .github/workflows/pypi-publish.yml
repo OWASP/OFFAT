@@ -13,7 +13,9 @@ on:
         types: [published]
 
 permissions:
-    contents: read
+  id-token: write # This is required for requesting the JWT
+  contents: read  # This is required for actions/checkout
+
 
 jobs:
     deploy:
@@ -38,4 +40,4 @@ jobs:
             - name: Publish package
               uses: pypa/gh-action-pypi-publish@v1.8.10
               with:
-                  packages_dir: src/dist
+                  packages-dir: src/dist
