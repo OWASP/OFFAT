@@ -8,16 +8,21 @@ import (
 )
 
 type Config struct {
-	Filename *string
+	Filename              *string
+	IsExternalRefsAllowed *bool
 }
 
 func main() {
 	config := Config{}
 
 	config.Filename = flag.String("f", "", "OAS/Swagger Doc file path")
+	config.IsExternalRefsAllowed = flag.Bool("er", false, "enables visiting other files")
 	flag.Parse()
 
-	parser := openapi.Parser{}
+	parser := openapi.Parser{
+		Filename:              *config.Filename,
+		IsExternalRefsAllowed: *config.IsExternalRefsAllowed,
+	}
 	parser.Parse(*config.Filename)
 	log.Println(*config.Filename)
 	log.Println(parser.Version)

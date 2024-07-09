@@ -1,21 +1,9 @@
 repos:
-  - repo: https://github.com/ambv/black
-    rev: 23.3.0
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
     hooks:
-      - id: black
-        args: ["--skip-string-normalization"]
-        language_version: python3
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.0.0
-    hooks:
-      - id: flake8
-        args: ["--max-line-length=100", "--extend-ignore=E203", "--exit-zero"]
-        verbose: true
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
-    hooks:
-      - id: no-commit-to-branch
-        args: ["--branch", "main", "--branch", "release"]
-      - id: check-added-large-files
-      - id: trailing-whitespace
-      - id: double-quote-string-fixer
+      - id: go-fmt
+      - id: go-imports
+      # - id: no-go-testing
+      # - id: golangci-lint
+      # - id: go-unit-tests

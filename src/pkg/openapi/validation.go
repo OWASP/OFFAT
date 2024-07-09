@@ -29,12 +29,12 @@ func (p *Parser) Parse(filename string) (err error) {
 		return errors.New("invalid file extension")
 	}
 
+	// Detect Doc Version
 	var head struct {
 		OpenAPI string `json:"openapi" yaml:"openapi"`
 		Swagger string `json:"swagger" yaml:"swagger"`
 	}
 
-	// Read file content
 	if err := utils.Read(filename, &head, contentType); err != nil {
 		return err
 	}
