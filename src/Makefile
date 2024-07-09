@@ -8,4 +8,7 @@ build-local-image:
 scan-vulns:
 	@trivy image dmdhrumilmistry/offat-base --scanners vuln
 
+run:
+	@go run ./cmd/offat/main.go
+
 local: build-local-image scan-vulns
