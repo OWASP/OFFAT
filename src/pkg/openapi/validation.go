@@ -14,8 +14,16 @@ type Parser struct {
 	Version               string
 	Filename              string
 	IsOpenApi             bool // else Swagger
-	IsValid               bool
 	IsExternalRefsAllowed bool
+
+	// OAS validation opts
+	DisableExamplesValidation       bool
+	DisableSchemaDefaultsValidation bool
+	DisableSchemaPatternValidation  bool
+
+	// Parsed Docs
+	OpenApiDoc *openapi3.T
+	SwaggerDoc *openapi2.T
 }
 
 func (p *Parser) Parse(filename string) (err error) {
@@ -41,6 +49,7 @@ func (p *Parser) Parse(filename string) (err error) {
 
 	if head.OpenAPI != "" {
 		p.Version = head.OpenAPI
+		p.IsOpenApi = true
 	} else if head.Swagger != "" {
 		p.Version = head.Swagger
 	} else {
@@ -60,38 +69,27 @@ func (p *Parser) Parse(filename string) (err error) {
 		}
 
 		var opts []openapi3.ValidationOption
-		// if !*defaults {
-		// 	opts = append(opts, openapi3.DisableSchemaDefaultsValidation())
-		// }
-		// if !*examples {
-		// 	opts = append(opts, openapi3.DisableExamplesValidation())
-		// }
-		// if !*patterns {
-		// 	opts = append(opts, openapi3.DisableSchemaPatternValidation())
-		// }
+		if p.DisableExamplesValidation {
+			opts = append(opts, openapi3.DisableSchemaDefaultsValidation())
+		}
+		if p.DisableExamplesValidation {
+			opts = append(opts, openapi3.DisableExamplesValidation())
+		}
+		if p.DisableSchemaPatternValidation {
+			opts = append(opts, openapi3.DisableSchemaPatternValidation())
+		}
 
 		if err = doc.Validate(loader.Context, opts...); err != nil {
 			log.Fatalln("Validation error:", err)
 		}
+		p.OpenApiDoc = doc
 
 	case p.Version == "2" || strings.HasPrefix(p.Version, "2."):
-		// if *defaults != defaultDefaults {
-		// 	log.Fatal("Flag --defaults is only for OpenAPIv3")
-		// }
-		// if *examples != defaultExamples {
-		// 	log.Fatal("Flag --examples is only for OpenAPIv3")
-		// }
-		// if *ext != defaultExt {
-		// 	log.Fatal("Flag --ext is only for OpenAPIv3")
-		// }
-		// if *patterns != defaultPatterns {
-		// 	log.Fatal("Flag --patterns is only for OpenAPIv3")
-		// }
-
 		var doc openapi2.T
 		if err := utils.Read(filename, &doc, contentType); err != nil {
 			return err
 		}
+		p.SwaggerDoc = &doc
 
 	default:
 		return errors.New("missing or incorrect 'openapi' or 'swagger' field")
