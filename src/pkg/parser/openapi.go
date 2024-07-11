@@ -3,6 +3,7 @@ package parser
 import (
 	"errors"
 
+	"github.com/OWASP/OFFAT/src/pkg/utils"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/valyala/fasthttp"
 )
@@ -65,6 +66,7 @@ func (o *OpenApi) HttpOperationToDocHttpParams(HttpMethod string, path string, h
 	var httpPathParams []Param
 	var cookieParams []Param
 	var headerParams []Param
+	var responseParams []Param
 
 	// Parse Params
 	if httpOperation.Parameters != nil {
@@ -98,24 +100,44 @@ func (o *OpenApi) HttpOperationToDocHttpParams(HttpMethod string, path string, h
 		}
 	}
 
+	// Parse Response Data -> Body Params
+	if httpOperation.Responses != nil {
+		// _ -> status code
+		for _, responseData := range httpOperation.Responses.Map() {
+			for contentType, value := range responseData.Value.Content {
+				for paramName, paramData := range value.Schema.Value.Properties {
+					responseParams = append(responseParams, Param{
+						Name:        paramName,
+						In:          ParameterInBody,
+						Required:    utils.SearchStringInSlice(paramData.Value.Required, paramName),
+						Type:        paramData.Value.Type.Slice(),
+						ContentType: contentType,
+					})
+				}
+			}
+		}
+	}
+
 	// Create DocHttpParams Instance
 	docHttpParam := &DocHttpParams{
 		HttpMethod: HttpMethod,
 		Path:       path,
-		PathParams: append(pathParams, httpPathParams...),
+		Security:   securitySchemes,
 
 		BodyParams:   bodyParams,
 		CookieParams: cookieParams,
 		HeaderParams: headerParams,
+		PathParams:   append(pathParams, httpPathParams...),
 		QueryParams:  queryParams,
 
-		Security: securitySchemes,
+		ResponseParams: responseParams,
 	}
 	docHttpParams = append(docHttpParams, docHttpParam)
 
 	return docHttpParams
 }
 
+// for interface usage: configure DocHttpParams value
 func (o *OpenApi) SetDocHttpParams() error {
 	var docHttpParams []*DocHttpParams
 	for path, pathItem := range o.doc.Paths.Map() {
@@ -159,6 +181,7 @@ func (o *OpenApi) SetDocHttpParams() error {
 	return nil
 }
 
+// For interface usage: to retrieve DocHttpParams value
 func (o *OpenApi) GetDocHttpParams() []*DocHttpParams {
 	return o.DocHttpParams
 }

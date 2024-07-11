@@ -36,7 +36,7 @@ type DocHttpParams struct {
 }
 
 func (d *DocHttpParams) String() string {
-	return fmt.Sprintf("%T{ HttpMethod:%v Path:%v Security:%v BodyParams:%v CookieParams:%v HeaderParams:%v PathParams:%v QueryParams:%v }", d, d.HttpMethod, d.Path, d.Security, d.BodyParams, d.CookieParams, d.HeaderParams, d.PathParams, d.QueryParams)
+	return fmt.Sprintf("%T{ HttpMethod:%v Path:%v Security:%v BodyParams:%v CookieParams:%v HeaderParams:%v PathParams:%v QueryParams:%v ResponseParams:%v}", d, d.HttpMethod, d.Path, d.Security, d.BodyParams, d.CookieParams, d.HeaderParams, d.PathParams, d.QueryParams, d.ResponseParams)
 }
 
 type DocInterface interface {
