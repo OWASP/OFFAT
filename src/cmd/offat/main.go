@@ -2,12 +2,14 @@ package main
 
 import (
 	"flag"
-	"log"
 	"time"
 
 	"github.com/OWASP/OFFAT/src/pkg/http"
-	"github.com/OWASP/OFFAT/src/pkg/openapi"
+	"github.com/OWASP/OFFAT/src/pkg/parser"
 	c "github.com/dmdhrumilmistry/fasthttpclient/client"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+
 	"github.com/valyala/fasthttp"
 )
 
@@ -18,6 +20,10 @@ type Config struct {
 }
 
 func main() {
+	// setup logging
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+
+	// Cli config
 	config := Config{}
 
 	config.Filename = flag.String("f", "", "OAS/Swagger Doc file path")
@@ -25,24 +31,20 @@ func main() {
 	config.RequestsPerSecond = flag.Int("r", 60, "number of requests per second")
 	flag.Parse()
 
-	parser := openapi.Parser{
+	// parse documentation
+	parser := parser.Parser{
 		Filename:              *config.Filename,
 		IsExternalRefsAllowed: *config.IsExternalRefsAllowed,
 	}
 	parser.Parse(*config.Filename)
-
-	if parser.IsOpenApi {
-		log.Println(parser.OpenApiDoc.Paths)
-	} else {
-		log.Println(parser.SwaggerDoc.Paths)
+	if err := parser.Doc.SetDocHttpParams(); err != nil {
+		log.Error().Stack().Err(err).Msg("failed while fetching doc http params")
 	}
+	log.Print(parser.Doc.GetDocHttpParams())
 
 	// http client
 	httpCfg := http.NewConfig(config.RequestsPerSecond)
 	hc := http.NewHttp(httpCfg)
-
-	log.Println(*hc.Config.RequestsPerSecond)
-
 	client := hc.Client.FHClient
 
 	url := "https://example.com"
@@ -56,12 +58,9 @@ func main() {
 	for _, connResp := range hc.Responses {
 
 		if connResp.Error != nil {
-			log.Fatalln(connResp.Error)
+			log.Error().Msg(connResp.Error.Error())
 		}
-		log.Println(connResp.Response.StatusCode)
-		log.Println(connResp.Response.Headers)
-		log.Println(string(connResp.Response.Body))
 	}
 	elapsed := time.Since(now)
-	log.Println("Time:", elapsed)
+	log.Info().Msgf("Time: %v", elapsed)
 }

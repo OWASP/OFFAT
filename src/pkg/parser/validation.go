@@ -1,4 +1,4 @@
-package openapi
+package parser
 
 import (
 	"errors"
@@ -22,8 +22,9 @@ type Parser struct {
 	DisableSchemaPatternValidation  bool
 
 	// Parsed Docs
-	OpenApiDoc *openapi3.T
-	SwaggerDoc *openapi2.T
+	// OpenApiDoc        *openapi3.T
+	// SwaggerDoc *openapi2.T
+	Doc DocInterface
 }
 
 func (p *Parser) Parse(filename string) (err error) {
@@ -57,8 +58,7 @@ func (p *Parser) Parse(filename string) (err error) {
 	}
 
 	// Parse documentation
-	switch {
-	case p.Version == "3" || strings.HasPrefix(p.Version, "3."):
+	if p.IsOpenApi {
 		loader := openapi3.NewLoader()
 		loader.IsExternalRefsAllowed = p.IsExternalRefsAllowed
 
@@ -82,17 +82,16 @@ func (p *Parser) Parse(filename string) (err error) {
 		if err = doc.Validate(loader.Context, opts...); err != nil {
 			log.Fatalln("Validation error:", err)
 		}
-		p.OpenApiDoc = doc
+		p.Doc = &OpenApi{}
+		p.Doc.SetDoc(doc)
 
-	case p.Version == "2" || strings.HasPrefix(p.Version, "2."):
+	} else {
 		var doc openapi2.T
 		if err := utils.Read(filename, &doc, contentType); err != nil {
 			return err
 		}
-		p.SwaggerDoc = &doc
-
-	default:
-		return errors.New("missing or incorrect 'openapi' or 'swagger' field")
+		p.Doc = &Swagger{}
+		p.Doc.SetDoc(&doc)
 	}
 
 	return nil
