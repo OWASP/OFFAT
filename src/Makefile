@@ -11,6 +11,9 @@ scan-vulns:
 run:
 	@go run ./cmd/offat/main.go
 
+build:
+	@go build -o bin/offat cmd/offat/main.go
+
 bump:
 	@go get -u ./...
 	@go mod tidy
