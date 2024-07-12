@@ -16,14 +16,15 @@ import (
 
 type CliConfig struct {
 	// Parser config
-	Filename *string
-
-	RequestsPerSecond *int
-
+	Filename                        *string
 	IsExternalRefsAllowed           *bool
 	DisableExamplesValidation       *bool
 	DisableSchemaDefaultsValidation *bool
 	DisableSchemaPatternValidation  *bool
+
+	// HTTP
+	RequestsPerSecond  *int
+	SkipTlsVerfication *bool
 }
 
 func main() {
@@ -36,7 +37,10 @@ func main() {
 	config.DisableExamplesValidation = flag.Bool("de", false, "disable example validation for OAS files")
 	config.DisableSchemaDefaultsValidation = flag.Bool("ds", false, "disable schema defaults validation for OAS files")
 	config.DisableSchemaPatternValidation = flag.Bool("dp", false, "disable schema patterns validation for OAS files")
+
 	config.RequestsPerSecond = flag.Int("r", 60, "number of requests per second")
+	config.SkipTlsVerfication = flag.Bool("ns", false, "disable TLS/SSL Verfication")
+
 	flag.Parse()
 
 	// parse documentation
@@ -63,7 +67,7 @@ func main() {
 	log.Info().Msgf("%v", parser.Doc.GetDocHttpParams())
 
 	// http client
-	httpCfg := http.NewConfig(config.RequestsPerSecond)
+	httpCfg := http.NewConfig(config.RequestsPerSecond, config.SkipTlsVerfication)
 	hc := http.NewHttp(httpCfg)
 	client := hc.Client.FHClient
 

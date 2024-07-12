@@ -12,7 +12,8 @@ import (
 func TestHttpClient(t *testing.T) {
 	// http client
 	requestsPerSecond := 10
-	httpCfg := http.NewConfig(&requestsPerSecond)
+	skipTlsVerification := false
+	httpCfg := http.NewConfig(&requestsPerSecond, &skipTlsVerification)
 	hc := http.NewHttp(httpCfg)
 	client := hc.Client.FHClient
 

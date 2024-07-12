@@ -1,13 +1,28 @@
 package http
 
 import (
+	"crypto/tls"
 	"time"
 
 	fhc "github.com/dmdhrumilmistry/fasthttpclient/client"
 	"github.com/valyala/fasthttp"
 )
 
-func NewConfig(requestsPerSecond *int) *Config {
+func NewConfig(requestsPerSecond *int, skipTlsVerification *bool) *Config {
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: *skipTlsVerification,
+		MinVersion:         tls.VersionTLS12,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+			tls.TLS_AES_128_GCM_SHA256,       // TLS 1.3
+			tls.TLS_AES_256_GCM_SHA384,       // TLS 1.3
+			tls.TLS_CHACHA20_POLY1305_SHA256, // TLS 1.3
+		},
+		PreferServerCipherSuites: true,
+	}
+
 	fhc := &fasthttp.Client{
 		Name:                     "OWASP-OFFAT",
 		MaxConnsPerHost:          10000,
@@ -19,6 +34,7 @@ func NewConfig(requestsPerSecond *int) *Config {
 			Concurrency:      4096,
 			DNSCacheDuration: time.Hour,
 		}).Dial,
+		TLSConfig: tlsConfig,
 	}
 
 	return &Config{
