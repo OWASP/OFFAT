@@ -2,41 +2,66 @@ package main
 
 import (
 	"flag"
+	"os"
 	"time"
 
 	"github.com/OWASP/OFFAT/src/pkg/http"
+	_ "github.com/OWASP/OFFAT/src/pkg/logging"
 	"github.com/OWASP/OFFAT/src/pkg/parser"
 	c "github.com/dmdhrumilmistry/fasthttpclient/client"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/valyala/fasthttp"
 )
 
-type Config struct {
-	Filename              *string
-	IsExternalRefsAllowed *bool
-	RequestsPerSecond     *int
+type CliConfig struct {
+	// Parser config
+	Filename *string
+
+	RequestsPerSecond *int
+
+	IsExternalRefsAllowed           *bool
+	DisableExamplesValidation       *bool
+	DisableSchemaDefaultsValidation *bool
+	DisableSchemaPatternValidation  *bool
 }
 
 func main() {
-	// setup logging
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
-	// Cli config
-	config := Config{}
+	// Parse CLI args
+	config := CliConfig{}
 
 	config.Filename = flag.String("f", "", "OAS/Swagger Doc file path")
 	config.IsExternalRefsAllowed = flag.Bool("er", false, "enables visiting other files")
+	config.DisableExamplesValidation = flag.Bool("de", false, "disable example validation for OAS files")
+	config.DisableSchemaDefaultsValidation = flag.Bool("ds", false, "disable schema defaults validation for OAS files")
+	config.DisableSchemaPatternValidation = flag.Bool("dp", false, "disable schema patterns validation for OAS files")
 	config.RequestsPerSecond = flag.Int("r", 60, "number of requests per second")
 	flag.Parse()
 
 	// parse documentation
-	parser := parser.Parser{
-		Filename:              *config.Filename,
-		IsExternalRefsAllowed: *config.IsExternalRefsAllowed,
+	parser, err := parser.NewParser(
+		*config.Filename,
+		*config.IsExternalRefsAllowed,
+		*config.DisableExamplesValidation,
+		*config.DisableSchemaDefaultsValidation,
+		*config.DisableSchemaPatternValidation,
+	)
+
+	if err != nil {
+		log.Error().Err(err)
 	}
-	parser.Parse(*config.Filename)
+
+	// parser := parser.Parser{
+	// 	Filename:              *config.Filename,
+	// 	IsExternalRefsAllowed: *config.IsExternalRefsAllowed,
+	// }
+
+	if err := parser.Parse(*config.Filename); err != nil {
+		log.Error().Stack().Err(err).Msg("failed to parse API documentation file")
+		os.Exit(-1)
+	}
+
 	if err := parser.Doc.SetDocHttpParams(); err != nil {
 		log.Error().Stack().Err(err).Msg("failed while fetching doc http params")
 	}

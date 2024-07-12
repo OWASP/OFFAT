@@ -1,46 +1,117 @@
 package parser
 
-import "fmt"
+import (
+	"errors"
+	"os"
+	"strings"
 
-type Param struct {
-	Name        string
-	In          string
-	Required    bool
-	Type        []string
-	Value       interface{}
-	ContentType string
+	_ "github.com/OWASP/OFFAT/src/pkg/logging"
+	"github.com/OWASP/OFFAT/src/pkg/utils"
+
+	"github.com/getkin/kin-openapi/openapi2"
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/rs/zerolog/log"
+)
+
+type Parser struct {
+	Version               string
+	Filename              string
+	IsOpenApi             bool // else Swagger
+	IsExternalRefsAllowed bool
+
+	// OAS validation opts
+	DisableExamplesValidation       bool
+	DisableSchemaDefaultsValidation bool
+	DisableSchemaPatternValidation  bool
+
+	// Parsed Docs
+	// OpenApiDoc        *openapi3.T
+	// SwaggerDoc *openapi2.T
+	Doc DocInterface
 }
 
-func (p *Param) String() string {
-	return fmt.Sprintf("%T{ Name:%v Value:%v In:%v Required:%v }", p, p.Name, p.Value, p.In, p.Value)
+func NewParser(filename string, isExternalRefsAllowed, disableExamplesValidation, disableSchemaDefaultsValidation, disableSchemaPatternValidation bool) (parser *Parser, err error) {
+
+	_, err = os.Stat(filename)
+	log.Error().Err(err)
+
+	return &Parser{
+		Filename:                        filename,
+		DisableExamplesValidation:       disableExamplesValidation,
+		DisableSchemaDefaultsValidation: disableSchemaDefaultsValidation,
+		DisableSchemaPatternValidation:  disableSchemaPatternValidation,
+		IsExternalRefsAllowed:           isExternalRefsAllowed,
+	}, nil
 }
 
-// DocHttpParams holds useful information about payloads and security requirements from the docs
-type DocHttpParams struct {
-	// Request Information
-	HttpMethod string
-	Path       string
+// Parses and Populates file contents to Parser struct fields
+func (p *Parser) Parse(filename string) (err error) {
+	var contentType string
+	switch {
+	case strings.HasSuffix(filename, ".json"):
+		contentType = utils.JSON
+	case strings.HasSuffix(filename, ".yaml") || strings.HasSuffix(filename, ".yml"):
+		contentType = utils.YAML
+	default:
+		return errors.New("invalid file extension")
+	}
 
-	// Security Requirements
-	Security []map[string][]string
+	// Detect Doc Version
+	var head struct {
+		OpenAPI string `json:"openapi" yaml:"openapi"`
+		Swagger string `json:"swagger" yaml:"swagger"`
+	}
 
-	// Request Params
-	BodyParams   []Param
-	CookieParams []Param
-	HeaderParams []Param
-	PathParams   []Param
-	QueryParams  []Param
+	if err := utils.Read(filename, &head, contentType); err != nil {
+		return err
+	}
 
-	// Response Params
-	ResponseParams []Param
-}
+	if head.OpenAPI != "" {
+		p.Version = head.OpenAPI
+		p.IsOpenApi = true
+	} else if head.Swagger != "" {
+		p.Version = head.Swagger
+	} else {
+		return errors.New("invalid OAS/swagger version")
+	}
 
-func (d *DocHttpParams) String() string {
-	return fmt.Sprintf("%T{ HttpMethod:%v Path:%v Security:%v BodyParams:%v CookieParams:%v HeaderParams:%v PathParams:%v QueryParams:%v ResponseParams:%v}", d, d.HttpMethod, d.Path, d.Security, d.BodyParams, d.CookieParams, d.HeaderParams, d.PathParams, d.QueryParams, d.ResponseParams)
-}
+	// Parse documentation
+	if p.IsOpenApi {
+		loader := openapi3.NewLoader()
+		loader.IsExternalRefsAllowed = p.IsExternalRefsAllowed
 
-type DocInterface interface {
-	SetDoc(doc interface{}) error
-	GetDocHttpParams() []*DocHttpParams
-	SetDocHttpParams() error
+		doc, err := loader.LoadFromFile(p.Filename)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to load file")
+			return err
+		}
+
+		var opts []openapi3.ValidationOption
+		if p.DisableExamplesValidation {
+			opts = append(opts, openapi3.DisableSchemaDefaultsValidation())
+		}
+		if p.DisableExamplesValidation {
+			opts = append(opts, openapi3.DisableExamplesValidation())
+		}
+		if p.DisableSchemaPatternValidation {
+			opts = append(opts, openapi3.DisableSchemaPatternValidation())
+		}
+
+		if err = doc.Validate(loader.Context, opts...); err != nil {
+			log.Error().Err(err).Msg("Validation Failed")
+			return err
+		}
+		p.Doc = &OpenApi{}
+		p.Doc.SetDoc(doc)
+
+	} else {
+		var doc openapi2.T
+		if err := utils.Read(filename, &doc, contentType); err != nil {
+			return err
+		}
+		p.Doc = &Swagger{}
+		p.Doc.SetDoc(&doc)
+	}
+
+	return nil
 }
