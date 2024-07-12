@@ -25,15 +25,16 @@ type Parser struct {
 	DisableSchemaPatternValidation  bool
 
 	// Parsed Docs
-	// OpenApiDoc        *openapi3.T
-	// SwaggerDoc *openapi2.T
 	Doc DocInterface
 }
 
 func NewParser(filename string, isExternalRefsAllowed, disableExamplesValidation, disableSchemaDefaultsValidation, disableSchemaPatternValidation bool) (parser *Parser, err error) {
 
 	_, err = os.Stat(filename)
-	log.Error().Err(err)
+	if err != nil {
+		log.Error().Err(err).Msg("file not found")
+		return nil, err
+	}
 
 	return &Parser{
 		Filename:                        filename,

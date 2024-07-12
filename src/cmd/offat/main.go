@@ -49,23 +49,18 @@ func main() {
 	)
 
 	if err != nil {
-		log.Error().Err(err)
+		log.Error().Err(err).Msg("unable to parse file")
 	}
-
-	// parser := parser.Parser{
-	// 	Filename:              *config.Filename,
-	// 	IsExternalRefsAllowed: *config.IsExternalRefsAllowed,
-	// }
 
 	if err := parser.Parse(*config.Filename); err != nil {
 		log.Error().Stack().Err(err).Msg("failed to parse API documentation file")
-		os.Exit(-1)
+		os.Exit(1)
 	}
 
 	if err := parser.Doc.SetDocHttpParams(); err != nil {
 		log.Error().Stack().Err(err).Msg("failed while fetching doc http params")
 	}
-	log.Print(parser.Doc.GetDocHttpParams())
+	log.Info().Msgf("%v", parser.Doc.GetDocHttpParams())
 
 	// http client
 	httpCfg := http.NewConfig(config.RequestsPerSecond)
