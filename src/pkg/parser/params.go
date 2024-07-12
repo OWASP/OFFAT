@@ -43,4 +43,6 @@ type DocInterface interface {
 	SetDoc(doc interface{}) error
 	GetDocHttpParams() []*DocHttpParams
 	SetDocHttpParams() error
+	SetBaseUrl(baseurl string) error
+	GetBaseUrl() *string
 }

@@ -14,8 +14,10 @@ import (
 )
 
 type Parser struct {
-	Version               string
-	Filename              string
+	Version  string
+	Filename string
+	BaseUrl  string
+
 	IsOpenApi             bool // else Swagger
 	IsExternalRefsAllowed bool
 
@@ -29,7 +31,6 @@ type Parser struct {
 }
 
 func NewParser(filename string, isExternalRefsAllowed, disableExamplesValidation, disableSchemaDefaultsValidation, disableSchemaPatternValidation bool) (parser *Parser, err error) {
-
 	_, err = os.Stat(filename)
 	if err != nil {
 		log.Error().Err(err).Msg("file not found")

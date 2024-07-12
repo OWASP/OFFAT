@@ -2,9 +2,11 @@ package parser
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/OWASP/OFFAT/src/pkg/utils"
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/rs/zerolog/log"
 	"github.com/valyala/fasthttp"
 )
 
@@ -18,6 +20,7 @@ const (
 
 type OpenApi struct {
 	doc           *openapi3.T
+	BaseUrl       *string
 	DocHttpParams []*DocHttpParams
 }
 
@@ -135,6 +138,40 @@ func (o *OpenApi) HttpOperationToDocHttpParams(HttpMethod string, path string, h
 	docHttpParams = append(docHttpParams, docHttpParam)
 
 	return docHttpParams
+}
+
+// Set BaseUrl for OpenApi struct
+func (o *OpenApi) SetBaseUrl(baseUrl string) error {
+	if utils.ValidateURL(baseUrl) {
+		o.BaseUrl = &baseUrl
+	} else {
+		// basePath, err := o.doc.Servers.BasePath()
+		// if err != nil {
+		// 	return err
+		// }
+		// o.BaseUrl = &basePath
+
+		for _, server := range o.doc.Servers {
+			o.BaseUrl = &server.URL
+			if strings.HasPrefix(server.URL, "https://") {
+				break
+			}
+			log.Info().Msgf("%v", server.URL)
+		}
+
+	}
+
+	if o.BaseUrl == nil {
+		return errors.New("no valid url found for baseUrl")
+	}
+
+	return nil
+}
+
+// Get Base Url
+// Warning: This method should be invoked only after SetBaseUrl method
+func (o *OpenApi) GetBaseUrl() *string {
+	return o.BaseUrl
 }
 
 // for interface usage: configure DocHttpParams value
