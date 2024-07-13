@@ -12,7 +12,7 @@ type Param struct {
 }
 
 func (p *Param) String() string {
-	return fmt.Sprintf("%T{ Name:%v Value:%v In:%v Required:%v }", p, p.Name, p.Value, p.In, p.Value)
+	return fmt.Sprintf("%T{ Name:%v Value:%v In:%v Required:%v ContentType:%v }", p, p.Name, p.Value, p.In, p.Required, p.ContentType)
 }
 
 // DocHttpParams holds useful information about payloads and security requirements from the docs
@@ -45,4 +45,5 @@ type DocInterface interface {
 	SetDocHttpParams() error
 	SetBaseUrl(baseurl string) error
 	GetBaseUrl() *string
+	FuzzDocHttpParams()
 }

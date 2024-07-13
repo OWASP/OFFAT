@@ -12,6 +12,9 @@ run:
 build:
 	@go build -o bin/offat cmd/offat/main.go
 
+test:
+	@go test -v ./...
+
 bump:
 	@go get -u ./...
 	@go mod tidy

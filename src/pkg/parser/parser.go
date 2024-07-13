@@ -148,3 +148,8 @@ func (p *Parser) Parse(filename string, isUrl bool) (err error) {
 
 	return nil
 }
+
+func (p *Parser) FuzzDocHttpParams() {
+	// TODO: handle and return error
+	p.Doc.FuzzDocHttpParams()
+}

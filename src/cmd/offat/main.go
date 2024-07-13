@@ -48,6 +48,9 @@ func main() {
 
 	flag.Parse()
 
+	// Start Timer
+	now := time.Now()
+
 	if *config.DocUrl == "" && *config.Filename == "" {
 		log.Error().Msg("-f or -u param is required. Use --help for more information.")
 		os.Exit(1)
@@ -76,7 +79,10 @@ func main() {
 	if err := parser.Doc.SetDocHttpParams(); err != nil {
 		log.Error().Stack().Err(err).Msg("failed while fetching doc http params")
 	}
-	// log.Info().Msgf("%v", parser.Doc.GetDocHttpParams())
+
+	log.Info().Msg("fuzzing doc http params")
+	parser.FuzzDocHttpParams()
+	log.Info().Msgf("%v", parser.Doc.GetDocHttpParams())
 
 	// http client
 	httpCfg := http.NewConfig(config.RequestsPerSecond, config.SkipTlsVerfication)
@@ -97,7 +103,6 @@ func main() {
 	hc.Requests = append(hc.Requests, c.NewRequest(url, fasthttp.MethodGet, nil, nil, nil))
 
 	hc.Responses = c.MakeConcurrentRequests(hc.Requests, client)
-	now := time.Now()
 	for _, connResp := range hc.Responses {
 		if connResp.Error != nil {
 			log.Error().Stack().Err(connResp.Error).Msg("request failed")

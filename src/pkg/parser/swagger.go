@@ -28,3 +28,4 @@ func (s *Swagger) GetDocHttpParams() []*DocHttpParams { return nil }
 func (s *Swagger) SetDocHttpParams() error            { return nil }
 func (s *Swagger) SetBaseUrl(baseUrl string) error    { return nil }
 func (s *Swagger) GetBaseUrl() *string                { return nil }
+func (s *Swagger) FuzzDocHttpParams()                 {}

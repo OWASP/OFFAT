@@ -3,10 +3,10 @@ package parser
 import (
 	"errors"
 	"strings"
+	"sync"
 
 	"github.com/OWASP/OFFAT/src/pkg/utils"
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/rs/zerolog/log"
 	"github.com/valyala/fasthttp"
 )
 
@@ -156,7 +156,6 @@ func (o *OpenApi) SetBaseUrl(baseUrl string) error {
 			if strings.HasPrefix(server.URL, "https://") {
 				break
 			}
-			log.Info().Msgf("%v", server.URL)
 		}
 
 	}
@@ -221,4 +220,49 @@ func (o *OpenApi) SetDocHttpParams() error {
 // For interface usage: to retrieve DocHttpParams value
 func (o *OpenApi) GetDocHttpParams() []*DocHttpParams {
 	return o.DocHttpParams
+}
+
+// Fuzz Doc Http Param Values based on type
+func (o *OpenApi) FuzzDocHttpParams() {
+	var wg sync.WaitGroup
+
+	for _, httpParam := range o.DocHttpParams {
+		// Increment the WaitGroup counter for each FillHttpParams call
+		wg.Add(6) // Since there are 6 FillHttpParams calls
+
+		// request params
+		go func(params *[]Param) {
+			defer wg.Done()
+			FillHttpParams(params)
+		}(&httpParam.BodyParams)
+
+		go func(params *[]Param) {
+			defer wg.Done()
+			FillHttpParams(params)
+		}(&httpParam.CookieParams)
+
+		go func(params *[]Param) {
+			defer wg.Done()
+			FillHttpParams(params)
+		}(&httpParam.HeaderParams)
+
+		go func(params *[]Param) {
+			defer wg.Done()
+			FillHttpParams(params)
+		}(&httpParam.PathParams)
+
+		go func(params *[]Param) {
+			defer wg.Done()
+			FillHttpParams(params)
+		}(&httpParam.QueryParams)
+
+		// response params
+		go func(params *[]Param) {
+			defer wg.Done()
+			FillHttpParams(params)
+		}(&httpParam.ResponseParams)
+	}
+
+	// Wait for all FillHttpParams calls to finish
+	wg.Wait()
 }
