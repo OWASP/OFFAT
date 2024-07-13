@@ -8,6 +8,7 @@ import (
 	"github.com/OWASP/OFFAT/src/pkg/http"
 	_ "github.com/OWASP/OFFAT/src/pkg/logging"
 	"github.com/OWASP/OFFAT/src/pkg/parser"
+	"github.com/OWASP/OFFAT/src/pkg/utils"
 	c "github.com/dmdhrumilmistry/fasthttpclient/client"
 	"github.com/rs/zerolog/log"
 
@@ -17,6 +18,7 @@ import (
 type CliConfig struct {
 	// Parser config
 	Filename                        *string
+	DocUrl                          *string
 	IsExternalRefsAllowed           *bool
 	DisableExamplesValidation       *bool
 	DisableSchemaDefaultsValidation *bool
@@ -34,7 +36,8 @@ func main() {
 	config := CliConfig{}
 
 	config.Filename = flag.String("f", "", "OAS/Swagger Doc file path")
-	config.BaseUrl = flag.String("u", "", "base api path url. example: http://localhost:8000/api") // if not provided then parsed from documentation
+	config.DocUrl = flag.String("u", "", "OAS/Swagger Doc URL")
+	config.BaseUrl = flag.String("b", "", "base api path url. example: http://localhost:8000/api") // if not provided then parsed from documentation
 	config.IsExternalRefsAllowed = flag.Bool("er", false, "enables visiting other files")
 	config.DisableExamplesValidation = flag.Bool("de", false, "disable example validation for OAS files")
 	config.DisableSchemaDefaultsValidation = flag.Bool("ds", false, "disable schema defaults validation for OAS files")
@@ -45,20 +48,27 @@ func main() {
 
 	flag.Parse()
 
+	if *config.DocUrl == "" && *config.Filename == "" {
+		log.Error().Msg("-f or -u param is required. Use --help for more information.")
+		os.Exit(1)
+	}
+
+	parserUri := config.Filename
+	isUrl := false
+	if utils.ValidateURL(*config.DocUrl) {
+		parserUri = config.DocUrl
+		isUrl = true
+	}
+
 	// parse documentation
-	parser, err := parser.NewParser(
-		*config.Filename,
+	parser := parser.NewParser(
 		*config.IsExternalRefsAllowed,
 		*config.DisableExamplesValidation,
 		*config.DisableSchemaDefaultsValidation,
 		*config.DisableSchemaPatternValidation,
 	)
 
-	if err != nil {
-		log.Error().Err(err).Msg("unable to parse file")
-	}
-
-	if err := parser.Parse(*config.Filename); err != nil {
+	if err := parser.Parse(*parserUri, isUrl); err != nil {
 		log.Error().Stack().Err(err).Msg("failed to parse API documentation file")
 		os.Exit(1)
 	}
@@ -73,13 +83,14 @@ func main() {
 	hc := http.NewHttp(httpCfg)
 	client := hc.Client.FHClient
 
-	err = parser.Doc.SetBaseUrl(*config.BaseUrl)
+	err := parser.Doc.SetBaseUrl(*config.BaseUrl)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to set baseUrl")
 	}
 
 	url := *parser.Doc.GetBaseUrl()
 	log.Info().Msg(url)
+
 	hc.Requests = append(hc.Requests, c.NewRequest(url, fasthttp.MethodGet, nil, nil, nil))
 	hc.Requests = append(hc.Requests, c.NewRequest(url, fasthttp.MethodGet, nil, nil, nil))
 	hc.Requests = append(hc.Requests, c.NewRequest(url, fasthttp.MethodGet, nil, nil, nil))

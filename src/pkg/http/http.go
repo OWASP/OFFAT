@@ -8,6 +8,11 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+var HttpDefaultRateLimit = 60
+var HttpDefaultTlsVerification = true
+var HttpDefaultConfig = NewConfig(&HttpDefaultRateLimit, &HttpDefaultTlsVerification)
+var DefaultClient = NewHttp(HttpDefaultConfig)
+
 func NewConfig(requestsPerSecond *int, skipTlsVerification *bool) *Config {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: *skipTlsVerification,

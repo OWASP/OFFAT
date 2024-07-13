@@ -11,14 +11,20 @@ import (
 const JSON = "json"
 const YAML = "yaml"
 
-// Parses JSON/YAML files
+// Loads JSON/YAML file into holder ptr based on contentType
 // Note: function assumes that user has already validated filename
-func Read(filename string, holder any, contentType string) error {
+func LoadJsonYamlFromFile(filename string, holder any, contentType string) error {
+
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return err
 	}
 
+	return LoadJsonYaml(data, holder, contentType)
+}
+
+// Parses JSON/YAML file content into holder ptr based on contentType
+func LoadJsonYaml(filedata []byte, holder any, contentType string) error {
 	var decoder func([]byte, any) error
 	switch contentType {
 	case JSON:
@@ -29,8 +35,9 @@ func Read(filename string, holder any, contentType string) error {
 		return errors.New("invaid contentType, only json and yaml are supported")
 	}
 
-	if err := decoder(data, holder); err != nil {
+	if err := decoder([]byte(filedata), holder); err != nil {
 		return err
 	}
+
 	return nil
 }
