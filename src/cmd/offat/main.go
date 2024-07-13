@@ -8,11 +8,9 @@ import (
 	"github.com/OWASP/OFFAT/src/pkg/http"
 	_ "github.com/OWASP/OFFAT/src/pkg/logging"
 	"github.com/OWASP/OFFAT/src/pkg/parser"
+	"github.com/OWASP/OFFAT/src/pkg/tgen"
 	"github.com/OWASP/OFFAT/src/pkg/utils"
-	c "github.com/dmdhrumilmistry/fasthttpclient/client"
 	"github.com/rs/zerolog/log"
-
-	"github.com/valyala/fasthttp"
 )
 
 type CliConfig struct {
@@ -76,40 +74,43 @@ func main() {
 		os.Exit(1)
 	}
 
+	err := parser.Doc.SetBaseUrl(*config.BaseUrl)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to set baseUrl")
+	}
+	log.Print(parser.Doc.GetBaseUrl())
+
 	if err := parser.Doc.SetDocHttpParams(); err != nil {
 		log.Error().Stack().Err(err).Msg("failed while fetching doc http params")
 	}
 
 	log.Info().Msg("fuzzing doc http params")
 	parser.FuzzDocHttpParams()
-	log.Info().Msgf("%v", parser.Doc.GetDocHttpParams())
+	// log.Info().Msgf("%v", parser.Doc.GetDocHttpParams())
 
 	// http client
 	httpCfg := http.NewConfig(config.RequestsPerSecond, config.SkipTlsVerfication)
 	hc := http.NewHttp(httpCfg)
 	client := hc.Client.FHClient
 
-	err := parser.Doc.SetBaseUrl(*config.BaseUrl)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to set baseUrl")
-	}
-
+	// TODO: check whether host is up
 	url := *parser.Doc.GetBaseUrl()
 	log.Info().Msg(url)
 
-	hc.Requests = append(hc.Requests, c.NewRequest(url, fasthttp.MethodGet, nil, nil, nil))
-	hc.Requests = append(hc.Requests, c.NewRequest(url, fasthttp.MethodGet, nil, nil, nil))
-	hc.Requests = append(hc.Requests, c.NewRequest(url, fasthttp.MethodGet, nil, nil, nil))
-	hc.Requests = append(hc.Requests, c.NewRequest(url, fasthttp.MethodGet, nil, nil, nil))
+	// generate and run tests
+	apiTestHandler := tgen.TGenHandler{
+		Doc: parser.Doc.GetDocHttpParams(),
 
-	hc.Responses = c.MakeConcurrentRequests(hc.Requests, client)
-	for _, connResp := range hc.Responses {
-		if connResp.Error != nil {
-			log.Error().Stack().Err(connResp.Error).Msg("request failed")
-		} else {
-			log.Info().Msgf("Status Code: %v - Time: %v", connResp.Response.StatusCode, connResp.Response.TimeElapsed)
-		}
+		// Tests
+		RunUnrestrictedHttpMethodTest: true,
 	}
+
+	apiTests := apiTestHandler.GenerateTests()
+
+	apiTestHandler.RunApiTests(hc, client, apiTests)
+
+	log.Info().Msgf("Total Requests: %d", len(hc.Requests))
+
 	elapsed := time.Since(now)
 	log.Info().Msgf("Time: %v", elapsed)
 }

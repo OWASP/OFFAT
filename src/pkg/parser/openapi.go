@@ -7,6 +7,7 @@ import (
 
 	"github.com/OWASP/OFFAT/src/pkg/utils"
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/rs/zerolog/log"
 	"github.com/valyala/fasthttp"
 )
 
@@ -62,7 +63,7 @@ func (o *OpenApi) AssignParamsToSlices(params openapi3.Parameters, httpPathParam
 	}
 }
 
-func (o *OpenApi) HttpOperationToDocHttpParams(HttpMethod string, path string, httpOperation *openapi3.Operation, pathParams []Param) []*DocHttpParams {
+func (o *OpenApi) HttpOperationToDocHttpParams(HttpMethod, path string, httpOperation *openapi3.Operation, pathParams []Param) []*DocHttpParams {
 	var docHttpParams []*DocHttpParams
 	var queryParams []Param
 	var bodyParams []Param
@@ -121,8 +122,17 @@ func (o *OpenApi) HttpOperationToDocHttpParams(HttpMethod string, path string, h
 		}
 	}
 
+	var url string
+	if o.BaseUrl == nil {
+		log.Error().Msg("field BaseUrl not set")
+		url = ""
+	} else {
+		url = *o.BaseUrl + path
+	}
+
 	// Create DocHttpParams Instance
 	docHttpParam := &DocHttpParams{
+		Url:        url,
 		HttpMethod: HttpMethod,
 		Path:       path,
 		Security:   securitySchemes,
@@ -145,12 +155,6 @@ func (o *OpenApi) SetBaseUrl(baseUrl string) error {
 	if utils.ValidateURL(baseUrl) {
 		o.BaseUrl = &baseUrl
 	} else {
-		// basePath, err := o.doc.Servers.BasePath()
-		// if err != nil {
-		// 	return err
-		// }
-		// o.BaseUrl = &basePath
-
 		for _, server := range o.doc.Servers {
 			o.BaseUrl = &server.URL
 			if strings.HasPrefix(server.URL, "https://") {

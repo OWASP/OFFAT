@@ -19,6 +19,7 @@ func (p *Param) String() string {
 type DocHttpParams struct {
 	// Request Information
 	HttpMethod string
+	Url        string
 	Path       string
 
 	// Security Requirements
