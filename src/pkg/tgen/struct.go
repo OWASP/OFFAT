@@ -9,6 +9,7 @@ type ApiTest struct {
 	// Fields to be populated before making HTTP request
 	TestName string          `json:"test_name"`
 	Request  *client.Request `json:"request"`
+	Path     string          `json:"path"`
 
 	// Fields to be populated after making HTTP request
 	IsVulnerable bool                       `json:"is_vulnerable"`

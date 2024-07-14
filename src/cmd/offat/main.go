@@ -125,6 +125,9 @@ func main() {
 		log.Error().Stack().Err(err).Msgf("failed to write json output file %v", *config.OutputFilePath)
 	}
 
+	log.Info().Msg("Generating Output Table")
+	report.Table(apiTests)
+
 	elapsed := time.Since(now)
-	log.Info().Msgf("Time: %v", elapsed)
+	log.Info().Msgf("Overall Time: %v", elapsed)
 }

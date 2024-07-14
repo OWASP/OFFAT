@@ -13,6 +13,11 @@ func init() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 
-	writer := zerolog.ConsoleWriter{Out: os.Stderr}
+	writer := zerolog.ConsoleWriter{
+		Out:     os.Stderr,
+		NoColor: false,
+	}
+
 	log.Logger = log.With().Caller().Logger().Output(writer)
+
 }

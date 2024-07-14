@@ -32,6 +32,7 @@ func UnrestrictedHttpMethods(docParams []*parser.DocHttpParams, queryParams any,
 		test := ApiTest{
 			TestName: testName,
 			Request:  request,
+			Path:     docParam.Path,
 		}
 		tests = append(tests, &test)
 	}
