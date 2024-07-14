@@ -7,13 +7,13 @@ scan-vulns:
 docker: dbuild scan-vulns
 
 run:
-	@go run ./cmd/offat/main.go
+	@go run -race ./cmd/offat/main.go
 
 build:
 	@go build -o bin/offat cmd/offat/main.go
 
 test:
-	@go test -v ./...
+	@go test -cover -v ./...
 
 bump:
 	@go get -u ./...

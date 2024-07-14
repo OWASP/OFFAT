@@ -10,6 +10,7 @@ import (
 	"github.com/OWASP/OFFAT/src/pkg/parser"
 	"github.com/OWASP/OFFAT/src/pkg/tgen"
 	"github.com/OWASP/OFFAT/src/pkg/utils"
+	"github.com/OWASP/OFFAT/src/report"
 	"github.com/rs/zerolog/log"
 )
 
@@ -26,6 +27,9 @@ type CliConfig struct {
 	// HTTP
 	RequestsPerSecond  *int
 	SkipTlsVerfication *bool
+
+	// Report
+	OutputFilePath *string
 }
 
 func main() {
@@ -43,6 +47,8 @@ func main() {
 
 	config.RequestsPerSecond = flag.Int("r", 60, "number of requests per second")
 	config.SkipTlsVerfication = flag.Bool("ns", false, "disable TLS/SSL Verfication")
+
+	config.OutputFilePath = flag.String("o", "output.json", "JSON report output file path. default: output.json")
 
 	flag.Parse()
 
@@ -78,7 +84,6 @@ func main() {
 	if err != nil {
 		log.Error().Err(err).Msg("failed to set baseUrl")
 	}
-	log.Print(parser.Doc.GetBaseUrl())
 
 	if err := parser.Doc.SetDocHttpParams(); err != nil {
 		log.Error().Stack().Err(err).Msg("failed while fetching doc http params")
@@ -108,8 +113,17 @@ func main() {
 	apiTests := apiTestHandler.GenerateTests()
 
 	apiTestHandler.RunApiTests(hc, client, apiTests)
+	log.Info().Msgf("Total Requests: %d", len(apiTests))
 
-	log.Info().Msgf("Total Requests: %d", len(hc.Requests))
+	log.Info().Msgf("Generating and writing report to output file: %v", *config.OutputFilePath)
+	reportData, err := report.Report(apiTests, report.JSON)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to generate report")
+	}
+
+	if err := utils.WriteFile(*config.OutputFilePath, reportData); err != nil {
+		log.Error().Stack().Err(err).Msgf("failed to write json output file %v", *config.OutputFilePath)
+	}
 
 	elapsed := time.Since(now)
 	log.Info().Msgf("Time: %v", elapsed)

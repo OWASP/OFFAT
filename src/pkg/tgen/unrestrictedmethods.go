@@ -11,8 +11,8 @@ import (
 )
 
 // returns a new map with k:parser.DocHttpParams.Name, v:parser.DocHttpParams.Value
-func UnrestrictedHttpMethods(docParams []*parser.DocHttpParams, queryParams any, headers any) []*ApiTests {
-	var tests []*ApiTests
+func UnrestrictedHttpMethods(docParams []*parser.DocHttpParams, queryParams any, headers any) []*ApiTest {
+	var tests []*ApiTest
 	testName := "Unrestricted HTTP Methods/Verbs"
 
 	for _, docParam := range docParams {
@@ -22,16 +22,14 @@ func UnrestrictedHttpMethods(docParams []*parser.DocHttpParams, queryParams any,
 		jsonData, err := json.Marshal(bodyMap)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("failed to convert bodyMap to JSON")
-		} else {
 			jsonData = nil
 		}
 
 		// TODO: negate HTTP methods and add it to requests
 		// currently below request is only for testing purpose
-		log.Print(docParam.Url)
 		request := c.NewRequest(docParam.Url, docParam.HttpMethod, queryParams, headers, jsonData)
 
-		test := ApiTests{
+		test := ApiTest{
 			TestName: testName,
 			Request:  request,
 		}
