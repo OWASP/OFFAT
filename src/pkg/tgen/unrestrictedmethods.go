@@ -6,6 +6,7 @@ import (
 
 	_ "github.com/OWASP/OFFAT/src/pkg/logging"
 	"github.com/OWASP/OFFAT/src/pkg/parser"
+	"github.com/OWASP/OFFAT/src/pkg/utils"
 	c "github.com/dmdhrumilmistry/fasthttpclient/client"
 	"github.com/rs/zerolog/log"
 )
@@ -17,7 +18,6 @@ func UnrestrictedHttpMethods(docParams []*parser.DocHttpParams, queryParams any,
 
 	for _, docParam := range docParams {
 		bodyMap := ParamsToMap(docParam.BodyParams) // convert it to map[string]interface{}
-
 		// convert it to JSON
 		jsonData, err := json.Marshal(bodyMap)
 		if err != nil {
@@ -25,16 +25,16 @@ func UnrestrictedHttpMethods(docParams []*parser.DocHttpParams, queryParams any,
 			jsonData = nil
 		}
 
-		// TODO: negate HTTP methods and add it to requests
-		// currently below request is only for testing purpose
-		request := c.NewRequest(docParam.Url, docParam.HttpMethod, queryParams, headers, jsonData)
+		for _, httpMethod := range utils.RemoveElement(HttpMethodsSlice, docParam.HttpMethod) {
+			request := c.NewRequest(docParam.Url, httpMethod, queryParams, headers, jsonData)
 
-		test := ApiTest{
-			TestName: testName,
-			Request:  request,
-			Path:     docParam.Path,
+			test := ApiTest{
+				TestName: testName,
+				Request:  request,
+				Path:     docParam.Path,
+			}
+			tests = append(tests, &test)
 		}
-		tests = append(tests, &test)
 	}
 
 	return tests

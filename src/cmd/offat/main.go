@@ -12,6 +12,7 @@ import (
 	"github.com/OWASP/OFFAT/src/pkg/utils"
 	"github.com/OWASP/OFFAT/src/report"
 	"github.com/rs/zerolog/log"
+	"github.com/valyala/fasthttp"
 )
 
 type CliConfig struct {
@@ -96,11 +97,19 @@ func main() {
 	// http client
 	httpCfg := http.NewConfig(config.RequestsPerSecond, config.SkipTlsVerfication)
 	hc := http.NewHttp(httpCfg)
-	client := hc.Client.FHClient
 
-	// TODO: check whether host is up
 	url := *parser.Doc.GetBaseUrl()
-	log.Info().Msg(url)
+	resp, err := hc.Client.FHClient.Do(url, fasthttp.MethodGet, nil, nil, nil)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("cannot connect to server")
+	}
+
+	successCodes := []int{200, 301, 302, 400, 404, 405}
+	if !utils.SearchInSlice(successCodes, resp.StatusCode) {
+		log.Fatal().Msgf("server returned %v instead of one of the values %v", resp.StatusCode, successCodes)
+	}
+
+	log.Info().Msgf("successfully connected to %v", url)
 
 	// generate and run tests
 	apiTestHandler := tgen.TGenHandler{
@@ -112,7 +121,7 @@ func main() {
 
 	apiTests := apiTestHandler.GenerateTests()
 
-	apiTestHandler.RunApiTests(hc, client, apiTests)
+	apiTestHandler.RunApiTests(hc, hc.Client.FHClient, apiTests)
 	log.Info().Msgf("Total Requests: %d", len(apiTests))
 
 	log.Info().Msgf("Generating and writing report to output file: %v", *config.OutputFilePath)
