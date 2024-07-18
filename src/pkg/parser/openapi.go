@@ -46,6 +46,7 @@ func (o *OpenApi) AssignParamsToSlices(params openapi3.Parameters, httpPathParam
 			In:       param.Value.In,
 			Name:     param.Value.Name,
 			Required: param.Value.Required,
+			Type:     param.Value.Schema.Value.Type.Slice(),
 		}
 
 		switch param.Value.In {
@@ -84,13 +85,15 @@ func (o *OpenApi) HttpOperationToDocHttpParams(HttpMethod, path string, httpOper
 				bodyParams = append(bodyParams, Param{
 					Name:        paramName,
 					In:          ParameterInBody,
-					Required:    true,
+					Required:    true, // TODO: make this hard coded value dynamic
 					Type:        paramData.Value.Type.Slice(),
 					ContentType: contentType,
 				})
 			}
 		}
 	}
+
+	// // TODO: parse path params
 
 	// Parse Security Scheme data
 	var securitySchemes []map[string][]string

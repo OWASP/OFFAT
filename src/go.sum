@@ -17,8 +17,8 @@ github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSV
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/dmdhrumilmistry/fasthttpclient v1.2.0 h1:cKwDbKirg7FUIdV55iVPyUcLBeO+lOAYxRU1D4YO1ZY=
-github.com/dmdhrumilmistry/fasthttpclient v1.2.0/go.mod h1:9pu2ZL89sQPO1RD2me+YBOo8nnslsqnRNJb8S0zBBa0=
+github.com/dmdhrumilmistry/fasthttpclient v1.2.3 h1:asEKkB1UxSnaCPlW7YEthMJBN3jAf01bjfMgln5FWRQ=
+github.com/dmdhrumilmistry/fasthttpclient v1.2.3/go.mod h1:9pu2ZL89sQPO1RD2me+YBOo8nnslsqnRNJb8S0zBBa0=
 github.com/fsnotify/fsnotify v1.5.4/go.mod h1:OVB6XrOHzAwXMpEM7uPOzcehqUV2UqJxmVXmkdnm1bU=
 github.com/getkin/kin-openapi v0.126.0 h1:c2cSgLnAsS0xYfKsgt5oBV6MYRM/giU8/RtwUY4wyfY=
 github.com/getkin/kin-openapi v0.126.0/go.mod h1:7mONz8IwmSRg6RttPu6v8U/OJ+gr+J99qSFNjPGSQqw=

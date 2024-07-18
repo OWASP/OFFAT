@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/OWASP/OFFAT/src/pkg/http"
@@ -28,12 +30,44 @@ type FlagConfig struct {
 	BaseUrl                         *string
 
 	// HTTP
-	RequestsPerSecond  *int
-	SkipTlsVerfication *bool
+	RequestsPerSecond   *int
+	SkipTlsVerification *bool
+	Headers             KeyValueMap
+	QueryParams         KeyValueMap
 
 	// Report
 	AvoidImmuneFilter *bool
 	OutputFilePath    *string
+}
+
+// Custom type for headers
+type KeyValueMap map[string]string
+
+// Implement the String method for headers
+func (h *KeyValueMap) String() string {
+	var keyValueList []string
+	for k, v := range *h {
+		keyValueList = append(keyValueList, fmt.Sprintf("%s=%s", k, v))
+	}
+	return strings.Join(keyValueList, ", ")
+}
+
+// Implement the Set method for headers
+func (h *KeyValueMap) Set(value string) error {
+	if *h == nil {
+		*h = make(KeyValueMap)
+	}
+
+	parts := strings.SplitN(value, "=", 2)
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid key value format, expected key=value but got %s", value)
+	}
+	(*h)[parts[0]] = parts[1]
+	return nil
+}
+
+func (h *KeyValueMap) ToMap() map[string]string {
+	return *h
 }
 
 func main() {
@@ -50,7 +84,9 @@ func main() {
 	config.DisableSchemaPatternValidation = flag.Bool("dp", false, "disable schema patterns validation for OAS files")
 
 	config.RequestsPerSecond = flag.Int("r", 60, "number of requests per second")
-	config.SkipTlsVerfication = flag.Bool("ns", false, "disable TLS/SSL Verfication")
+	config.SkipTlsVerification = flag.Bool("ns", false, "disable TLS/SSL Verfication")
+	flag.Var(&config.Headers, "H", "HTTP headers in the format key=value")
+	flag.Var(&config.QueryParams, "q", "HTTP query parameter in the format key=value")
 
 	config.OutputFilePath = flag.String("o", "output.json", "JSON report output file path. default: output.json")
 	config.AvoidImmuneFilter = flag.Bool("ai", true, "does not filter immune endpoint from results if used")
@@ -99,7 +135,7 @@ func main() {
 	// log.Info().Msgf("%v", parser.Doc.GetDocHttpParams())
 
 	// http client
-	httpCfg := http.NewConfig(config.RequestsPerSecond, config.SkipTlsVerfication)
+	httpCfg := http.NewConfig(config.RequestsPerSecond, config.SkipTlsVerification)
 	hc := http.NewHttp(httpCfg)
 
 	url := *parser.Doc.GetBaseUrl()
@@ -117,7 +153,9 @@ func main() {
 
 	// generate and run tests
 	apiTestHandler := tgen.TGenHandler{
-		Doc: parser.Doc.GetDocHttpParams(),
+		Doc:                parser.Doc.GetDocHttpParams(),
+		DefaultHeaders:     config.Headers.ToMap(),
+		DefaultQueryParams: config.QueryParams.ToMap(),
 
 		// Tests
 		RunUnrestrictedHttpMethodTest: true,

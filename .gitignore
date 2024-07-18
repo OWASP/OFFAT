@@ -42,6 +42,7 @@ bin
 
 # Go workspace file
 go.work
+.idea
 
 # envs
 .env

@@ -1,9 +1,10 @@
 package tgen
 
 import (
-	"reflect"
+	"fmt"
 
 	"github.com/OWASP/OFFAT/src/pkg/parser"
+	"github.com/rs/zerolog/log"
 )
 
 // convert parser.Param to map
@@ -17,22 +18,24 @@ func ParamsToMap(params []parser.Param) map[string]interface{} {
 	return paramMap
 }
 
-func MergeMaps(dst, src any) any {
-	dstVal := reflect.ValueOf(dst)
-	srcVal := reflect.ValueOf(src)
+// MergeMaps merges two maps and returns a map[string]string and an error if any value in map2 cannot be converted to a string
+func MergeMaps(map1 map[string]string, map2 map[string]interface{}) map[string]string {
+	mergedMap := map[string]string{}
 
-	// Create a new map of the same type as dst
-	result := reflect.MakeMap(dstVal.Type())
-
-	// Copy all elements from dst to result
-	for _, key := range dstVal.MapKeys() {
-		result.SetMapIndex(key, dstVal.MapIndex(key))
+	// Copy all key-value pairs from map1 to mergedMap
+	for k, v := range map1 {
+		mergedMap[k] = v
 	}
 
-	// Overwrite or add elements from src to result
-	for _, key := range srcVal.MapKeys() {
-		result.SetMapIndex(key, srcVal.MapIndex(key))
+	// Copy all key-value pairs from map2 to mergedMap, checking types
+	for k, v := range map2 {
+		strValue, ok := v.(string)
+		if !ok {
+			log.Error().Stack().Err(fmt.Errorf("failed to convert %v to string", v))
+			continue
+		}
+		mergedMap[k] = strValue
 	}
 
-	return result.Interface()
+	return mergedMap
 }

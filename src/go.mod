@@ -3,7 +3,7 @@ module github.com/OWASP/OFFAT/src
 go 1.22.4
 
 require (
-	github.com/dmdhrumilmistry/fasthttpclient v1.2.0
+	github.com/dmdhrumilmistry/fasthttpclient v1.2.3
 	github.com/getkin/kin-openapi v0.126.0
 	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213
 	github.com/olekukonko/tablewriter v0.0.5
