@@ -8,11 +8,11 @@ import (
 	"github.com/OWASP/OFFAT/src/pkg/http"
 	_ "github.com/OWASP/OFFAT/src/pkg/logging"
 	"github.com/OWASP/OFFAT/src/pkg/parser"
+	"github.com/OWASP/OFFAT/src/pkg/report"
 	"github.com/OWASP/OFFAT/src/pkg/tgen"
 	"github.com/OWASP/OFFAT/src/pkg/trunner"
 	"github.com/OWASP/OFFAT/src/pkg/trunner/postrunner"
 	"github.com/OWASP/OFFAT/src/pkg/utils"
-	"github.com/OWASP/OFFAT/src/report"
 	"github.com/rs/zerolog/log"
 	"github.com/valyala/fasthttp"
 )
