@@ -9,13 +9,15 @@ import (
 	_ "github.com/OWASP/OFFAT/src/pkg/logging"
 	"github.com/OWASP/OFFAT/src/pkg/parser"
 	"github.com/OWASP/OFFAT/src/pkg/tgen"
+	"github.com/OWASP/OFFAT/src/pkg/trunner"
+	"github.com/OWASP/OFFAT/src/pkg/trunner/postrunner"
 	"github.com/OWASP/OFFAT/src/pkg/utils"
 	"github.com/OWASP/OFFAT/src/report"
 	"github.com/rs/zerolog/log"
 	"github.com/valyala/fasthttp"
 )
 
-type CliConfig struct {
+type FlagConfig struct {
 	// Parser config
 	Filename                        *string
 	DocUrl                          *string
@@ -30,13 +32,14 @@ type CliConfig struct {
 	SkipTlsVerfication *bool
 
 	// Report
-	OutputFilePath *string
+	AvoidImmuneFilter *bool
+	OutputFilePath    *string
 }
 
 func main() {
 
 	// Parse CLI args
-	config := CliConfig{}
+	config := FlagConfig{}
 
 	config.Filename = flag.String("f", "", "OAS/Swagger Doc file path")
 	config.DocUrl = flag.String("u", "", "OAS/Swagger Doc URL")
@@ -50,6 +53,7 @@ func main() {
 	config.SkipTlsVerfication = flag.Bool("ns", false, "disable TLS/SSL Verfication")
 
 	config.OutputFilePath = flag.String("o", "output.json", "JSON report output file path. default: output.json")
+	config.AvoidImmuneFilter = flag.Bool("ai", true, "does not filter immune endpoint from results if used")
 
 	flag.Parse()
 
@@ -119,11 +123,15 @@ func main() {
 		RunUnrestrictedHttpMethodTest: true,
 	}
 
+	// generate and run api tests
 	apiTests := apiTestHandler.GenerateTests()
-
-	apiTestHandler.RunApiTests(hc, hc.Client.FHClient, apiTests)
+	trunner.RunApiTests(&apiTestHandler, hc, hc.Client.FHClient, apiTests)
 	log.Info().Msgf("Total Requests: %d", len(apiTests))
 
+	// filter immune api from results
+	postrunner.FilterImmuneResults(&apiTests, config.AvoidImmuneFilter)
+
+	// write/print report for api tests
 	log.Info().Msgf("Generating and writing report to output file: %v", *config.OutputFilePath)
 	reportData, err := report.Report(apiTests, report.JSON)
 	if err != nil {
@@ -137,6 +145,8 @@ func main() {
 	log.Info().Msg("Generating Output Table")
 	report.Table(apiTests)
 
+	// print elapsed time
 	elapsed := time.Since(now)
+	log.Info().Msgf("Base URL: %v", url)
 	log.Info().Msgf("Overall Time: %v", elapsed)
 }

@@ -15,4 +15,8 @@ type ApiTest struct {
 	IsVulnerable bool                       `json:"is_vulnerable"`
 	IsDataLeak   bool                       `json:"is_data_leak"`
 	Response     *client.ConcurrentResponse `json:"response"`
+
+	// Post Request Process
+	VulnerableResponseCodes []int `json:"vulnerable_response_codes"`
+	ImmuneResponseCodes     []int `json:"immune_response_codes"` //
 }

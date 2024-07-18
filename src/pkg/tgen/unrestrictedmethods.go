@@ -15,6 +15,8 @@ import (
 func UnrestrictedHttpMethods(docParams []*parser.DocHttpParams, queryParams any, headers any) []*ApiTest {
 	var tests []*ApiTest
 	testName := "Unrestricted HTTP Methods/Verbs"
+	// successCodes := []int{200, 201, 202, 204, 301, 302, 400}
+	immuneResponseCode := []int{404, 405, 502, 503, 504}
 
 	for _, docParam := range docParams {
 		bodyMap := ParamsToMap(docParam.BodyParams) // convert it to map[string]interface{}
@@ -29,9 +31,10 @@ func UnrestrictedHttpMethods(docParams []*parser.DocHttpParams, queryParams any,
 			request := c.NewRequest(docParam.Url, httpMethod, queryParams, headers, jsonData)
 
 			test := ApiTest{
-				TestName: testName,
-				Request:  request,
-				Path:     docParam.Path,
+				TestName:            testName,
+				Request:             request,
+				Path:                docParam.Path,
+				ImmuneResponseCodes: immuneResponseCode,
 			}
 			tests = append(tests, &test)
 		}
