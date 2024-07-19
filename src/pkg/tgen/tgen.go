@@ -8,6 +8,7 @@ import (
 
 type TGenHandler struct {
 	RunUnrestrictedHttpMethodTest bool
+	RunSimpleSQLiTest             bool
 
 	Doc                []*parser.DocHttpParams
 	DefaultQueryParams map[string]string
@@ -22,6 +23,13 @@ func (t *TGenHandler) GenerateTests() []*ApiTest {
 		tests = append(tests, newTests...)
 
 		log.Info().Msgf("%d tests generated for Unrestricted HTTP Methods/Verbs", len(newTests))
+	}
+
+	if t.RunSimpleSQLiTest {
+		newTests := SimpleSQLiTest(t.BaseUrl, t.Doc, t.DefaultQueryParams, t.DefaultHeaders)
+		tests = append(tests, newTests...)
+
+		log.Info().Msgf("%d tests generated for Simple SQLI", len(newTests))
 	}
 
 	return tests

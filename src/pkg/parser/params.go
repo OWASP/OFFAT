@@ -6,7 +6,7 @@ type Param struct {
 	Name        string
 	In          string
 	Required    bool
-	Type        []string
+	Type        []string // string, integer, boolean, object, array
 	Value       interface{}
 	ContentType string
 }

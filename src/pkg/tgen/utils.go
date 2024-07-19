@@ -48,6 +48,11 @@ func mapToCookieHeader(cookieMap map[string]string) string {
 
 // converts doc http param into headers (map[string]string), query (map[string]string),
 func httpParamToRequest(baseUrl string, docParam *parser.DocHttpParams, queryParams map[string]string, headers map[string]string, bodyContentType string) (url string, headersMap map[string]string, queryMap map[string]string, bodyData []byte, pathWithParams string, err error) {
+	// handle nil maps
+	if headers == nil {
+		headers = map[string]string{}
+	}
+
 	// parse params and convert it to map[string]string{}
 	parsedbodyMap := ParamsToMap(docParam.BodyParams)
 	parsedQueryParamsMap := ParamsToMap(docParam.QueryParams)
@@ -73,7 +78,6 @@ func httpParamToRequest(baseUrl string, docParam *parser.DocHttpParams, queryPar
 
 	// handle cookie params
 	cookieHeaderValue := mapToCookieHeader(parsedCookieParams)
-
 	if currentCookieHeaderValue, exists := headersMap["Cookies"]; exists {
 		cookieHeaderValue = currentCookieHeaderValue + cookieHeaderValue
 	}

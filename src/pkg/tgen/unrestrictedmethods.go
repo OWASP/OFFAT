@@ -13,11 +13,10 @@ import (
 func UnrestrictedHttpMethods(baseUrl string, docParams []*parser.DocHttpParams, queryParams map[string]string, headers map[string]string) []*ApiTest {
 	var tests []*ApiTest
 	testName := "Unrestricted HTTP Methods/Verbs"
-	// successCodes := []int{200, 201, 202, 204, 301, 302, 400}
 	immuneResponseCode := []int{404, 405, 502, 503, 504}
 
 	for _, docParam := range docParams {
-		url, headersMap, queryMap, bodyData, pathWithParams, err := httpParamToRequest(baseUrl, docParam, queryParams, headers, "json")
+		url, headersMap, queryMap, bodyData, pathWithParams, err := httpParamToRequest(baseUrl, docParam, queryParams, headers, JSON)
 		if err != nil {
 			log.Error().Err(err).Msgf("failed to generate request params from DocHttpParams, skipping test for this case %v due to error %v", *docParam, err)
 			continue

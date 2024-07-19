@@ -13,3 +13,6 @@ var HttpMethodsSlice = []string{
 	fasthttp.MethodOptions,
 	fasthttp.MethodTrace,
 }
+
+var JSON = "json"
+var XML = "xml"

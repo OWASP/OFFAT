@@ -67,8 +67,6 @@ func FillHttpParams(params *[]Param) {
 			if !FillHttpParam(&(*params)[idx]) { // Pass a pointer to the Param element
 				log.Error().Msgf("failed to populate value %v:", (*params)[idx])
 			}
-			// remove below print statement after debugging
-			// log.Print((*params)[idx].Name, ": ", (*params)[idx].Value)
 		}(i)
 	}
 	wg.Wait()

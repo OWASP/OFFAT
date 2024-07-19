@@ -89,7 +89,7 @@ func main() {
 	flag.Var(&config.QueryParams, "q", "HTTP query parameter in the format key=value")
 
 	config.OutputFilePath = flag.String("o", "output.json", "JSON report output file path. default: output.json")
-	config.AvoidImmuneFilter = flag.Bool("ai", true, "does not filter immune endpoint from results if used")
+	config.AvoidImmuneFilter = flag.Bool("ai", true, "does not filter immune endpoint from results if used. usage: -ai=true/false")
 
 	flag.Parse()
 
@@ -160,6 +160,7 @@ func main() {
 
 		// Tests
 		RunUnrestrictedHttpMethodTest: true,
+		RunSimpleSQLiTest:             true,
 	}
 
 	// generate and run api tests
