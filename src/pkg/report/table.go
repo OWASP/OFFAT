@@ -53,9 +53,16 @@ func apiTableToTableRow(apiTest *tgen.ApiTest) ([]string, []tablewriter.Colors) 
 		errStr = "-"
 	}
 
+	var endpointPath string
+	if apiTest.Path != apiTest.PathWithParams {
+		endpointPath = apiTest.Path + "\n" + apiTest.PathWithParams
+	} else {
+		endpointPath = apiTest.Path
+	}
+
 	row := []string{
 		apiTest.Request.Method,
-		apiTest.Path,
+		endpointPath,
 		statusCode,
 		errStr,
 		apiTest.TestName,

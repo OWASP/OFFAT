@@ -7,9 +7,10 @@ import (
 // Holds data related for API testing
 type ApiTest struct {
 	// Fields to be populated before making HTTP request
-	TestName string          `json:"test_name"`
-	Request  *client.Request `json:"request"`
-	Path     string          `json:"path"`
+	TestName       string          `json:"test_name"`
+	Request        *client.Request `json:"request"`
+	Path           string          `json:"path"`
+	PathWithParams string          `json:"path_with_params"`
 
 	// Fields to be populated after making HTTP request
 	IsVulnerable bool                       `json:"is_vulnerable"`

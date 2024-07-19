@@ -153,6 +153,7 @@ func main() {
 
 	// generate and run tests
 	apiTestHandler := tgen.TGenHandler{
+		BaseUrl:            url,
 		Doc:                parser.Doc.GetDocHttpParams(),
 		DefaultHeaders:     config.Headers.ToMap(),
 		DefaultQueryParams: config.QueryParams.ToMap(),
