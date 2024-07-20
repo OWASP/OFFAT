@@ -17,24 +17,29 @@ func injectParamInParam(params *[]parser.Param, payload string) {
 		}
 		switch param.Type[0] {
 		case "string":
-			log.Print(param.Value)
 			param.Value = payload
-			log.Print(param.Value)
 		}
 	}
 }
 
 // generates Api tests based on provided payloads
-func injectParamIntoApiTest(url string, docParams []*parser.DocHttpParams, queryParams map[string]string, headers map[string]string, testName string, vulnResponseCodes, immuneResponseCodes []int, payloads []string) []*ApiTest {
+func injectParamIntoApiTest(url string, docParams []*parser.DocHttpParams, queryParams map[string]string, headers map[string]string, testName string, vulnResponseCodes, immuneResponseCodes []int, injectionConfig InjectionConfig) []*ApiTest {
 	var tests []*ApiTest
-	for _, payload := range payloads {
+	for _, payload := range injectionConfig.Payloads {
 		for _, docParam := range docParams {
 			// inject payloads into string before converting it to map[string]string
-			injectParamInParam(&(docParam.BodyParams), payload)
-			injectParamInParam(&(docParam.QueryParams), payload)
-			injectParamInParam(&(docParam.CookieParams), payload)
-			injectParamInParam(&(docParam.HeaderParams), payload)
-			log.Print(docParam.BodyParams)
+			if injectionConfig.InBody {
+				injectParamInParam(&(docParam.BodyParams), payload)
+			}
+			if injectionConfig.InQuery {
+				injectParamInParam(&(docParam.QueryParams), payload)
+			}
+			if injectionConfig.InCookie {
+				injectParamInParam(&(docParam.CookieParams), payload)
+			}
+			if injectionConfig.InHeader {
+				injectParamInParam(&(docParam.HeaderParams), payload)
+			}
 
 			// parse maps
 			url, headersMap, queryMap, bodyData, pathWithParams, err := httpParamToRequest(url, docParam, queryParams, headers, JSON)

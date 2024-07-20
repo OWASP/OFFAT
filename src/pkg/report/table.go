@@ -101,6 +101,7 @@ func Table(apiTest []*tgen.ApiTest) {
 	table.SetHeaderLine(true)
 	table.SetHeaderAlignment(tablewriter.ALIGN_CENTER)
 	table.SetBorder(true)
+	table.SetCenterSeparator("-")
 
 	headers := []string{
 		"Method",
@@ -116,13 +117,14 @@ func Table(apiTest []*tgen.ApiTest) {
 	// Set header color
 	colors := make([]tablewriter.Colors, len(headers))
 	for i := range headers {
-		colors[i] = tablewriter.Colors{tablewriter.FgHiWhiteColor}
+		colors[i] = tablewriter.Colors{tablewriter.FgHiWhiteColor, tablewriter.Bold}
 	}
 	table.SetHeaderColor(colors...)
 
 	// Set the table width to the terminal width
-	table.SetColWidth(width / len(headers))
+	table.SetColWidth(width/len(headers) + 10)
 
+	// populate table contents
 	var wg sync.WaitGroup
 	var mutex sync.Mutex
 	for _, apiTest := range apiTest {

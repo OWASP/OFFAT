@@ -21,3 +21,12 @@ type ApiTest struct {
 	VulnerableResponseCodes []int `json:"vulnerable_response_codes"`
 	ImmuneResponseCodes     []int `json:"immune_response_codes"` //
 }
+
+type InjectionConfig struct {
+	InPath   bool
+	InQuery  bool
+	InBody   bool
+	InHeader bool
+	InCookie bool
+	Payloads []string
+}

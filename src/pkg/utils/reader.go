@@ -10,6 +10,7 @@ import (
 
 const JSON = "json"
 const YAML = "yaml"
+const XML = "xml"
 
 // Loads JSON/YAML file into holder ptr based on contentType
 // Note: function assumes that user has already validated filename

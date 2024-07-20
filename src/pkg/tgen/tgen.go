@@ -26,7 +26,14 @@ func (t *TGenHandler) GenerateTests() []*ApiTest {
 	}
 
 	if t.RunSimpleSQLiTest {
-		newTests := SimpleSQLiTest(t.BaseUrl, t.Doc, t.DefaultQueryParams, t.DefaultHeaders)
+		injectionConfig := InjectionConfig{
+			InBody:   true,
+			InCookie: true,
+			InHeader: false,
+			InPath:   true,
+			InQuery:  true,
+		}
+		newTests := SimpleSQLiTest(t.BaseUrl, t.Doc, t.DefaultQueryParams, t.DefaultHeaders, injectionConfig)
 		tests = append(tests, newTests...)
 
 		log.Info().Msgf("%d tests generated for Simple SQLI", len(newTests))

@@ -2,11 +2,13 @@ package tgen
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	neturl "net/url"
 	"strings"
 
 	"github.com/OWASP/OFFAT/src/pkg/parser"
+	"github.com/OWASP/OFFAT/src/pkg/utils"
 	"github.com/rs/zerolog/log"
 )
 
@@ -48,11 +50,6 @@ func mapToCookieHeader(cookieMap map[string]string) string {
 
 // converts doc http param into headers (map[string]string), query (map[string]string),
 func httpParamToRequest(baseUrl string, docParam *parser.DocHttpParams, queryParams map[string]string, headers map[string]string, bodyContentType string) (url string, headersMap map[string]string, queryMap map[string]string, bodyData []byte, pathWithParams string, err error) {
-	// handle nil maps
-	if headers == nil {
-		headers = map[string]string{}
-	}
-
 	// parse params and convert it to map[string]string{}
 	parsedbodyMap := ParamsToMap(docParam.BodyParams)
 	parsedQueryParamsMap := ParamsToMap(docParam.QueryParams)
@@ -80,15 +77,24 @@ func httpParamToRequest(baseUrl string, docParam *parser.DocHttpParams, queryPar
 	cookieHeaderValue := mapToCookieHeader(parsedCookieParams)
 	if currentCookieHeaderValue, exists := headersMap["Cookies"]; exists {
 		cookieHeaderValue = currentCookieHeaderValue + cookieHeaderValue
+		headersMap["Cookies"] = cookieHeaderValue
 	}
-	headers["Cookies"] = cookieHeaderValue
 
 	// convert body to JSON
 	switch bodyContentType {
-	case "json":
+	case JSON:
+		headersMap["Content-Type"] = "application/json"
 		bodyData, err = json.Marshal(parsedbodyMap)
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("failed to convert bodyMap to JSON")
+			log.Error().Stack().Err(err).Msgf("failed to convert bodyMap to %s", utils.JSON)
+			bodyData = nil
+		}
+	case XML:
+		// TODO: fix errs
+		headersMap["Content-Type"] = "application/xml"
+		bodyData, err = xml.MarshalIndent(parsedbodyMap, "", "")
+		if err != nil {
+			log.Error().Stack().Err(err).Msgf("failed to convert bodyMap to %s", utils.XML)
 			bodyData = nil
 		}
 	default:

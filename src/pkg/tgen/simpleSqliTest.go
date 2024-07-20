@@ -5,7 +5,7 @@ import (
 )
 
 // generates very basic sqli API tests
-func SimpleSQLiTest(baseUrl string, docParams []*parser.DocHttpParams, queryParams map[string]string, headers map[string]string) []*ApiTest {
+func SimpleSQLiTest(baseUrl string, docParams []*parser.DocHttpParams, queryParams map[string]string, headers map[string]string, injectionConfig InjectionConfig) []*ApiTest {
 	testName := "Basic SQLI Test"
 	vulnResponseCodes := []int{500}
 	immuneResponseCodes := []int{}
@@ -17,7 +17,9 @@ func SimpleSQLiTest(baseUrl string, docParams []*parser.DocHttpParams, queryPara
 		"' AND SLEEP(5) --",
 	}
 
-	tests := injectParamIntoApiTest(baseUrl, docParams, queryParams, headers, testName, vulnResponseCodes, immuneResponseCodes, payloads)
+	injectionConfig.Payloads = payloads
+
+	tests := injectParamIntoApiTest(baseUrl, docParams, queryParams, headers, testName, vulnResponseCodes, immuneResponseCodes, injectionConfig)
 
 	return tests
 }
