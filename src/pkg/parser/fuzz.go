@@ -10,11 +10,15 @@ import (
 
 // Fill parser.Param.Value based on parser.Param.Type (type considers first value of the list)
 func FillHttpParam(param *Param) bool {
+	var paramType string
 	if len(param.Type) == 0 {
-		return false
+		log.Warn().Msgf("param %v doesn't have any specified type, random str will be used as value", param)
+		paramType = "random"
+	} else {
+		paramType = param.Type[0]
 	}
 
-	switch param.Type[0] {
+	switch paramType {
 	case "string":
 		value, err := fuzzer.FuzzStringType(param.Name)
 		if err != nil {

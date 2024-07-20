@@ -6,17 +6,24 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// injects payload in HTTP parser.param.
+// injects payload in HTTP parser.param based on type/value
 // It's being used in `injectParamIntoApiTest` function
 func injectParamInParam(params *[]parser.Param, payload string) {
 	for i := range *params {
+		var paramType string
 		param := &(*params)[i]
-		if len(param.Type) == 0 {
-			log.Warn().Msgf("skipping payload %s injection for %v since type is missing", payload, param)
+		if len(param.Type) == 0 && param.Value == nil {
+			log.Warn().Msgf("skipping payload %s injection for %v since type/value is missing", payload, param)
 			continue
+		} else if len(param.Type) == 0 {
+			log.Warn().Msgf("injecting payload %s in %v with missing type", payload, param)
+			paramType = "random"
+		} else {
+			paramType = param.Type[0]
 		}
-		switch param.Type[0] {
-		case "string":
+
+		switch paramType {
+		case "string", "random":
 			param.Value = payload
 		}
 	}
