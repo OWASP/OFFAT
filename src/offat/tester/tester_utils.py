@@ -32,6 +32,9 @@ def is_host_up(openapi_parser: SwaggerParser | OpenAPIv3Parser, ssl_verify: bool
             logger.warning('Invalid host: %s', openapi_parser.host)
             return False
 
+    if openapi_parser.http_scheme == 'https':
+        use_ssl = True
+
     host = host.split('/')[0]
 
     match port:
@@ -39,7 +42,10 @@ def is_host_up(openapi_parser: SwaggerParser | OpenAPIv3Parser, ssl_verify: bool
             use_ssl = True
             proto = http_client.HTTPSConnection
         case _:
-            proto = http_client.HTTPConnection
+            if use_ssl:
+                proto = http_client.HTTPSConnection
+            else:
+                proto = http_client.HTTPConnection
 
     logger.info('Checking whether host %s:%s is available', host, port)
     try:

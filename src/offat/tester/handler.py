@@ -27,6 +27,7 @@ def generate_and_run_tests(
     test_data_config: dict | None = None,
     capture_failed: bool = False,
     remove_unused_data: bool = True,
+    ssl_verify: bool = True,
 ):
     """
     Generates and runs tests for the provided OAS/Swagger file.
@@ -56,7 +57,7 @@ def generate_and_run_tests(
     Returns:
         A list of test results.
     """
-    if not is_host_up(openapi_parser=api_parser):
+    if not is_host_up(openapi_parser=api_parser, ssl_verify=ssl_verify):
         logger.error(
             'Stopping tests due to unavailability of host: %s', api_parser.host
         )

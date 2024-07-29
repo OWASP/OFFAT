@@ -22,6 +22,7 @@ def scan_api(body_data: CreateScanSchema, ssl_verify: bool = True):
             proxies=body_data.proxies,
             capture_failed=body_data.capture_failed,
             remove_unused_data=body_data.remove_unused_data,
+            ssl_verify=ssl_verify,
         )
         return results
     except Exception as e:
