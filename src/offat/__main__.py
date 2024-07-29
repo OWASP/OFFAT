@@ -167,6 +167,7 @@ def start():
         test_data_config=test_data_config,
         proxies=args.proxies_list,
         capture_failed=args.capture_failed,
+        ssl_verify=args.ssl_verify,
     )
 
 
