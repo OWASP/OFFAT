@@ -13,7 +13,7 @@ import asyncio
 import aiohttp.resolver
 
 aiohttp.resolver.DefaultResolver = aiohttp.resolver.AsyncResolver
-if os_name == "nt":
+if os_name == 'nt':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
@@ -89,10 +89,13 @@ class AsyncRequests:
     @retry(
         stop=stop_after_attempt(3),
         retry=retry_if_not_exception_type(
-            KeyboardInterrupt or asyncio.exceptions.CancelledError
+            (
+                KeyboardInterrupt,
+                asyncio.exceptions.CancelledError,
+            ),
         ),
     )
-    async def request(self, url: str, *args, method: str = "GET", **kwargs) -> dict:
+    async def request(self, url: str, *args, method: str = 'GET', **kwargs) -> dict:
         """Send HTTP requests asynchronously
 
         Args:
@@ -105,26 +108,10 @@ class AsyncRequests:
         """
         async with self._limiter:
             async with ClientSession(
-                headers=self._headers, timeout=self._timeout
+                headers=self._headers,
+                timeout=self._timeout,
             ) as session:
-                method = str(method).upper()
-                match method:
-                    case "GET":
-                        req_method = session.get
-                    case "POST":
-                        req_method = session.post
-                    case "PUT":
-                        req_method = session.put
-                    case "PATCH":
-                        req_method = session.patch
-                    case "HEAD":
-                        req_method = session.head
-                    case "OPTIONS":
-                        req_method = session.options
-                    case "DELETE":
-                        req_method = session.delete
-                    case _:
-                        req_method = session.get
+                req_method = getattr(session, method.lower(), session.get)
 
                 async with req_method(
                     url,
@@ -135,14 +122,14 @@ class AsyncRequests:
                     **kwargs,
                 ) as response:
                     resp_data = {
-                        "status": response.status,
-                        "req_url": str(response.request_info.real_url),
-                        "query_url": str(response.url),
-                        "req_method": response.request_info.method,
-                        "req_headers": dict(**response.request_info.headers),
-                        "res_redirection": str(response.history),
-                        "res_headers": dict(response.headers),
-                        "res_body": await response.text(),
+                        'status': response.status,
+                        'req_url': str(response.request_info.real_url),
+                        'query_url': str(response.url),
+                        'req_method': response.request_info.method,
+                        'req_headers': dict(**response.request_info.headers),
+                        'res_redirection': str(response.history),
+                        'res_headers': dict(response.headers),
+                        'res_body': await response.text(),
                     }
 
                 return resp_data
