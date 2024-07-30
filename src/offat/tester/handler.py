@@ -69,6 +69,7 @@ def generate_and_run_tests(
         rate_limit=rate_limit,
         headers=req_headers,
         proxies=proxies,
+        ssl_verify=ssl_verify,
     )
 
     results: list = []

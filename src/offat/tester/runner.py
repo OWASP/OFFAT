@@ -2,6 +2,7 @@ from asyncio import ensure_future, gather
 from asyncio.exceptions import CancelledError
 from enum import Enum
 from sys import exc_info, exit
+from traceback import format_exc
 from rich.progress import Progress, TaskID
 
 from ..http import AsyncRequests
@@ -30,7 +31,7 @@ class TestRunner:
             rate_limit=rate_limit,
             headers=headers,
             proxies=proxies,
-            ssl_verify=ssl_verify
+            ssl_verify=ssl_verify,
         )
         self.progress = Progress(console=console)
         self.progress_task_id: TaskID | None = None
@@ -147,8 +148,9 @@ class TestRunner:
             test_result['error'] = True
 
             logger.debug('Exception Debug Data:', exc_info=exc_info())
+            logger.debug(format_exc())
+            logger.debug(locals())
             logger.error('Unable to send request due to error: %s', e)
-            logger.error(locals())
 
         # generate curl command for reproducing result
         test_result['curl_command'] = result_to_curl(test_result)
