@@ -157,3 +157,5 @@ oas.yml
 
 ## local testing scripts
 test-files
+src/main
+main
