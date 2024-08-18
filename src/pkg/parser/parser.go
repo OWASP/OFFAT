@@ -56,7 +56,7 @@ func (p *Parser) Parse(filename string, isUrl bool) (err error) {
 	if isUrl {
 		parsedURL, err := url.Parse(filename)
 		if err != nil {
-			fmt.Println("Error parsing URL:", err)
+			log.Error().Stack().Err(err).Msgf("Error parsing URL: %v", err)
 			return err
 		}
 

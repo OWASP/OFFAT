@@ -1,13 +1,13 @@
 package report
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"sync"
 
 	"github.com/OWASP/OFFAT/src/pkg/tgen"
 	"github.com/olekukonko/tablewriter"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/term"
 )
 
@@ -87,8 +87,8 @@ func Table(apiTest []*tgen.ApiTest) {
 	// Get terminal size
 	width, _, err := term.GetSize(int(os.Stdin.Fd()))
 	if err != nil {
-		fmt.Println("Error getting terminal size:", err)
-		return
+		log.Error().Stack().Err(err).Msgf("Error getting terminal size: %v, using width as 100", err)
+		width = 100
 	}
 
 	// Create table

@@ -1,8 +1,8 @@
 FROM cgr.dev/chainguard/go AS builder
-COPY . /app
-WORKDIR /app
-RUN go build -o bin/main cmd/offat/main.go
+WORKDIR /go/src/github.com/owasp/offat
+COPY . .
+RUN go build -o ./bin/offat ./cmd/offat/
 
 FROM cgr.dev/chainguard/glibc-dynamic
-COPY --from=builder /app/bin/main /usr/bin/
-ENTRYPOINT ["/usr/bin/main"]
+COPY --from=builder /go/src/github.com/owasp/offat/bin/offat /bin/offat
+ENTRYPOINT ["/bin/offat"]
