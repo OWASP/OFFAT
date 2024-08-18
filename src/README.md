@@ -31,12 +31,6 @@ Automatically Tests for vulnerabilities after generating tests from openapi spec
 - Open Source Tool with MIT License
 - Github Action
 
-## Demo
-
-[![asciicast](https://asciinema.org/a/9MSwl7UafIVT3iJn13OcvWXeF.svg)](https://asciinema.org/a/9MSwl7UafIVT3iJn13OcvWXeF)
-
-> Note: The columns for 'data_leak' and 'result' in the table represent independent aspects. It's possible for there to be a data leak in the endpoint, yet the result for that endpoint may still be marked as 'Success'. This is because the 'result' column doesn't necessarily reflect the overall test result; it may indicate success even in the presence of a data leak.
-
 ## Github Action
 
 - Create github action secret `url` for your repo
@@ -70,14 +64,6 @@ jobs:
 ```
 
 > Prefer locking action to specific version `OWASP/OFFAT@v0.17.3` instead of using `OWASP/OFFAT@main` and bump OFFAT action version after testing.
-
-## PyPi Downloads
-
-| Period |                                                                                               Count                                                                                                |
-| :----: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Weekly | [![Downloads](https://static.pepy.tech/personalized-badge/offat?period=week&units=international_system&left_color=black&right_color=orange&left_text=Downloads)](https://pepy.tech/project/offat)  |
-| Monthy | [![Downloads](https://static.pepy.tech/personalized-badge/offat?period=month&units=international_system&left_color=black&right_color=orange&left_text=Downloads)](https://pepy.tech/project/offat) |
-| Total  | [![Downloads](https://static.pepy.tech/personalized-badge/offat?period=total&units=international_system&left_color=black&right_color=orange&left_text=Downloads)](https://pepy.tech/project/offat) |
 
 ## Disclaimer
 
@@ -159,20 +145,6 @@ The disclaimer advises users to use the open-source project for ethical and legi
 
 ## Start OffAT
 
-### API
-
-- Start API Server
-
-  ```bash
-  python -m offat.api
-
-  # OR
-
-  offat-api
-  ```
-
-- API Documentation can be found at <http://localhost:8000/docs>
-
 ### CLI Tool
 
 - Run offat
@@ -188,17 +160,19 @@ The disclaimer advises users to use the open-source project for ethical and legi
   offat -h
   ```
 
-- Save result in `json`, `yaml` or `html` formats.
+- Save result in `json`
 
   ```bash
-  offat -f swagger_file.json -o output.json -of html  # json
-  offat -f swagger_file.json -o output.html -of html  # html
-  offat -f swagger_file.json -o output.yaml -of yaml  # yaml
+  offat -f swagger_file.json -o output.json
   ```
+  > `json` format is default output format
 
-> `json` format is default output format.
-> `yaml` format needs to be sanitized before usage since it dumps data as python objects.
-> `html` format needs more visualization.
+- Get curl command for making requests
+
+  ```bash
+  jq -r '.[].response.response.curl_command' output.json
+  ```
+  > `jq` tool is required to run above command
 
 - Run tests only for endpoint paths matching regex pattern
 
@@ -215,7 +189,7 @@ The disclaimer advises users to use the open-source project for ethical and legi
 - Run Test with Requests Rate Limited
 
   ```bash
-  offat -f swagger_file.json -rl 1000
+  offat -f swagger_file.json -r 1000
   ```
 
   > `rl`: requests rate limit per second
@@ -224,7 +198,7 @@ The disclaimer advises users to use the open-source project for ethical and legi
 
   ```bash
   # without ssl check
-  offat -f swagger_file.json -p http://localhost:8080 -o output.json -of json # ssl checks are disabled by default to avoid certificate installations
+  offat -f swagger_file.json -p http://localhost:8080 -o output.json # ssl checks are disabled by default to avoid certificate installations
 
   # with ssl check enforced
   offat -f swagger_file.json -p http://localhost:8080 -o output.json -of json --ssl
@@ -303,9 +277,6 @@ The disclaimer advises users to use the open-source project for ethical and legi
             value: +41912312311
             type: str
   ```
-
-> If you're using Termux or windows, then use `pip` instead of `pip3`.
-> Few features are only for linux os, hence they might not work on windows and require admin priviliges.
 
 ### Open In Google Cloud Shell
 

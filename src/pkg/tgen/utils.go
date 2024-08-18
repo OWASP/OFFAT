@@ -89,6 +89,7 @@ func httpParamToRequest(baseUrl string, docParam *parser.DocHttpParams, queryPar
 			log.Error().Stack().Err(err).Msgf("failed to convert bodyMap to %s", utils.JSON)
 			bodyData = nil
 		}
+
 	case utils.XML:
 		// TODO: fix errs
 		headersMap["Content-Type"] = "application/xml"

@@ -13,7 +13,8 @@ func TestHttpClient(t *testing.T) {
 	// http client
 	requestsPerSecond := 10
 	skipTlsVerification := false
-	httpCfg := http.NewConfig(&requestsPerSecond, &skipTlsVerification)
+	proxy := ""
+	httpCfg := http.NewConfig(&requestsPerSecond, &skipTlsVerification, &proxy)
 	hc := http.NewHttp(httpCfg)
 	client := hc.Client.FHClient
 

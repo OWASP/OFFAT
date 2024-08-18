@@ -33,6 +33,8 @@ func injectParamInParam(params *[]parser.Param, payload string) {
 // generates Api tests based on provided payloads
 func injectParamIntoApiTest(url string, docParams []*parser.DocHttpParams, queryParams map[string]string, headers map[string]string, testName string, vulnResponseCodes, immuneResponseCodes []int, injectionConfig InjectionConfig) []*ApiTest {
 	var tests []*ApiTest
+	// TODO: only inject payloads if any payload is accepted by the endpoint, else ignore injection
+	// as this will reduce number of tests generated and increase efficiency
 	for _, payload := range injectionConfig.Payloads {
 		for _, docParam := range docParams {
 			// inject payloads into string before converting it to map[string]string

@@ -13,7 +13,7 @@ import (
 func UnrestrictedHttpMethods(baseUrl string, docParams []*parser.DocHttpParams, queryParams map[string]string, headers map[string]string) []*ApiTest {
 	var tests []*ApiTest
 	testName := "Unrestricted HTTP Methods/Verbs"
-	immuneResponseCode := []int{404, 405, 502, 503, 504}
+	immuneResponseCode := []int{404, 405} // 502, 503, 504 -> responses could lead to DoS using the endpoint
 
 	for _, docParam := range docParams {
 		url, headersMap, queryMap, bodyData, pathWithParams, err := httpParamToRequest(baseUrl, docParam, queryParams, headers, utils.JSON)

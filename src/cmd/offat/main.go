@@ -2,9 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/OWASP/OFFAT/src/pkg/http"
@@ -20,59 +18,6 @@ import (
 )
 
 const Version = "v0.20.0"
-
-type FlagConfig struct {
-	// OFFAT metadata
-	Version *bool
-
-	// Parser config
-	DocPath                         *string
-	IsExternalRefsAllowed           *bool
-	DisableExamplesValidation       *bool
-	DisableSchemaDefaultsValidation *bool
-	DisableSchemaPatternValidation  *bool
-	BaseUrl                         *string
-
-	// HTTP
-	RequestsPerSecond   *int
-	SkipTlsVerification *bool
-	Headers             KeyValueMap
-	QueryParams         KeyValueMap
-
-	// Report
-	AvoidImmuneFilter *bool
-	OutputFilePath    *string
-}
-
-// Custom type for headers
-type KeyValueMap map[string]string
-
-// Implement the String method for headers
-func (h *KeyValueMap) String() string {
-	var keyValueList []string
-	for k, v := range *h {
-		keyValueList = append(keyValueList, fmt.Sprintf("%s=%s", k, v))
-	}
-	return strings.Join(keyValueList, ", ")
-}
-
-// Implement the Set method for headers
-func (h *KeyValueMap) Set(value string) error {
-	if *h == nil {
-		*h = make(KeyValueMap)
-	}
-
-	parts := strings.SplitN(value, "=", 2)
-	if len(parts) != 2 {
-		return fmt.Errorf("invalid key value format, expected key=value but got %s", value)
-	}
-	(*h)[parts[0]] = parts[1]
-	return nil
-}
-
-func (h *KeyValueMap) ToMap() map[string]string {
-	return *h
-}
 
 func main() {
 
@@ -90,6 +35,7 @@ func main() {
 
 	config.RequestsPerSecond = flag.Int("r", 60, "number of requests per second")
 	config.SkipTlsVerification = flag.Bool("ns", false, "disable TLS/SSL Verfication")
+	config.Proxy = flag.String("p", "", "specify proxy for capturing requests, supports http and socks urls. example: http://localhost:8080")
 	flag.Var(&config.Headers, "H", "HTTP headers in the format key=value")
 	flag.Var(&config.QueryParams, "q", "HTTP query parameter in the format key=value")
 
@@ -139,13 +85,14 @@ func main() {
 	// log.Info().Msgf("%v", parser.Doc.GetDocHttpParams())
 
 	// http client
-	httpCfg := http.NewConfig(config.RequestsPerSecond, config.SkipTlsVerification)
+	httpCfg := http.NewConfig(config.RequestsPerSecond, config.SkipTlsVerification, config.Proxy)
 	hc := http.NewHttp(httpCfg)
 
 	url := *parser.Doc.GetBaseUrl()
 	resp, err := hc.Client.FHClient.Do(url, fasthttp.MethodGet, nil, nil, nil)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("cannot connect to server")
+		os.Exit(1)
 	}
 
 	successCodes := []int{200, 301, 302, 400, 404, 405}
@@ -194,3 +141,6 @@ func main() {
 	log.Info().Msgf("Base URL: %v", url)
 	log.Info().Msgf("Overall Time: %v", elapsed)
 }
+
+// command:
+// go run cmd/offat/

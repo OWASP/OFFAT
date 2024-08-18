@@ -61,7 +61,7 @@ func (p *Parser) Parse(filename string, isUrl bool) (err error) {
 		}
 
 		// make call to doc url
-		resp, err := c.Get(http.DefaultClient.Client, filename, nil, nil)
+		resp, err := c.Get(http.DefaultClient.Client, filename, nil, nil) // this request won't be proxied
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("Failed to fetch API documentation from url")
 			return err
