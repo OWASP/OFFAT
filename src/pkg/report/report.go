@@ -5,13 +5,12 @@ import (
 	"fmt"
 
 	"github.com/OWASP/OFFAT/src/pkg/tgen"
+	"github.com/OWASP/OFFAT/src/pkg/utils"
 )
-
-const JSON = "json"
 
 func Report(apiTests []*tgen.ApiTest, contentType string) ([]byte, error) {
 	switch contentType {
-	case JSON:
+	case utils.JSON:
 		return json.Marshal(&apiTests)
 	default:
 		return nil, fmt.Errorf("invalid report content type")

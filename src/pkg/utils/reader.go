@@ -3,8 +3,11 @@ package utils
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
+	"strings"
 
+	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
 )
 
@@ -41,4 +44,22 @@ func LoadJsonYaml(filedata []byte, holder any, contentType string) error {
 	}
 
 	return nil
+}
+
+// Infer content type based on URI/file path
+func InferContentTypeByPath(filename string) (string, error) {
+	var contentType string
+
+	switch {
+	case strings.HasSuffix(filename, ".json"):
+		contentType = JSON
+	case strings.HasSuffix(filename, ".yaml") || strings.HasSuffix(filename, ".yml"):
+		contentType = YAML
+	default:
+		err := fmt.Errorf("invalid file extension")
+		log.Error().Stack().Err(err).Msg("Failed to infer API documentation Content Type")
+		return "", err
+	}
+
+	return contentType, nil
 }

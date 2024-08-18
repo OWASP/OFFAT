@@ -82,14 +82,14 @@ func httpParamToRequest(baseUrl string, docParam *parser.DocHttpParams, queryPar
 
 	// convert body to JSON
 	switch bodyContentType {
-	case JSON:
+	case utils.JSON:
 		headersMap["Content-Type"] = "application/json"
 		bodyData, err = json.Marshal(parsedbodyMap)
 		if err != nil {
 			log.Error().Stack().Err(err).Msgf("failed to convert bodyMap to %s", utils.JSON)
 			bodyData = nil
 		}
-	case XML:
+	case utils.XML:
 		// TODO: fix errs
 		headersMap["Content-Type"] = "application/xml"
 		bodyData, err = xml.MarshalIndent(parsedbodyMap, "", "")

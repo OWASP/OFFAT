@@ -2,8 +2,9 @@ package parser
 
 import (
 	"fmt"
+	"net/url"
 	"os"
-	"strings"
+	"path"
 
 	"github.com/OWASP/OFFAT/src/pkg/http"
 	_ "github.com/OWASP/OFFAT/src/pkg/logging"
@@ -51,9 +52,15 @@ func (p *Parser) Parse(filename string, isUrl bool) (err error) {
 		Swagger string `json:"swagger" yaml:"swagger"`
 	}
 
+	// get documentation content
 	if isUrl {
-		contentType = utils.JSON
+		parsedURL, err := url.Parse(filename)
+		if err != nil {
+			fmt.Println("Error parsing URL:", err)
+			return err
+		}
 
+		// make call to doc url
 		resp, err := c.Get(http.DefaultClient.Client, filename, nil, nil)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("Failed to fetch API documentation from url")
@@ -62,22 +69,15 @@ func (p *Parser) Parse(filename string, isUrl bool) (err error) {
 
 		if resp.StatusCode == 200 {
 			fileContent = resp.Body
+
+			// Extract the resource name from the path
+			filename = path.Base(parsedURL.Path)
 		} else {
 			return fmt.Errorf("unable to fetch api doc from %s server returned %d status code", filename, resp.StatusCode)
 		}
 
 	} else {
-		switch {
-		case strings.HasSuffix(filename, ".json"):
-			contentType = utils.JSON
-		case strings.HasSuffix(filename, ".yaml") || strings.HasSuffix(filename, ".yml"):
-			contentType = utils.YAML
-		default:
-			err = fmt.Errorf("invalid file extension")
-			log.Error().Stack().Err(err).Msg("Failed to load API documentation file")
-			return err
-		}
-
+		// read file content
 		_, err = os.Stat(filename)
 		if err != nil {
 			log.Error().Err(err).Msg("file not found")
@@ -90,8 +90,16 @@ func (p *Parser) Parse(filename string, isUrl bool) (err error) {
 		}
 	}
 
+	// get content type of file/url
+	contentType, err = utils.InferContentTypeByPath(filename)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Failed to load API Documentation due to invalid content type!")
+		return err
+	}
+
+	// parse file from its specific content type
 	if err := utils.LoadJsonYaml(fileContent, &head, contentType); err != nil {
-		log.Error().Stack().Err(err).Msg("Failed to load API documentation from url file content")
+		log.Error().Stack().Err(err).Msgf("Failed to load API documentation from url file content with %s content type", contentType)
 		return err
 	}
 

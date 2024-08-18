@@ -2,6 +2,7 @@ package tgen
 
 import (
 	"github.com/OWASP/OFFAT/src/pkg/parser"
+	"github.com/OWASP/OFFAT/src/pkg/utils"
 	c "github.com/dmdhrumilmistry/fasthttpclient/client"
 	"github.com/rs/zerolog/log"
 )
@@ -49,7 +50,7 @@ func injectParamIntoApiTest(url string, docParams []*parser.DocHttpParams, query
 			}
 
 			// parse maps
-			url, headersMap, queryMap, bodyData, pathWithParams, err := httpParamToRequest(url, docParam, queryParams, headers, JSON)
+			url, headersMap, queryMap, bodyData, pathWithParams, err := httpParamToRequest(url, docParam, queryParams, headers, utils.JSON)
 			if err != nil {
 				log.Error().Err(err).Msgf("failed to generate request params from DocHttpParams, skipping test for this case %v due to error %v", *docParam, err)
 				continue

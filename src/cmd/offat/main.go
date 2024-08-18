@@ -26,8 +26,7 @@ type FlagConfig struct {
 	Version *bool
 
 	// Parser config
-	Filename                        *string
-	DocUrl                          *string
+	DocPath                         *string
 	IsExternalRefsAllowed           *bool
 	DisableExamplesValidation       *bool
 	DisableSchemaDefaultsValidation *bool
@@ -82,8 +81,7 @@ func main() {
 
 	config.Version = flag.Bool("version", false, "print version of OWASP OFFAT binary and exit")
 
-	config.Filename = flag.String("f", "", "OAS/Swagger Doc file path")
-	config.DocUrl = flag.String("u", "", "OAS/Swagger Doc URL")
+	config.DocPath = flag.String("f", "", "OAS/Swagger Doc file path or URL")
 	config.BaseUrl = flag.String("b", "", "base api path url. example: http://localhost:8000/api") // if not provided then parsed from documentation
 	config.IsExternalRefsAllowed = flag.Bool("er", false, "enables visiting other files")
 	config.DisableExamplesValidation = flag.Bool("de", false, "disable example validation for OAS files")
@@ -108,16 +106,9 @@ func main() {
 		os.Exit(0)
 	}
 
-	if *config.DocUrl == "" && *config.Filename == "" {
-		log.Error().Msg("-f or -u param is required. Use --help for more information.")
+	if *config.DocPath == "" {
+		log.Error().Msg("-f is required. Use --help for more information.")
 		os.Exit(1)
-	}
-
-	parserUri := config.Filename
-	isUrl := false
-	if utils.ValidateURL(*config.DocUrl) {
-		parserUri = config.DocUrl
-		isUrl = true
 	}
 
 	// parse documentation
@@ -128,7 +119,7 @@ func main() {
 		*config.DisableSchemaPatternValidation,
 	)
 
-	if err := parser.Parse(*parserUri, isUrl); err != nil {
+	if err := parser.Parse(*config.DocPath, utils.ValidateURL(*config.DocPath)); err != nil {
 		log.Error().Stack().Err(err).Msg("failed to parse API documentation file")
 		os.Exit(1)
 	}
@@ -138,6 +129,7 @@ func main() {
 		log.Error().Err(err).Msg("failed to set baseUrl")
 	}
 
+	// set struct DocHttpParams
 	if err := parser.Doc.SetDocHttpParams(); err != nil {
 		log.Error().Stack().Err(err).Msg("failed while fetching doc http params")
 	}
@@ -185,7 +177,7 @@ func main() {
 
 	// write/print report for api tests
 	log.Info().Msgf("Generating and writing report to output file: %v", *config.OutputFilePath)
-	reportData, err := report.Report(apiTests, report.JSON)
+	reportData, err := report.Report(apiTests, utils.JSON)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to generate report")
 	}

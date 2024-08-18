@@ -16,7 +16,7 @@ func UnrestrictedHttpMethods(baseUrl string, docParams []*parser.DocHttpParams, 
 	immuneResponseCode := []int{404, 405, 502, 503, 504}
 
 	for _, docParam := range docParams {
-		url, headersMap, queryMap, bodyData, pathWithParams, err := httpParamToRequest(baseUrl, docParam, queryParams, headers, JSON)
+		url, headersMap, queryMap, bodyData, pathWithParams, err := httpParamToRequest(baseUrl, docParam, queryParams, headers, utils.JSON)
 		if err != nil {
 			log.Error().Err(err).Msgf("failed to generate request params from DocHttpParams, skipping test for this case %v due to error %v", *docParam, err)
 			continue
