@@ -33,6 +33,8 @@ func main() {
 	config.DisableSchemaDefaultsValidation = flag.Bool("ds", false, "disable schema defaults validation for OAS files")
 	config.DisableSchemaPatternValidation = flag.Bool("dp", false, "disable schema patterns validation for OAS files")
 
+	config.SsrfUrl = flag.String("ssrf", "", "injects user defined SSRF url payload in http request components")
+
 	config.RequestsPerSecond = flag.Int("r", 60, "number of requests per second")
 	config.SkipTlsVerification = flag.Bool("ns", false, "disable TLS/SSL Verfication")
 	config.Proxy = flag.String("p", "", "specify proxy for capturing requests, supports http and socks urls. example: http://localhost:8080")
@@ -111,7 +113,11 @@ func main() {
 
 		// Tests
 		RunUnrestrictedHttpMethodTest: true,
-		RunSimpleSQLiTest:             true,
+		RunBasicSQLiTest:              true,
+		RunBasicSSRFTest:              true,
+
+		// SSRF Test
+		SsrfUrl: *config.SsrfUrl,
 	}
 
 	// generate and run api tests

@@ -24,6 +24,9 @@ type FlagConfig struct {
 	QueryParams         KeyValueMap
 	Proxy               *string
 
+	// SSRF Test
+	SsrfUrl *string
+
 	// Report
 	AvoidImmuneFilter *bool
 	OutputFilePath    *string

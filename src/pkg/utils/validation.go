@@ -4,7 +4,8 @@ import (
 	"net/url"
 )
 
-// ValidateURL checks if the provided URL is valid
+// ValidateURL checks if the provided URL is valid.
+// Note it doesn't make request to the server.
 func ValidateURL(u string) bool {
 	parsedURL, err := url.Parse(u)
 	if err != nil {
