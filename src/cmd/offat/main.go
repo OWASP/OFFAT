@@ -19,7 +19,12 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+const Version = "v0.20.0"
+
 type FlagConfig struct {
+	// OFFAT metadata
+	Version *bool
+
 	// Parser config
 	Filename                        *string
 	DocUrl                          *string
@@ -75,6 +80,8 @@ func main() {
 	// Parse CLI args
 	config := FlagConfig{}
 
+	config.Version = flag.Bool("version", false, "print version of OWASP OFFAT binary and exit")
+
 	config.Filename = flag.String("f", "", "OAS/Swagger Doc file path")
 	config.DocUrl = flag.String("u", "", "OAS/Swagger Doc URL")
 	config.BaseUrl = flag.String("b", "", "base api path url. example: http://localhost:8000/api") // if not provided then parsed from documentation
@@ -95,6 +102,11 @@ func main() {
 
 	// Start Timer
 	now := time.Now()
+
+	if *config.Version {
+		log.Info().Msg(Version)
+		os.Exit(0)
+	}
 
 	if *config.DocUrl == "" && *config.Filename == "" {
 		log.Error().Msg("-f or -u param is required. Use --help for more information.")
