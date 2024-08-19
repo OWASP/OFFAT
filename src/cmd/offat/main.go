@@ -24,7 +24,7 @@ func main() {
 	// Parse CLI args
 	config := FlagConfig{}
 
-	config.Version = flag.Bool("version", false, "print version of OWASP OFFAT binary and exit")
+	config.Version = flag.Bool("v", false, "print version of OWASP OFFAT binary and exit")
 
 	config.DocPath = flag.String("f", "", "OAS/Swagger Doc file path or URL")
 	config.BaseUrl = flag.String("b", "", "base api path url. example: http://localhost:8000/api") // if not provided then parsed from documentation
