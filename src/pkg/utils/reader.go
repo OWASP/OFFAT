@@ -63,3 +63,21 @@ func InferContentTypeByPath(filename string) (string, error) {
 
 	return contentType, nil
 }
+
+// detects JSON/YAML content type. returns error if no match is found
+func DetectContentType(content []byte) (string, error) {
+	// Try to unmarshal as JSON
+	var js json.RawMessage
+	if json.Unmarshal(content, &js) == nil {
+		return JSON, nil
+	}
+
+	// Try to unmarshal as YAML
+	var yml interface{}
+	if yaml.Unmarshal(content, &yml) == nil {
+		return YAML, nil
+	}
+
+	return "", fmt.Errorf("content type is not JSON/YAML")
+
+}

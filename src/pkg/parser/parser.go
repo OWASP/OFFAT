@@ -2,9 +2,7 @@ package parser
 
 import (
 	"fmt"
-	"net/url"
 	"os"
-	"path"
 
 	"github.com/OWASP/OFFAT/src/pkg/http"
 	_ "github.com/OWASP/OFFAT/src/pkg/logging"
@@ -46,7 +44,7 @@ func NewParser(isExternalRefsAllowed, disableExamplesValidation, disableSchemaDe
 // Note: URLs only support JSON content for now.
 func (p *Parser) Parse(filename string, isUrl bool) (err error) {
 	var contentType string
-	var fileContent []byte
+	var content []byte
 	var head struct {
 		OpenAPI string `json:"openapi" yaml:"openapi"`
 		Swagger string `json:"swagger" yaml:"swagger"`
@@ -54,12 +52,6 @@ func (p *Parser) Parse(filename string, isUrl bool) (err error) {
 
 	// get documentation content
 	if isUrl {
-		parsedURL, err := url.Parse(filename)
-		if err != nil {
-			log.Error().Stack().Err(err).Msgf("Error parsing URL: %v", err)
-			return err
-		}
-
 		// make call to doc url
 		resp, err := c.Get(http.DefaultClient.Client, filename, nil, nil) // this request won't be proxied
 		if err != nil {
@@ -68,10 +60,7 @@ func (p *Parser) Parse(filename string, isUrl bool) (err error) {
 		}
 
 		if resp.StatusCode == 200 {
-			fileContent = resp.Body
-
-			// Extract the resource name from the path
-			filename = path.Base(parsedURL.Path)
+			content = resp.Body
 		} else {
 			return fmt.Errorf("unable to fetch api doc from %s server returned %d status code", filename, resp.StatusCode)
 		}
@@ -84,21 +73,21 @@ func (p *Parser) Parse(filename string, isUrl bool) (err error) {
 			return err
 		}
 
-		fileContent, err = os.ReadFile(filename)
+		content, err = os.ReadFile(filename)
 		if err != nil {
 			return err
 		}
 	}
 
 	// get content type of file/url
-	contentType, err = utils.InferContentTypeByPath(filename)
+	contentType, err = utils.DetectContentType(content)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("Failed to load API Documentation due to invalid content type!")
 		return err
 	}
 
 	// parse file from its specific content type
-	if err := utils.LoadJsonYaml(fileContent, &head, contentType); err != nil {
+	if err := utils.LoadJsonYaml(content, &head, contentType); err != nil {
 		log.Error().Stack().Err(err).Msgf("Failed to load API documentation from url file content with %s content type", contentType)
 		return err
 	}
@@ -121,7 +110,7 @@ func (p *Parser) Parse(filename string, isUrl bool) (err error) {
 		loader.IsExternalRefsAllowed = p.IsExternalRefsAllowed
 
 		// Load data from file
-		doc, err := loader.LoadFromData(fileContent)
+		doc, err := loader.LoadFromData(content)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to load file")
 			return err
@@ -147,7 +136,7 @@ func (p *Parser) Parse(filename string, isUrl bool) (err error) {
 
 	} else {
 		var doc openapi2.T
-		if err := utils.LoadJsonYaml(fileContent, &doc, contentType); err != nil {
+		if err := utils.LoadJsonYaml(content, &doc, contentType); err != nil {
 			return err
 		}
 		p.Doc = &Swagger{}
