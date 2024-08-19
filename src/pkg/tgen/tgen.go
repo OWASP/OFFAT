@@ -53,6 +53,8 @@ func (t *TGenHandler) GenerateTests() []*ApiTest {
 			InHeader: true,
 			InPath:   true,
 			InQuery:  true,
+
+			InjectUriInQuery: true,
 		}
 		newTests := BasicSsrfTest(t.SsrfUrl, t.BaseUrl, t.Doc, t.DefaultQueryParams, t.DefaultHeaders, injectionConfig)
 		tests = append(tests, newTests...)

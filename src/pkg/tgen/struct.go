@@ -29,4 +29,8 @@ type InjectionConfig struct {
 	InHeader bool
 	InCookie bool
 	Payloads []string
+
+	// for vulnerable ssrf endpoint inject endpoint in query param
+	// example: https://ssrf-website.com?offat_test_endpoint=/api/v1/users
+	InjectUriInQuery bool
 }

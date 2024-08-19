@@ -59,6 +59,15 @@ func injectParamIntoApiTest(url string, docParams []*parser.DocHttpParams, query
 				continue
 			}
 
+			// check for uri endpoint injection in query param for vulnerable endpoint detection/backtracking
+			// this is required since all endpoints will make call to same ssrf payload
+			// so in order to detect vulnerable endpoint inject its uri path in query param
+			// example: https://ssrf-website.com?offat_test_endpoint=/api/v1/users
+
+			if injectionConfig.InjectUriInQuery {
+				queryMap["offat_test_endpoint"] = docParam.Path
+			}
+
 			request := c.NewRequest(url, docParam.HttpMethod, queryMap, headersMap, bodyData)
 
 			test := ApiTest{
