@@ -18,6 +18,8 @@ type TGenHandler struct {
 	RunBasicSQLiTest              bool
 	RunBasicSSRFTest              bool
 	RunOsCommandInjectionTest     bool
+	RunXssHtmlInjectionTest       bool
+	RunSstiInjectionTest          bool
 
 	// SSRF Test related data
 	SsrfUrl string
@@ -57,6 +59,36 @@ func (t *TGenHandler) GenerateTests() []*ApiTest {
 			InQuery:  true,
 		}
 		newTests := BasicOsCommandInjectionTest(t.BaseUrl, t.Doc, t.DefaultQueryParams, t.DefaultHeaders, injectionConfig)
+		tests = append(tests, newTests...)
+
+		log.Info().Msgf("%d tests generated for Basic OS Command Injection", len(newTests))
+	}
+
+	// Basic XSS/HTML Injection Test
+	if t.RunXssHtmlInjectionTest {
+		injectionConfig := InjectionConfig{
+			InBody:   true,
+			InCookie: true,
+			InHeader: true,
+			InPath:   true,
+			InQuery:  true,
+		}
+		newTests := BasicXssHtmlInjectionTest(t.BaseUrl, t.Doc, t.DefaultQueryParams, t.DefaultHeaders, injectionConfig)
+		tests = append(tests, newTests...)
+
+		log.Info().Msgf("%d tests generated for Basic XSS/HTML Injection", len(newTests))
+	}
+
+	// Basic SSTI Command Injection Test
+	if t.RunSstiInjectionTest {
+		injectionConfig := InjectionConfig{
+			InBody:   true,
+			InCookie: true,
+			InHeader: true,
+			InPath:   true,
+			InQuery:  true,
+		}
+		newTests := BasicSstiInjectionTest(t.BaseUrl, t.Doc, t.DefaultQueryParams, t.DefaultHeaders, injectionConfig)
 		tests = append(tests, newTests...)
 
 		log.Info().Msgf("%d tests generated for Basic OS Command Injection", len(newTests))

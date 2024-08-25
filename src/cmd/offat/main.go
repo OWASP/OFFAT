@@ -116,6 +116,8 @@ func main() {
 		RunBasicSQLiTest:              true,
 		RunBasicSSRFTest:              true,
 		RunOsCommandInjectionTest:     true,
+		RunXssHtmlInjectionTest:       true,
+		RunSstiInjectionTest:          true,
 
 		// SSRF Test
 		SsrfUrl: *config.SsrfUrl,
