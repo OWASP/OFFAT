@@ -10,7 +10,7 @@ scan-vulns:
 docker: dbuild scan-vulns
 
 build:
-	@go build -o bin/offat cmd/offat/main.go
+	@go build -o bin/offat cmd/offat/*
 
 test:
 	@go test -cover -v ./...

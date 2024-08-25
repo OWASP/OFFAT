@@ -26,14 +26,14 @@ jobs:
         with:
           go-version: '1.22.x'
 
-      - name: change cwd to project dir
-        run: cd ./src
-
       - name: Install Dependencies
         run: go mod download
+        working-directory: ./src
 
       - name: Build Project
         run: make build
+        working-directory: ./src
 
       - name: Test with the Go CLI
         run: make test
+        working-directory: ./src
