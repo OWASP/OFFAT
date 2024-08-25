@@ -11,11 +11,12 @@ type ApiTest struct {
 	Request        *client.Request `json:"request"`
 	Path           string          `json:"path"`
 	PathWithParams string          `json:"path_with_params"`
+	MatchRegex     string          `json:"match_regex"` // regex used in post processing for detecting injection
 
 	// Fields to be populated after making HTTP request
 	IsVulnerable bool                       `json:"is_vulnerable"`
 	IsDataLeak   bool                       `json:"is_data_leak"`
-	Response     *client.ConcurrentResponse `json:"response"`
+	Response     *client.ConcurrentResponse `json:"concurrent_response"`
 
 	// Post Request Process
 	VulnerableResponseCodes []int `json:"vulnerable_response_codes"`
@@ -28,9 +29,19 @@ type InjectionConfig struct {
 	InBody   bool
 	InHeader bool
 	InCookie bool
-	Payloads []string
+	Payloads []Payload
 
 	// for vulnerable ssrf endpoint inject endpoint in query param
 	// example: https://ssrf-website.com?offat_test_endpoint=/api/v1/users
 	InjectUriInQuery bool
+}
+
+// Struct used for injecting payloads while generating tests
+type Payload struct {
+	InjText string // text to be injected
+
+	// Post Processors
+	VulnerableResponseCodes []int  // status code indicating API endpoint is vulnerable
+	ImmuneResponseCodes     []int  // status code indicating API endpoint is not vulnerable
+	Regex                   string // regex to be used for post processing
 }

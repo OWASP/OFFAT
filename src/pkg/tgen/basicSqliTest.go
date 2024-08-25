@@ -8,19 +8,19 @@ import (
 func BasicSqliTest(baseUrl string, docParams []*parser.DocHttpParams, queryParams map[string]string, headers map[string]string, injectionConfig InjectionConfig) []*ApiTest {
 	testName := "Basic SQLI Test"
 	vulnResponseCodes := []int{500}
-	immuneResponseCodes := []int{}
+
 	// TODO: implement injection in both keys and values
-	payloads := []string{
-		"' OR 1=1 ;--",
-		"' UNION SELECT 1,2,3 -- -",
-		"' OR '1'='1--",
-		"' AND (SELECT * FROM (SELECT(SLEEP(5)))abc)",
-		"' AND SLEEP(5) --",
+	payloads := []Payload{
+		{InjText: "' OR 1=1 ;--", VulnerableResponseCodes: vulnResponseCodes},
+		{InjText: "' UNION SELECT 1,2,3 -- -", VulnerableResponseCodes: vulnResponseCodes},
+		{InjText: "' OR '1'='1--", VulnerableResponseCodes: vulnResponseCodes},
+		{InjText: "' AND (SELECT * FROM (SELECT(SLEEP(5)))abc)", VulnerableResponseCodes: vulnResponseCodes},
+		{InjText: "' AND SLEEP(5) --", VulnerableResponseCodes: vulnResponseCodes},
 	}
 
 	injectionConfig.Payloads = payloads
 
-	tests := injectParamIntoApiTest(baseUrl, docParams, queryParams, headers, testName, vulnResponseCodes, immuneResponseCodes, injectionConfig)
+	tests := injectParamIntoApiTest(baseUrl, docParams, queryParams, headers, testName, injectionConfig)
 
 	return tests
 }

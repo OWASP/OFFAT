@@ -17,6 +17,7 @@ type TGenHandler struct {
 	RunUnrestrictedHttpMethodTest bool
 	RunBasicSQLiTest              bool
 	RunBasicSSRFTest              bool
+	RunOsCommandInjectionTest     bool
 
 	// SSRF Test related data
 	SsrfUrl string
@@ -44,6 +45,21 @@ func (t *TGenHandler) GenerateTests() []*ApiTest {
 		tests = append(tests, newTests...)
 
 		log.Info().Msgf("%d tests generated for Basic SQLI", len(newTests))
+	}
+
+	// Basic OS Command Injection Test
+	if t.RunOsCommandInjectionTest {
+		injectionConfig := InjectionConfig{
+			InBody:   true,
+			InCookie: true,
+			InHeader: true,
+			InPath:   true,
+			InQuery:  true,
+		}
+		newTests := BasicOsCommandInjectionTest(t.BaseUrl, t.Doc, t.DefaultQueryParams, t.DefaultHeaders, injectionConfig)
+		tests = append(tests, newTests...)
+
+		log.Info().Msgf("%d tests generated for Basic OS Command Injection", len(newTests))
 	}
 
 	if t.RunBasicSSRFTest && utils.ValidateURL(t.SsrfUrl) {

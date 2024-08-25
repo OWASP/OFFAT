@@ -115,6 +115,7 @@ func main() {
 		RunUnrestrictedHttpMethodTest: true,
 		RunBasicSQLiTest:              true,
 		RunBasicSSRFTest:              true,
+		RunOsCommandInjectionTest:     true,
 
 		// SSRF Test
 		SsrfUrl: *config.SsrfUrl,

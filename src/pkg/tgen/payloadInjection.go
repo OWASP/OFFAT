@@ -31,7 +31,7 @@ func injectParamInParam(params *[]parser.Param, payload string) {
 }
 
 // generates Api tests by injecting payloads in values
-func injectParamIntoApiTest(url string, docParams []*parser.DocHttpParams, queryParams map[string]string, headers map[string]string, testName string, vulnResponseCodes, immuneResponseCodes []int, injectionConfig InjectionConfig) []*ApiTest {
+func injectParamIntoApiTest(url string, docParams []*parser.DocHttpParams, queryParams map[string]string, headers map[string]string, testName string, injectionConfig InjectionConfig) []*ApiTest {
 	var tests []*ApiTest
 	// TODO: only inject payloads if any payload is accepted by the endpoint, else ignore injection
 	// as this will reduce number of tests generated and increase efficiency
@@ -40,16 +40,16 @@ func injectParamIntoApiTest(url string, docParams []*parser.DocHttpParams, query
 		for _, docParam := range docParams {
 			// inject payloads into string before converting it to map[string]string
 			if injectionConfig.InBody {
-				injectParamInParam(&(docParam.BodyParams), payload)
+				injectParamInParam(&(docParam.BodyParams), payload.InjText)
 			}
 			if injectionConfig.InQuery {
-				injectParamInParam(&(docParam.QueryParams), payload)
+				injectParamInParam(&(docParam.QueryParams), payload.InjText)
 			}
 			if injectionConfig.InCookie {
-				injectParamInParam(&(docParam.CookieParams), payload)
+				injectParamInParam(&(docParam.CookieParams), payload.InjText)
 			}
 			if injectionConfig.InHeader {
-				injectParamInParam(&(docParam.HeaderParams), payload)
+				injectParamInParam(&(docParam.HeaderParams), payload.InjText)
 			}
 
 			// parse maps
@@ -75,8 +75,9 @@ func injectParamIntoApiTest(url string, docParams []*parser.DocHttpParams, query
 				Request:                 request,
 				Path:                    docParam.Path,
 				PathWithParams:          pathWithParams,
-				VulnerableResponseCodes: vulnResponseCodes,
-				ImmuneResponseCodes:     immuneResponseCodes,
+				VulnerableResponseCodes: payload.VulnerableResponseCodes,
+				ImmuneResponseCodes:     payload.ImmuneResponseCodes,
+				MatchRegex:              payload.Regex,
 			}
 			tests = append(tests, &test)
 		}
