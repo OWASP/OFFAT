@@ -21,6 +21,7 @@ type TGenHandler struct {
 	RunXssHtmlInjectionTest       bool
 	RunSstiInjectionTest          bool
 	RunBolaTest                   bool
+	RunBolaTrailingPathTest       bool
 
 	// SSRF Test related data
 	SsrfUrl string
@@ -43,6 +44,14 @@ func (t *TGenHandler) GenerateTests() []*ApiTest {
 		tests = append(tests, newTests...)
 
 		log.Info().Msgf("%d tests generated for BOLA", len(newTests))
+	}
+
+	// BOLA Trailing Path Test
+	if t.RunBolaTest {
+		newTests := BolaTrailingPathTest(t.BaseUrl, t.Doc, t.DefaultQueryParams, t.DefaultHeaders)
+		tests = append(tests, newTests...)
+
+		log.Info().Msgf("%d tests generated for BOLA Trailing Path", len(newTests))
 	}
 
 	// Basic SQLI Test
