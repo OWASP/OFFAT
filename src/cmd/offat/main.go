@@ -118,6 +118,7 @@ func main() {
 		RunOsCommandInjectionTest:     true,
 		RunXssHtmlInjectionTest:       true,
 		RunSstiInjectionTest:          true,
+		RunBolaTest:                   true,
 
 		// SSRF Test
 		SsrfUrl: *config.SsrfUrl,
