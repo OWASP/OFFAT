@@ -119,6 +119,7 @@ func main() {
 		RunXssHtmlInjectionTest:       true,
 		RunSstiInjectionTest:          true,
 		RunBolaTest:                   true,
+		RunBolaTrailingPathTest:       true,
 
 		// SSRF Test
 		SsrfUrl: *config.SsrfUrl,
