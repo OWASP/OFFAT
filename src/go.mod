@@ -16,7 +16,7 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
-	github.com/bytedance/gopkg v0.1.0 // indirect
+	github.com/bytedance/gopkg v0.1.1 // indirect
 	github.com/cloudwego/hertz v0.9.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect

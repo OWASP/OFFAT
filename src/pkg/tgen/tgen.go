@@ -20,6 +20,7 @@ type TGenHandler struct {
 	RunOsCommandInjectionTest     bool
 	RunXssHtmlInjectionTest       bool
 	RunSstiInjectionTest          bool
+	RunBolaTest                   bool
 
 	// SSRF Test related data
 	SsrfUrl string
@@ -27,11 +28,21 @@ type TGenHandler struct {
 
 func (t *TGenHandler) GenerateTests() []*ApiTest {
 	tests := []*ApiTest{}
+
+	// Unrestricted HTTP Method/Verbs
 	if t.RunUnrestrictedHttpMethodTest {
 		newTests := UnrestrictedHttpMethods(t.BaseUrl, t.Doc, t.DefaultQueryParams, t.DefaultHeaders)
 		tests = append(tests, newTests...)
 
 		log.Info().Msgf("%d tests generated for Unrestricted HTTP Methods/Verbs", len(newTests))
+	}
+
+	// BOLA Test
+	if t.RunBolaTest {
+		newTests := BolaTest(t.BaseUrl, t.Doc, t.DefaultQueryParams, t.DefaultHeaders)
+		tests = append(tests, newTests...)
+
+		log.Info().Msgf("%d tests generated for BOLA", len(newTests))
 	}
 
 	// Basic SQLI Test
