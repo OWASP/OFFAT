@@ -1,6 +1,8 @@
 package tgen
 
 import (
+	"regexp"
+
 	_ "github.com/OWASP/OFFAT/src/pkg/logging"
 	"github.com/OWASP/OFFAT/src/pkg/parser"
 	"github.com/OWASP/OFFAT/src/pkg/utils"
@@ -25,6 +27,23 @@ type TGenHandler struct {
 
 	// SSRF Test related data
 	SsrfUrl string
+}
+
+func (t *TGenHandler) FilterTests(apiTests []*ApiTest, pathRegex string) []*ApiTest {
+	var filteredTests []*ApiTest
+	for _, apiTest := range apiTests {
+		match, err := regexp.MatchString(pathRegex, apiTest.Path)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to match %v regex with endpoint path %v", pathRegex, apiTest.Path)
+			continue
+		}
+
+		if match {
+			filteredTests = append(filteredTests, apiTest)
+		}
+	}
+
+	return filteredTests
 }
 
 func (t *TGenHandler) GenerateTests() []*ApiTest {
