@@ -24,6 +24,9 @@ type FlagConfig struct {
 	QueryParams         KeyValueMap
 	Proxy               *string
 
+	// API test filter
+	PathRegex *string
+
 	// SSRF Test
 	SsrfUrl *string
 

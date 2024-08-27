@@ -33,6 +33,8 @@ func main() {
 	config.DisableSchemaDefaultsValidation = flag.Bool("ds", false, "disable schema defaults validation for OAS files")
 	config.DisableSchemaPatternValidation = flag.Bool("dp", false, "disable schema patterns validation for OAS files")
 
+	config.PathRegex = flag.String("pr", "", "run tests for paths matching given regex pattern")
+
 	config.SsrfUrl = flag.String("ssrf", "", "injects user defined SSRF url payload in http request components")
 
 	config.RequestsPerSecond = flag.Int("r", 60, "number of requests per second")
@@ -124,8 +126,15 @@ func main() {
 		SsrfUrl: *config.SsrfUrl,
 	}
 
-	// generate and run api tests
+	// generate api tests
 	apiTests := apiTestHandler.GenerateTests()
+
+	// filter api tests
+	if *config.PathRegex != "" {
+		apiTests = apiTestHandler.FilterTests(apiTests, *config.PathRegex)
+	}
+
+	// run api tests
 	trunner.RunApiTests(&apiTestHandler, hc, hc.Client.FHClient, apiTests)
 	log.Info().Msgf("Total Requests: %d", len(apiTests))
 
