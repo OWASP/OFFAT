@@ -1,8 +1,8 @@
 run:
-	@go run -race ./cmd/offat/main.go --version
+	@go run -race ./cmd/offat/ -v
 
 dbuild:
-	@docker build -f ./Dockerfile -t dmdhrumilmistry/offat . --no-cache --progress=plain
+	@docker build -t dmdhrumilmistry/offat .
 
 scan-vulns:
 	@trivy image dmdhrumilmistry/offat --scanners vuln
