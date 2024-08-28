@@ -60,9 +60,9 @@ jobs:
           url: ${{ secrets.url }}
 
       - name: "OWASP OFFAT CICD Scanner"
-        uses: OWASP/OFFAT@main # OWASP/OFFAT@v0.17.3
+        uses: OWASP/OFFAT@main # OWASP/OFFAT@v0.20.0
         with:
-          file: /tmp/swagger.json # or ${{ secrets.url }}
+          file: /tmp/oas.json # or ${{ secrets.url }}
           rate_limit: 120
           artifact_retention_days: 1
 ```
@@ -163,7 +163,7 @@ The disclaimer advises users to use the open-source project for ethical and legi
 
   ```bash
   # without ssl check
-  offat -f oas.json -p http://localhost:8080 -o output.json # ssl checks are disabled by default to avoid certificate installations
+  offat -f oas.json -p http://localhost:8080 -o output.json
 
   # without ssl check
   offat -f oas.json -p http://localhost:8080 -o output.json -ns
@@ -246,14 +246,16 @@ The disclaimer advises users to use the open-source project for ethical and legi
 ### Open In Google Cloud Shell
 
 - Temporary Session
+
   [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/OWASP/OFFAT.git&ephemeral=true&show=terminal&cloudshell_print=./DISCLAIMER.md)
+
 - Perisitent Session
+
   [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/OWASP/OFFAT.git&ephemeral=false&show=terminal&cloudshell_print=./DISCLAIMER.md)
 
 ## Have any Ideas 💡 or issue
 
-- Create an issue
-- Fork the repo, update script and create a Pull Request
+Create an issue *OR* fork the repo, update script and create a Pull Request
 
 ## Contributing
 
