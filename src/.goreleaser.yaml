@@ -1,3 +1,7 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=jcroql
+version: 2
+
 project_name: offat
 
 before:
@@ -6,8 +10,7 @@ before:
   - go mod download
 
 builds:
-  -
-    main: ./cmd/offat/
+  - main: ./cmd/offat/
     binary: offat
     goos:
       - windows
@@ -34,8 +37,7 @@ builds:
         goarch: arm
 
 archives:
-  -
-    name_template: >-
+  - name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
       {{- if eq .Arch "darwin" }}macos
