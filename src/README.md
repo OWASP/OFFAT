@@ -8,28 +8,32 @@ Automatically Tests for vulnerabilities after generating tests from openapi spec
 
 ## Security Checks
 
-- [x] Restricted HTTP Methods
-- [x] SQLi
-- [x] BOLA (Might need few bug fixes)
-- [x] Data Exposure (Detects Common Data Exposures)
-- [x] BOPLA / Mass Assignment
-- [x] Broken Access Control
-- [x] Basic Command Injection
-- [x] Basic XSS/HTML Injection test
-- [x] Basic SSTI test
+- [x] Restricted HTTP Method/Verb
+- [x] BOLA
+- [x] BOPLA/Mass Assignment
+- [x] SQL Injection
+- [x] Command Injection
+- [x] XSS/HTML Injection
+- [x] SSTI
+- [x] SSRF
+- [ ] Data Exposure (Detects Common Data Exposures)
+- [ ] Broken Access Control
 - [ ] Broken Authentication
 
 ## Features
 
+- Supports openAPI specification (OAS) Doc
 - Few Security Checks from OWASP API Top 10
 - Automated Testing
 - User Config Based Testing
 - API for Automating tests and Integrating Tool with other platforms/tools
 - CLI tool
 - Proxy Support
-- Secure Dockerized Project for Easy Usage
+- Hardened Docker Images
 - Open Source Tool with MIT License
-- Github Action
+- Trigger scans in CI/CD using GitHub Action
+
+> Swagger files are not supported at the moment
 
 ## Github Action
 
@@ -50,8 +54,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: "download swagger/OAS file"
-        run: curl ${url} -o /tmp/swagger.json
+      - name: "download OAS file"
+        run: curl ${url} -o /tmp/oas.json
         env:
           url: ${{ secrets.url }}
 
@@ -63,7 +67,7 @@ jobs:
           artifact_retention_days: 1
 ```
 
-> Prefer locking action to specific version `OWASP/OFFAT@v0.17.3` instead of using `OWASP/OFFAT@main` and bump OFFAT action version after testing.
+> Prefer locking action to specific version `OWASP/OFFAT@v0.20.0` instead of using `OWASP/OFFAT@main` and bump OFFAT action version after testing.
 
 ## Disclaimer
 
@@ -73,74 +77,34 @@ The disclaimer advises users to use the open-source project for ethical and legi
 
 ## Installation
 
-### Using pip
+### Using Go
 
-- Install main branch using pip
+- Clone repository
 
     ```bash
-    python3 -m pip install git+https://github.com/OWASP/OFFAT.git
+    git clone https://github.com/OWASP/OFFAT
     ```
 
-- Install Release from PyPi
+- Go source code is stored in src directory
 
     ```bash
-    python3 -m pip install offat        # only cli tool
-    python3 -m pip install offat[api]   # cli + api
+    cd src
+    ```
+
+- Run Go install command
+
+    ```bash
+    go install ./...
     ```
 
 ### Using Containers
 
 ### Docker
 
-- Build Image
-
-    ```bash
-    make local
-    ```
-
 - CLI Tool
 
   ```bash
-  docker run --rm dmdhrumilmistry/offat
-  ```
-
-- API
-
-  ```bash
-  docker compose up -d
-  ```
-
-  > POST `openapi` documentation to `/api/v1/scan/` endpoint with its valid `type` (json/yaml); `job_id` will be returned.
-
-### Manual Method
-
-- Open terminal
-
-- Install git package
-
-  ```bash
-  sudo apt install git python3 -y
-  ```
-
-- Install [Poetry](https://python-poetry.org/docs/master#installing-with-the-official-installer)
-
-- clone the repository to your machine
-
-  ```bash
-  git clone https://github.com/OWASP/OFFAT.git
-  ```
-
-- Change directory
-
-  ```bash
-  cd offat
-  ```
-
-- install with poetry
-
-  ```bash
-  # without options
-  poetry install
+  docker run --rm dmdhrumilmistry/offat -h
   ```
 
 ## Start OffAT
@@ -150,9 +114,11 @@ The disclaimer advises users to use the open-source project for ethical and legi
 - Run offat
 
   ```bash
-  offat -f swagger_file.json              # using file
+  offat -f oas.json              # using file
   offat -f https://example.com/docs.json  # using url
   ```
+
+  > JSON and YAML formats are supported
 
 - To get all the commands use `help`
 
@@ -163,53 +129,52 @@ The disclaimer advises users to use the open-source project for ethical and legi
 - Save result in `json`
 
   ```bash
-  offat -f swagger_file.json -o output.json
+  offat -f oas.json -o output.json
   ```
-  > `json` format is default output format
 
 - Get curl command for making requests
 
   ```bash
-  jq -r '.[].response.response.curl_command' output.json
+  jq -r '.[].concurrent_response.response.curl_command' output.json
   ```
   > `jq` tool is required to run above command
 
 - Run tests only for endpoint paths matching regex pattern
 
   ```bash
-  offat -f swagger_file.json -pr '/user'
+  offat -f oas.yml -pr '/user'
   ```
 
 - Add headers to requests
 
   ```bash
-  offat -f swagger_file.json -H 'Accept: application/json' -H 'Authorization: Bearer YourJWTToken'
+  offat -f oas.json -H 'Accept: application/json' -H 'Authorization: Bearer YourJWTToken'
   ```
 
 - Run Test with Requests Rate Limited
 
   ```bash
-  offat -f swagger_file.json -r 1000
+  offat -f oas.json -r 1000
   ```
 
-  > `rl`: requests rate limit per second
+  > `r`: requests rate limit per second
 
 - Use along with proxy
 
   ```bash
   # without ssl check
-  offat -f swagger_file.json -p http://localhost:8080 -o output.json # ssl checks are disabled by default to avoid certificate installations
+  offat -f oas.json -p http://localhost:8080 -o output.json # ssl checks are disabled by default to avoid certificate installations
 
-  # with ssl check enforced
-  offat -f swagger_file.json -p http://localhost:8080 -o output.json -of json --ssl
+  # without ssl check
+  offat -f oas.json -p http://localhost:8080 -o output.json -ns
   ```
 
   > Make sure that proxy can handle multiple requests at the same time
 
-- Use user provided inputs for generating tests
+<!-- - Use user provided inputs for generating tests
 
   ```bash
-  offat -f swagger_file.json -tdc test_data_config.yaml
+  offat -f oas.json -tdc test_data_config.yaml
   ```
 
   `test_data_config.yaml`
@@ -276,7 +241,7 @@ The disclaimer advises users to use the open-source project for ethical and legi
           - name: phone
             value: +41912312311
             type: str
-  ```
+  ``` -->
 
 ### Open In Google Cloud Shell
 

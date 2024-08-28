@@ -159,3 +159,4 @@ oas.yml
 test-files
 src/main
 main
+dist/
