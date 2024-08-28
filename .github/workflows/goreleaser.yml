@@ -30,6 +30,7 @@ jobs:
 
       - name: run GoReleaser
         uses: goreleaser/goreleaser-action@v6
+        working-directory: ./src
         with:
           distribution: goreleaser
           version: latest
