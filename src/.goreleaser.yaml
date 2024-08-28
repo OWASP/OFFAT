@@ -1,4 +1,4 @@
-project_name: amass
+project_name: offat
 
 before:
   hooks:
