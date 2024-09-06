@@ -30,6 +30,9 @@ type FlagConfig struct {
 	// SSRF Test
 	SsrfUrl *string
 
+	// Data Leak Test
+	DataLeakPatternFile *string
+
 	// Report
 	AvoidImmuneFilter *bool
 	OutputFilePath    *string

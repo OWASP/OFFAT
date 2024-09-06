@@ -7,7 +7,6 @@ import (
 
 	"github.com/OWASP/OFFAT/src/pkg/http"
 	"github.com/OWASP/OFFAT/src/pkg/tgen"
-	"github.com/OWASP/OFFAT/src/pkg/trunner/postrunner"
 	c "github.com/dmdhrumilmistry/fasthttpclient/client"
 	"github.com/k0kubun/go-ansi"
 	"github.com/schollz/progressbar/v3"
@@ -57,6 +56,4 @@ func RunApiTests(t *tgen.TGenHandler, hc *http.Http, client c.ClientInterface, a
 	wg.Wait()
 	fmt.Println()
 
-	// Run Post Processing Tests
-	postrunner.UpdateStatusCodeBasedResult(&apiTests)
 }
