@@ -19,8 +19,9 @@ type ApiTest struct {
 	Response     *client.ConcurrentResponse `json:"concurrent_response"`
 
 	// Post Request Process
-	VulnerableResponseCodes []int `json:"vulnerable_response_codes"`
-	ImmuneResponseCodes     []int `json:"immune_response_codes"` //
+	VulnerableResponseCodes []int                  `json:"vulnerable_response_codes"`
+	ImmuneResponseCodes     []int                  `json:"immune_response_codes"`
+	DataLeakMatches         []DataLeakPatternMatch `json:"data_leak_matches"`
 }
 
 type InjectionConfig struct {
@@ -44,4 +45,21 @@ type Payload struct {
 	VulnerableResponseCodes []int  // status code indicating API endpoint is vulnerable
 	ImmuneResponseCodes     []int  // status code indicating API endpoint is not vulnerable
 	Regex                   string // regex to be used for post processing
+}
+
+// For Post runner
+type DataLeakPattern struct {
+	Name       string `json:"name" yaml:"name"`
+	Regex      string `json:"regex" yaml:"regex"`
+	Confidence string `json:"confidence" yaml:"confidence"`
+}
+
+type DataLeakPatterns struct {
+	Patterns []DataLeakPattern `json:"patterns" yaml:"patterns"`
+}
+
+type DataLeakPatternMatch struct {
+	DataLeakPattern
+
+	Matches []string
 }

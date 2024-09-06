@@ -16,7 +16,7 @@ Automatically Tests for vulnerabilities after generating tests from openapi spec
 - [x] XSS/HTML Injection
 - [x] SSTI
 - [x] SSRF
-- [ ] Data Exposure (Detects Common Data Exposures)
+- [x] Data Exposure (Detects Common Data Exposures)
 - [ ] Broken Access Control
 - [ ] Broken Authentication
 
@@ -119,6 +119,18 @@ The disclaimer advises users to use the open-source project for ethical and legi
   ```
 
   > JSON and YAML formats are supported
+
+- For Data Leak detection
+
+  - Create a new data leakage detection file from this sample file [owasp-offat-data-leak-patterns.yml](https://gist.github.com/dmdhrumilmistry/cd43ac90fa28f3c6d9c1b87c56586103)
+
+  > [!WARNING]
+  > Remember to include only patterns whose data can be probably found in your APIs, 
+  > since detection process can lead to CPU spikes.
+  
+  ```bash
+  offat -f oas.yaml -dl owasp-offat-data-leak-patterns.yml
+  ```
 
 - To get all the commands use `help`
 

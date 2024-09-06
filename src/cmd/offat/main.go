@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"time"
 
@@ -19,7 +20,29 @@ import (
 
 const Version = "v0.20.0"
 
+func banner() {
+	fmt.Print(`
+      _/|       |\_
+     /  |       |  \
+    |    \     /    |
+    |  \ /     \ /  |
+    | \  |     |  / |
+    | \ _\_/^\_/_ / |
+    |    --\//--    |
+     \_  \     /  _/
+       \__  |  __/
+          \ _ /
+         _/   \_
+        / _/|\_ \
+         /  |  \
+          / v \
+          OFFAT
+
+`)
+}
+
 func main() {
+	banner()
 
 	// Parse CLI args
 	config := FlagConfig{}
@@ -36,6 +59,7 @@ func main() {
 	config.PathRegex = flag.String("pr", "", "run tests for paths matching given regex pattern")
 
 	config.SsrfUrl = flag.String("ssrf", "", "injects user defined SSRF url payload in http request components")
+	config.DataLeakPatternFile = flag.String("dl", "", "data leak pattern YAML/JSON file url/path. It should be a simple GET request.")
 
 	config.RequestsPerSecond = flag.Int("r", 60, "number of requests per second")
 	config.SkipTlsVerification = flag.Bool("ns", false, "disable TLS/SSL Verfication")
@@ -87,10 +111,11 @@ func main() {
 	log.Info().Msg("fuzzing doc http params")
 	parser.FuzzDocHttpParams()
 
-	// http client
+	// Create http client and config
 	httpCfg := http.NewConfig(config.RequestsPerSecond, config.SkipTlsVerification, config.Proxy)
 	hc := http.NewHttp(httpCfg)
 
+	// Test server connectivity
 	url := *parser.Doc.GetBaseUrl()
 	resp, err := hc.Client.FHClient.Do(url, fasthttp.MethodGet, nil, nil, nil)
 	if err != nil {
@@ -104,6 +129,21 @@ func main() {
 	}
 
 	log.Info().Msgf("successfully connected to %v", url)
+
+	// Validate data leak pattern file
+	var patterns tgen.DataLeakPatterns
+	var contentType string
+
+	if *config.DataLeakPatternFile != "" {
+		contentType, err = utils.InferContentTypeByPath(*config.DataLeakPatternFile)
+		if err != nil {
+			log.Error().Stack().Err(err).Msgf("failed to infer data leak pattern file content type by path: %s", *config.DataLeakPatternFile)
+		} else if err := utils.LoadJsonYamlFromFile(*config.DataLeakPatternFile, &patterns, contentType); err != nil {
+			log.Error().Stack().Err(err).Msgf("failed to load data leak pattern file by path: %s", *config.DataLeakPatternFile)
+		}
+	} else {
+		log.Warn().Msg("Data leak tests will be skipped due to invalid -dl flag")
+	}
 
 	// generate and run tests
 	apiTestHandler := tgen.TGenHandler{
@@ -137,6 +177,16 @@ func main() {
 	// run api tests
 	trunner.RunApiTests(&apiTestHandler, hc, hc.Client.FHClient, apiTests)
 	log.Info().Msgf("Total Requests: %d", len(apiTests))
+
+	// **## Run Post Tests processors ##**
+	// scan for data leaks before any filtering
+	// below function
+	if len(patterns.Patterns) > 0 {
+		postrunner.UpdateDataLeakResult(&apiTests, patterns)
+	}
+
+	// update results based on http status codes
+	postrunner.UpdateStatusCodeBasedResult(&apiTests)
 
 	// filter immune api from results
 	postrunner.FilterImmuneResults(&apiTests, config.AvoidImmuneFilter)

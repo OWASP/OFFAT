@@ -9,21 +9,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// removes immune endpoints from the api tests slice
-func FilterImmuneResults(apiTests *[]*tgen.ApiTest, filterImmune *bool) {
-	if !*filterImmune {
-		return
-	}
-
-	filtered := []*tgen.ApiTest{}
-	for _, apiTest := range *apiTests {
-		if apiTest.IsDataLeak || apiTest.IsVulnerable {
-			filtered = append(filtered, apiTest)
-		}
-	}
-	*apiTests = filtered
-}
-
 // marks api test vulnerable or immune based on the API test VulnerableResponseCodes/ImmuneResponseCodes
 func UpdateStatusCodeBasedResult(apiTests *[]*tgen.ApiTest) {
 	for _, apiTest := range *apiTests {
