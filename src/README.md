@@ -120,18 +120,6 @@ The disclaimer advises users to use the open-source project for ethical and legi
 
   > JSON and YAML formats are supported
 
-- For Data Leak detection
-
-  - Create a new data leakage detection file from this sample file [owasp-offat-data-leak-patterns.yml](https://gist.github.com/dmdhrumilmistry/cd43ac90fa28f3c6d9c1b87c56586103)
-
-  > [!WARNING]
-  > Remember to include only patterns whose data can be probably found in your APIs, 
-  > since detection process can lead to CPU spikes.
-  
-  ```bash
-  offat -f oas.yaml -dl owasp-offat-data-leak-patterns.yml
-  ```
-
 - To get all the commands use `help`
 
   ```bash
@@ -182,6 +170,16 @@ The disclaimer advises users to use the open-source project for ethical and legi
   ```
 
   > Make sure that proxy can handle multiple requests at the same time
+
+- For Data Leak detection, create a new data leakage detection file from this sample file [owasp-offat-data-leak-patterns.yml](https://gist.github.com/dmdhrumilmistry/cd43ac90fa28f3c6d9c1b87c56586103)
+  
+  ```bash
+  offat -f oas.yaml -dl owasp-offat-data-leak-patterns.yml
+  ```
+
+>  [!WARNING]  
+>  Remember to include only patterns whose data can be probably found in your APIs, 
+>  since detection process can lead to CPU spikes.
 
 <!-- - Use user provided inputs for generating tests
 
