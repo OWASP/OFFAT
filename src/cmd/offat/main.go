@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"time"
 
@@ -19,7 +20,29 @@ import (
 
 const Version = "v0.20.0"
 
+func banner() {
+	fmt.Print(`
+      _/|       |\_
+     /  |       |  \
+    |    \     /    |
+    |  \ /     \ /  |
+    | \  |     |  / |
+    | \ _\_/^\_/_ / |
+    |    --\//--    |
+     \_  \     /  _/
+       \__  |  __/
+          \ _ /
+         _/   \_
+        / _/|\_ \
+         /  |  \
+          / v \
+          OFFAT
+
+`)
+}
+
 func main() {
+	banner()
 
 	// Parse CLI args
 	config := FlagConfig{}
