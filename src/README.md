@@ -6,6 +6,10 @@ Automatically Tests for vulnerabilities after generating tests from openapi spec
 
 ![UnDocumented petstore API endpoint HTTP method results](/assets/images/tests/offat-v0.5.0.png)
 
+>  [!WARNING]  
+>  At the moment HTTP 2/3 aren't supported since fasthttpclient is used under the hood to increase performance.
+>  Visit [FastHTTP README](https://github.com/valyala/fasthttp) for more details
+
 ## Security Checks
 
 - [x] Restricted HTTP Method/Verb

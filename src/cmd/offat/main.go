@@ -153,14 +153,15 @@ func main() {
 		DefaultQueryParams: config.QueryParams.ToMap(),
 
 		// Tests
-		RunUnrestrictedHttpMethodTest: true,
-		RunBasicSQLiTest:              true,
-		RunBasicSSRFTest:              true,
-		RunOsCommandInjectionTest:     true,
-		RunXssHtmlInjectionTest:       true,
-		RunSstiInjectionTest:          true,
-		RunBolaTest:                   true,
-		RunBolaTrailingPathTest:       true,
+		RunUnrestrictedHttpMethodTest:    true,
+		RunBasicSQLiTest:                 true,
+		RunBasicSSRFTest:                 true,
+		RunOsCommandInjectionTest:        true,
+		RunXssHtmlInjectionTest:          true,
+		RunSstiInjectionTest:             true,
+		RunBolaTest:                      true,
+		RunBolaTrailingPathTest:          true,
+		RunMissingAuthImplementationTest: true,
 
 		// SSRF Test
 		SsrfUrl: *config.SsrfUrl,

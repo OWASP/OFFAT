@@ -16,14 +16,15 @@ type TGenHandler struct {
 	BaseUrl            string
 
 	// Register all tests using bool values below
-	RunUnrestrictedHttpMethodTest bool
-	RunBasicSQLiTest              bool
-	RunBasicSSRFTest              bool
-	RunOsCommandInjectionTest     bool
-	RunXssHtmlInjectionTest       bool
-	RunSstiInjectionTest          bool
-	RunBolaTest                   bool
-	RunBolaTrailingPathTest       bool
+	RunUnrestrictedHttpMethodTest    bool
+	RunBasicSQLiTest                 bool
+	RunBasicSSRFTest                 bool
+	RunOsCommandInjectionTest        bool
+	RunXssHtmlInjectionTest          bool
+	RunSstiInjectionTest             bool
+	RunBolaTest                      bool
+	RunBolaTrailingPathTest          bool
+	RunMissingAuthImplementationTest bool
 
 	// SSRF Test related data
 	SsrfUrl string
@@ -71,6 +72,14 @@ func (t *TGenHandler) GenerateTests() []*ApiTest {
 		tests = append(tests, newTests...)
 
 		log.Info().Msgf("%d tests generated for BOLA Trailing Path", len(newTests))
+	}
+
+	// Missing Auth Implementation Test
+	if t.RunMissingAuthImplementationTest {
+		newTests := MissingAuthTest(t.BaseUrl, t.Doc, t.DefaultQueryParams, t.DefaultHeaders)
+		tests = append(tests, newTests...)
+
+		log.Info().Msgf("%d tests generated for Missing Auth Implementation", len(newTests))
 	}
 
 	// Basic SQLI Test
@@ -133,6 +142,7 @@ func (t *TGenHandler) GenerateTests() []*ApiTest {
 		log.Info().Msgf("%d tests generated for Basic OS Command Injection", len(newTests))
 	}
 
+	// SSRF Test
 	if t.RunBasicSSRFTest && utils.ValidateURL(t.SsrfUrl) {
 		injectionConfig := InjectionConfig{
 			InBody:   true,
