@@ -31,18 +31,38 @@ OWASP OFFAT (OFFensive Api Tester) is created to automatically test API for comm
 -   Dockerized Project for Easy Usage
 -   Open Source Tool with MIT License
 
+## Installation
+
+### Using Homebrew
+
+```bash
+homebrew install owasp-offat/tap/offat
+```
+
+### Using Go
+
+#### Github Hosted Method
+
+- Install latest release using below command
+
+  ```bash
+  go install -v github.com/owasp-offat/offat/cmd/offat@latest
+  ```
+
+- Install main/dev branch
+
+  ```bash
+  go install -v github.com/owasp-offat/offat/cmd/offat@main # install main branch
+  go install -v github.com/owasp-offat/offat/cmd/offat@dev  # install dev branch
+  ```
+
 ## Try Tool
 
--   Install Tool using pip
+- Run Tool
 
 ```bash
-python -m pip install offat
+offat -f oas.yml
 ```
 
--   Run Tool
-
-```bash
-offat -f swagger_file.json
-```
-
--   For more usage options read [README.md](https://github.com/OWASP/OFFAT/blob/main/src/README.md)
+>  [!NOTE]  
+>  For more usage options read [OWASP-OFFAT README](https://github.com/owasp-offat/offat/blob/main/README.md)
