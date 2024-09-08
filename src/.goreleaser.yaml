@@ -70,7 +70,7 @@ changelog:
     - "{{ .Tag }}"
 
 brews:
-  - name: amass
+  - name: offat
     repository:
       owner: dmdhrumilmistry
       name: homebrew-tap
