@@ -68,3 +68,21 @@ changelog:
     exclude:
     - '^MERGE'
     - "{{ .Tag }}"
+
+brews:
+  - name: amass
+    repository:
+      owner: dmdhrumilmistry
+      name: homebrew-amass
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    url_template: "https://github.com/OWASP/OFFAT/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    commit_author:
+      name: dmdhrumilmistry
+      email: dmdhrumilmistry@users.noreply.github.com
+    folder: Formula
+    homepage: "https://owasp.org/OFFAT/"
+    description: "In-depth Attack Surface Mapping and Asset Discovery"
+    test: |
+      system "#{bin}/amass --version"
+    install: |
+      bin.install "amass"
