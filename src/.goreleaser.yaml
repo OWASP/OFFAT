@@ -73,7 +73,7 @@ brews:
   - name: amass
     repository:
       owner: dmdhrumilmistry
-      name: homebrew-amass
+      name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     url_template: "https://github.com/OWASP/OFFAT/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
     commit_author:
@@ -81,8 +81,8 @@ brews:
       email: dmdhrumilmistry@users.noreply.github.com
     folder: Formula
     homepage: "https://owasp.org/OFFAT/"
-    description: "In-depth Attack Surface Mapping and Asset Discovery"
+    description: "Autonomous REST API Vulnerability Assessment Tool"
     test: |
-      system "#{bin}/amass --version"
+      system "#{bin}/offat -v"
     install: |
-      bin.install "amass"
+      bin.install "offat"
