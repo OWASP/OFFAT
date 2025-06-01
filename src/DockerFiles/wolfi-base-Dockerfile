@@ -2,7 +2,7 @@
 # Builder Stage
 ############################
 # use chainguard hardened images with SBOM
-FROM cgr.dev/chainguard/wolfi-base as builder
+FROM cgr.dev/chainguard/wolfi-base AS builder
 
 WORKDIR /offat
 
@@ -15,7 +15,7 @@ ENV PATH="/offat/.venv/bin:$PATH"
 
 
 RUN apk add python-${version} py${version}-pip && \
-        chown -R nonroot.nonroot /offat
+        chown -R nonroot:nonroot /offat
 
 # install poetry and copy lock file
 RUN python -m pip install poetry
@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install -E api --without 
 ############################
 # runtime stage
 ############################
-FROM cgr.dev/chainguard/wolfi-base as runtime
+FROM cgr.dev/chainguard/wolfi-base AS runtime
 
 WORKDIR /offat
 
@@ -46,7 +46,7 @@ ENV PATH="/offat/.venv/bin:$PATH"
 ENV VIRTUAL_ENV=/offat/.venv
 
 RUN apk add python-${version} py${version}-pip && \
-	    chown -R nonroot.nonroot /offat
+	    chown -R nonroot:nonroot /offat
 
 
 # copy venv from builder image
