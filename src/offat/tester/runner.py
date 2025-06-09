@@ -26,6 +26,7 @@ class TestRunner:
         headers: dict | None = None,
         proxies: list[str] | None = None,
         ssl_verify: bool = True,
+        only_get_requests: bool = False,
     ) -> None:
         self._client = AsyncRequests(
             rate_limit=rate_limit,
@@ -33,6 +34,7 @@ class TestRunner:
             proxies=proxies,
             ssl_verify=ssl_verify,
         )
+        self.only_get_requests = only_get_requests
         self.progress = Progress(console=console)
         self.progress_task_id: TaskID | None = None
 
@@ -125,6 +127,15 @@ class TestRunner:
             )
 
         test_result = test_task
+        if str(http_method).upper() != "GET" and self.only_get_requests:
+            test_result['request_headers'] = []
+            test_result['response_headers'] = []
+            test_result['response_body'] = f"{str(http_method).upper()} request was not sent"
+            test_result['response_status_code'] = -1
+            test_result['redirection'] = ''
+            test_result['error'] = False
+
+            return test_result
         try:
             response = await self._client.request(
                 url=url, method=http_method, *args, **kwargs
