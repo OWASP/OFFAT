@@ -50,7 +50,7 @@ def start():
     parser.add_argument(
         '--only-get-requests',
         dest='only_get_requests',
-        help="send only get requests while scanning",
+        help="send only GET requests while scanning",
         action='store_true',
         default=False,
         required=False
