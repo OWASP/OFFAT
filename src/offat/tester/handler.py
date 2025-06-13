@@ -28,6 +28,7 @@ def generate_and_run_tests(
     capture_failed: bool = False,
     remove_unused_data: bool = True,
     ssl_verify: bool = True,
+    only_get_requests: bool = False,
 ):
     """
     Generates and runs tests for the provided OAS/Swagger file.
@@ -70,6 +71,7 @@ def generate_and_run_tests(
         headers=req_headers,
         proxies=proxies,
         ssl_verify=ssl_verify,
+        only_get_requests=only_get_requests,
     )
 
     results: list = []

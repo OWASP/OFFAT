@@ -48,6 +48,14 @@ def start():
         '-v', '--version', action='version', version=f"%(prog)s {get_package_version()}"
     )
     parser.add_argument(
+        '--only-get-requests',
+        dest='only_get_requests',
+        help="send only GET requests while scanning",
+        action='store_true',
+        default=False,
+        required=False
+    )
+    parser.add_argument(
         '-rl',
         '--rate-limit',
         dest='rate_limit',
@@ -168,6 +176,7 @@ def start():
         proxies=args.proxies_list,
         capture_failed=args.capture_failed,
         ssl_verify=args.ssl_verify,
+        only_get_requests=args.only_get_requests,
     )
 
 
