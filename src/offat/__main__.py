@@ -48,11 +48,12 @@ def start():
         '-v', '--version', action='version', version=f"%(prog)s {get_package_version()}"
     )
     parser.add_argument(
-        '--only-get-requests',
-        dest='only_get_requests',
-        help="send only GET requests while scanning",
-        action='store_true',
-        default=False,
+        '--http-methods',
+        dest='http_methods',
+        nargs='+',
+        choices=['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH'],
+        help="Specify one or more HTTP methods to use while scanning. Allowed values: GET, POST, PUT, DELETE, HEAD, OPTIONS, PATCH",
+        default=['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH'],
         required=False
     )
     parser.add_argument(
@@ -167,6 +168,7 @@ def start():
 
     generate_and_run_tests(
         api_parser=api_parser,
+        http_methods=args.http_methods,
         regex_pattern=args.path_regex_pattern,
         output_file=args.output_file,
         output_file_format=args.output_format,
@@ -176,7 +178,6 @@ def start():
         proxies=args.proxies_list,
         capture_failed=args.capture_failed,
         ssl_verify=args.ssl_verify,
-        only_get_requests=args.only_get_requests,
     )
 
 

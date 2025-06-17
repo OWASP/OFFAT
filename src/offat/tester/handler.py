@@ -18,6 +18,7 @@ test_generator = TestGenerator()
 # Note: redirects are allowed by default making it easier for pentesters/researchers
 def generate_and_run_tests(
     api_parser: SwaggerParser | OpenAPIv3Parser,
+    http_methods: list,
     regex_pattern: str | None = None,
     output_file: str | None = None,
     output_file_format: str | None = None,
@@ -28,7 +29,6 @@ def generate_and_run_tests(
     capture_failed: bool = False,
     remove_unused_data: bool = True,
     ssl_verify: bool = True,
-    only_get_requests: bool = False,
 ):
     """
     Generates and runs tests for the provided OAS/Swagger file.
@@ -67,11 +67,11 @@ def generate_and_run_tests(
     logger.info('Host %s is up', api_parser.host)
 
     test_runner = TestRunner(
+        http_methods=http_methods,
         rate_limit=rate_limit,
         headers=req_headers,
         proxies=proxies,
         ssl_verify=ssl_verify,
-        only_get_requests=only_get_requests,
     )
 
     results: list = []
