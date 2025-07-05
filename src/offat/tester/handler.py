@@ -18,6 +18,7 @@ test_generator = TestGenerator()
 # Note: redirects are allowed by default making it easier for pentesters/researchers
 def generate_and_run_tests(
     api_parser: SwaggerParser | OpenAPIv3Parser,
+    http_methods: list,
     regex_pattern: str | None = None,
     output_file: str | None = None,
     output_file_format: str | None = None,
@@ -66,6 +67,7 @@ def generate_and_run_tests(
     logger.info('Host %s is up', api_parser.host)
 
     test_runner = TestRunner(
+        http_methods=http_methods,
         rate_limit=rate_limit,
         headers=req_headers,
         proxies=proxies,

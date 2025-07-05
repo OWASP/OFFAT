@@ -22,6 +22,7 @@ class TestRunner:
 
     def __init__(
         self,
+        http_methods: list,
         rate_limit: float = 60,
         headers: dict | None = None,
         proxies: list[str] | None = None,
@@ -33,6 +34,7 @@ class TestRunner:
             proxies=proxies,
             ssl_verify=ssl_verify,
         )
+        self.http_methods = http_methods
         self.progress = Progress(console=console)
         self.progress_task_id: TaskID | None = None
 
@@ -125,6 +127,15 @@ class TestRunner:
             )
 
         test_result = test_task
+        if self.http_methods and str(http_method).upper() not in self.http_methods:
+            test_result['request_headers'] = []
+            test_result['response_headers'] = []
+            test_result['response_body'] = f"{str(http_method).upper()} request was not sent"
+            test_result['response_status_code'] = -1
+            test_result['redirection'] = ''
+            test_result['error'] = False
+
+            return test_result
         try:
             response = await self._client.request(
                 url=url, method=http_method, *args, **kwargs

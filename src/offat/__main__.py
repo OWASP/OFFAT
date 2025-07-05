@@ -48,6 +48,15 @@ def start():
         '-v', '--version', action='version', version=f"%(prog)s {get_package_version()}"
     )
     parser.add_argument(
+        '--http-methods',
+        dest='http_methods',
+        nargs='+',
+        choices=['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH'],
+        help="Specify one or more HTTP methods to use while scanning. Allowed values: GET, POST, PUT, DELETE, HEAD, OPTIONS, PATCH",
+        default=['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH'],
+        required=False
+    )
+    parser.add_argument(
         '-rl',
         '--rate-limit',
         dest='rate_limit',
@@ -159,6 +168,7 @@ def start():
 
     generate_and_run_tests(
         api_parser=api_parser,
+        http_methods=args.http_methods,
         regex_pattern=args.path_regex_pattern,
         output_file=args.output_file,
         output_file_format=args.output_format,
