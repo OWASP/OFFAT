@@ -38,6 +38,6 @@ jobs:
                   cd src
                   python -m build
             - name: Publish package
-              uses: pypa/gh-action-pypi-publish@v1.8.10
+              uses: pypa/gh-action-pypi-publish@v1.13.0
               with:
                   packages-dir: src/dist
