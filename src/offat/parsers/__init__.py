@@ -1,5 +1,5 @@
-from json import loads as json_load, JSONDecodeError
 from requests import get as http_get
+from yaml import safe_load as yaml_load, YAMLError
 from .openapi import OpenAPIv3Parser
 from .swagger import SwaggerParser
 from .parser import BaseParser
@@ -23,12 +23,19 @@ def create_parser(
             )
             exit(-1)
 
+        # A spec served over a url can be JSON or YAML, same as a local file.
+        # JSON is a subset of YAML, so safe_load handles both.
         try:
-            spec = json_load(res.text)
-            fpath_or_url = None  # type: ignore
-        except JSONDecodeError:
-            logger.error('Invalid json data spec file url')
+            spec = yaml_load(res.text)
+        except YAMLError:
+            logger.error('Failed to parse spec fetched from url as JSON/YAML')
             exit(-1)
+
+        if not isinstance(spec, dict):
+            logger.error('Spec fetched from url is not a valid JSON/YAML object')
+            exit(-1)
+
+        fpath_or_url = None  # type: ignore
 
     try:
         parser = BaseParser(file_or_url=fpath_or_url, spec=spec, server_url=server_url)
