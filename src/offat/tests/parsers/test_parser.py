@@ -1,7 +1,9 @@
 import tempfile
 
 import unittest
-from ...parsers import BaseParser
+from unittest.mock import patch, MagicMock
+from ...parsers import BaseParser, create_parser
+from ...parsers.openapi import OpenAPIv3Parser
 
 
 class TestBaseParser(unittest.TestCase):
@@ -55,3 +57,45 @@ class TestBaseParser(unittest.TestCase):
             '/api/render' in end_points,
             "Spec has '/api/render'"
         )
+
+
+class TestCreateParserFromUrl(unittest.TestCase):
+    _YAML_SPEC = """
+openapi: 3.0.0
+info:
+  title: Test
+  version: "1.0"
+paths:
+  /api/render:
+    post:
+      operationId: operationId
+      responses:
+        "201":
+          description: Rendered result
+servers:
+  - url: https://someserver.com
+"""
+
+    _JSON_SPEC = (
+        '{"openapi": "3.0.0", "info": {"title": "Test", "version": "1.0"},'
+        ' "paths": {"/api/render": {"post": {"operationId": "operationId",'
+        ' "responses": {"201": {"description": "ok"}}}}},'
+        ' "servers": [{"url": "https://someserver.com"}]}'
+    )
+
+    def _create_from_url(self, body):
+        fake_res = MagicMock()
+        fake_res.status_code = 200
+        fake_res.text = body
+        with patch("offat.parsers.http_get", return_value=fake_res):
+            return create_parser("https://example.com/openapi.yaml")
+
+    def test_yaml_spec_from_url(self):
+        parser = self._create_from_url(self._YAML_SPEC)
+        self.assertIsInstance(parser, OpenAPIv3Parser)
+        self.assertEqual(parser.specification.get("openapi"), "3.0.0")
+
+    def test_json_spec_from_url(self):
+        parser = self._create_from_url(self._JSON_SPEC)
+        self.assertIsInstance(parser, OpenAPIv3Parser)
+        self.assertEqual(parser.specification.get("openapi"), "3.0.0")
