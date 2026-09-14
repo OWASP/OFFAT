@@ -1,0 +1,78 @@
+# White-box SAST (`offat-whitebox`)
+
+A static source-code security review pipeline modeled on the
+[security-harness](https://github.com/dmdhrumilmistry/security-harness)
+workflow: **recon → hunt → chain → verify → report**.
+
+## Run
+
+```bash
+# From the repo (no install)
+PYTHONPATH=whitebox:triager python3 -m offat_wb /path/to/repo -o offat-report/whitebox
+
+# Installed
+pip install ./triager ./whitebox
+offat-whitebox /path/to/repo
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `target` | `.` | Path to the codebase |
+| `--classes` | all | Comma-separated classes to hunt |
+| `--out, -o` | `offat-report/whitebox` | Output directory |
+| `--no-ai` | false | Heuristic triage only |
+| `--no-semgrep` | false | Skip semgrep even if installed |
+
+`OFFAT_AI_API_KEY` enables AI triage.
+
+## Stages
+
+### recon
+Detects languages by file mix, inventories dependency manifests, and — when the
+tools are installed — generates an SBOM with **syft** and CVE findings with
+**grype** (falling back to **trivy**, then **osv-scanner**).
+
+### hunt
+Two complementary hunters:
+
+- **Built-in pattern hunter** (always on, no dependencies): high-signal
+  multi-language rules for hardcoded secrets (AWS/Slack/GitHub/private keys),
+  dangerous sinks (`eval`/`exec`, `os.system`, `shell=True`, SQL string
+  building), unsafe deserialization (`pickle`, unsafe `yaml.load`,
+  `ObjectInputStream`), weak crypto (MD5/SHA1), disabled TLS verification, DOM
+  XSS sinks, SSRF sinks and misconfiguration.
+- **semgrep** `--config auto` when installed; results are mapped into the shared
+  schema with a class inferred from the rule metadata.
+
+### chain
+Annotates co-located findings (same file, multiple classes) into simple attack
+paths — e.g. a hardcoded secret next to an outbound request.
+
+### verify
+The shared triager adversarially validates each finding (refute first) and
+assigns verdict / CVSS / remediation. Offline heuristic when no key is set.
+
+### report
+`report.json`, `findings.jsonl`, `results.sarif`, `report.md`, `report.html`.
+
+## Deepening results
+
+The pipeline runs with **no external tools**, but installing them materially
+improves coverage:
+
+```bash
+pip install semgrep
+# syft / grype: https://github.com/anchore
+```
+
+For a deeper, agentic, multi-pass review that chains findings into full attack
+scenarios, use the upstream **security-harness** Claude Code plugin; this
+pipeline is its CI-runnable, automation-friendly counterpart, and both emit the
+same finding/report schema.
+
+## Relationship to `graft`
+
+`graft` (`npx @nanonets/graft`) provides structural code mapping used by
+security-harness. It requires network access and (for LLM analysis) an API key,
+so OFFAT-AI treats it as an optional recon enhancer rather than a hard
+dependency; the built-in recon covers language/manifest mapping without it.

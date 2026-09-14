@@ -108,21 +108,21 @@ func cvssFor(sev string) float64 {
 }
 
 var remediation = map[string]string{
-	"sqli":              "Use parameterized queries / prepared statements; never concatenate untrusted input into SQL. Apply least-privilege DB accounts.",
-	"nosqli":            "Validate and type-check inputs; reject query operators in user data; use an ODM with strict schemas.",
-	"command_injection": "Avoid shell invocation; use exec APIs with argument arrays and an allowlist; never pass untrusted input to a shell.",
-	"ssti":              "Do not render user input as templates; use logic-less templates and context-aware escaping; sandbox the engine.",
-	"ldap_injection":    "Escape LDAP special characters and use parameterized directory queries.",
-	"xss":               "Context-aware output encoding, a strict Content-Security-Policy, and input validation.",
-	"path_traversal":    "Canonicalize paths and enforce an allowlisted base directory; reject '..' and absolute paths.",
-	"ssrf":              "Allowlist outbound hosts, resolve and validate targets, block link-local/metadata ranges, disable unused URL schemes.",
-	"open_redirect":     "Use an allowlist of redirect targets or relative paths only; never redirect to raw user input.",
-	"xxe":               "Disable external entity resolution and DTD processing in the XML parser.",
-	"access_control":    "Enforce object-level authorization on every request server-side; scope queries to the authenticated principal.",
-	"mass_assignment":   "Bind only explicitly-allowed properties (allowlist DTOs); never bind request bodies directly to models.",
-	"broken_auth":       "Enforce authentication server-side on every protected route; verify JWT signatures with a fixed algorithm allowlist.",
-	"security_misconfig":"Restrict HTTP methods, configure CORS with a strict origin allowlist, and enforce rate limiting.",
-	"data_exposure":     "Return only the fields a client needs (response DTOs); never serialize secrets or credentials.",
+	"sqli":               "Use parameterized queries / prepared statements; never concatenate untrusted input into SQL. Apply least-privilege DB accounts.",
+	"nosqli":             "Validate and type-check inputs; reject query operators in user data; use an ODM with strict schemas.",
+	"command_injection":  "Avoid shell invocation; use exec APIs with argument arrays and an allowlist; never pass untrusted input to a shell.",
+	"ssti":               "Do not render user input as templates; use logic-less templates and context-aware escaping; sandbox the engine.",
+	"ldap_injection":     "Escape LDAP special characters and use parameterized directory queries.",
+	"xss":                "Context-aware output encoding, a strict Content-Security-Policy, and input validation.",
+	"path_traversal":     "Canonicalize paths and enforce an allowlisted base directory; reject '..' and absolute paths.",
+	"ssrf":               "Allowlist outbound hosts, resolve and validate targets, block link-local/metadata ranges, disable unused URL schemes.",
+	"open_redirect":      "Use an allowlist of redirect targets or relative paths only; never redirect to raw user input.",
+	"xxe":                "Disable external entity resolution and DTD processing in the XML parser.",
+	"access_control":     "Enforce object-level authorization on every request server-side; scope queries to the authenticated principal.",
+	"mass_assignment":    "Bind only explicitly-allowed properties (allowlist DTOs); never bind request bodies directly to models.",
+	"broken_auth":        "Enforce authentication server-side on every protected route; verify JWT signatures with a fixed algorithm allowlist.",
+	"security_misconfig": "Restrict HTTP methods, configure CORS with a strict origin allowlist, and enforce rate limiting.",
+	"data_exposure":      "Return only the fields a client needs (response DTOs); never serialize secrets or credentials.",
 }
 
 func remediationFor(class string) string {

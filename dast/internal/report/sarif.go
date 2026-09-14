@@ -15,8 +15,8 @@ func WriteSARIF(w io.Writer, r *Report) error {
 	for _, f := range r.Findings {
 		if _, ok := rules[f.VectorID]; !ok {
 			rules[f.VectorID] = sarifRule{
-				ID:   f.VectorID,
-				Name: f.Class,
+				ID:               f.VectorID,
+				Name:             f.Class,
 				ShortDescription: sarifText{Text: f.Title},
 				FullDescription:  sarifText{Text: f.Description},
 				HelpURI:          firstRef(f.References),
@@ -111,8 +111,8 @@ type sarifDoc struct {
 	Runs    []sarifRun `json:"runs"`
 }
 type sarifRun struct {
-	Tool    sarifTool      `json:"tool"`
-	Results []sarifResult  `json:"results"`
+	Tool    sarifTool     `json:"tool"`
+	Results []sarifResult `json:"results"`
 }
 type sarifTool struct {
 	Driver sarifDriver `json:"driver"`

@@ -1,0 +1,17 @@
+{
+  "name": "offat-ai",
+  "owner": { "name": "Dhrumil Mistry" },
+  "metadata": {
+    "description": "OFFAT-AI pentesting automation marketplace",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "offat-ai",
+      "source": "./",
+      "description": "AI-augmented API pentesting automation (black-box DAST + white-box SAST) with AI triage.",
+      "version": "1.0.0",
+      "keywords": ["security", "dast", "sast", "api-security", "pentest", "offat"]
+    }
+  ]
+}

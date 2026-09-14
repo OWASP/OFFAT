@@ -206,11 +206,11 @@ func writeReports(dir string, rep *report.Report) error {
 		return err
 	}
 	writers := map[string]func(f *os.File) error{
-		"report.json":   func(f *os.File) error { return report.WriteJSON(f, rep) },
+		"report.json":    func(f *os.File) error { return report.WriteJSON(f, rep) },
 		"findings.jsonl": func(f *os.File) error { return report.WriteJSONL(f, rep) },
-		"results.sarif": func(f *os.File) error { return report.WriteSARIF(f, rep) },
-		"report.md":     func(f *os.File) error { return report.WriteMarkdown(f, rep) },
-		"report.html":   func(f *os.File) error { return report.WriteHTML(f, rep) },
+		"results.sarif":  func(f *os.File) error { return report.WriteSARIF(f, rep) },
+		"report.md":      func(f *os.File) error { return report.WriteMarkdown(f, rep) },
+		"report.html":    func(f *os.File) error { return report.WriteHTML(f, rep) },
 	}
 	for name, fn := range writers {
 		f, err := os.Create(filepath.Join(dir, name))

@@ -1,0 +1,69 @@
+name: ci
+
+on:
+  push:
+    branches: [main, dev, "claude/**"]
+  pull_request:
+
+jobs:
+  dast-go:
+    name: DAST engine (Go)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dast
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache-dependency-path: dast/go.sum
+      - run: go vet ./...
+      - run: go test -race ./...
+      - run: go build ./...
+      - name: gofmt check
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && echo 'run gofmt -w' && exit 1)
+
+  smoke:
+    name: End-to-end smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache-dependency-path: dast/go.sum
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build DAST binary
+        run: make dast
+      - name: DAST dry-run (offline)
+        run: ./bin/offat-dast --spec examples/vulnshop-openapi.yaml --kb knowledge-base --graph --dry-run
+      - name: White-box pipeline (offline)
+        run: PYTHONPATH=whitebox:triager python3 -m offat_wb examples/vuln-code --no-ai -o /tmp/wb
+      - name: Assert findings produced
+        run: |
+          python3 - <<'PY'
+          import json
+          r = json.load(open("/tmp/wb/report.json"))
+          assert r["summary"]["total"] > 0, "expected white-box findings"
+          print("white-box findings:", r["summary"]["total"])
+          PY
+
+  python:
+    name: Python packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Byte-compile
+        run: python3 -m compileall -q triager/offat_triage whitebox/offat_wb
+      - name: Install packages
+        run: pip install ./triager ./whitebox
+      - name: Triage smoke
+        run: |
+          printf '[{"class":"sqli","severity":"high","confidence":0.9,"title":"t"}]' > /tmp/f.json
+          offat-triage /tmp/f.json --no-ai

@@ -36,9 +36,9 @@ func TestBuildLinksProducerToConsumer(t *testing.T) {
 
 func TestResourceHeuristics(t *testing.T) {
 	cases := map[string]string{
-		"/api/v1/users/{id}":            "user",
+		"/api/v1/users/{id}":             "user",
 		"/users/{userId}/posts/{postId}": "post",
-		"/categories":                   "category",
+		"/categories":                    "category",
 	}
 	for path, want := range cases {
 		if got := resourceOfPath(path); got != want {

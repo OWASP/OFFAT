@@ -7,9 +7,9 @@ package spec
 
 // API is the normalized description of an entire API surface.
 type API struct {
-	Title    string
-	Version  string
-	Servers  []string // fully qualified base URLs, most-preferred first
+	Title     string
+	Version   string
+	Servers   []string // fully qualified base URLs, most-preferred first
 	Endpoints []*Endpoint
 	// Security holds the named security schemes declared by the document.
 	Security map[string]*SecurityScheme

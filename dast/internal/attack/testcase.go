@@ -16,8 +16,8 @@ type TestCase struct {
 	// rate_limit, cors, data_exposure).
 	Kind string
 
-	Vector    *kb.Vector    // nil for baseline
-	Payload   *kb.Payload   // nil for baseline / structural
+	Vector    *kb.Vector  // nil for baseline
+	Payload   *kb.Payload // nil for baseline / structural
 	Technique kb.Technique
 
 	TargetParam string // parameter/body field under test

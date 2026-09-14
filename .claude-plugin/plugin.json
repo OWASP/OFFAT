@@ -1,0 +1,9 @@
+{
+  "name": "offat-ai",
+  "version": "1.0.0",
+  "description": "AI-augmented API pentesting automation: an OpenAPI-driven black-box DAST engine and a white-box (SAST) pipeline, with AI-assisted triage and reporting.",
+  "author": { "name": "Dhrumil Mistry" },
+  "homepage": "https://github.com/dmdhrumilmistry/offat-ai",
+  "license": "MIT",
+  "keywords": ["security", "dast", "sast", "api-security", "pentest", "owasp", "offat", "ai"]
+}

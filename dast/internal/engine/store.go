@@ -12,9 +12,9 @@ import (
 // can be replayed into later requests (dataflow chaining). It is safe for
 // concurrent use.
 type valueStore struct {
-	mu       sync.RWMutex
-	byKey    map[string][]string // normalized field name -> distinct values
-	byResrc  map[string][]string // resource -> distinct values
+	mu      sync.RWMutex
+	byKey   map[string][]string // normalized field name -> distinct values
+	byResrc map[string][]string // resource -> distinct values
 }
 
 func newValueStore() *valueStore {
