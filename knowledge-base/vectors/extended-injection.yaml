@@ -1,0 +1,105 @@
+# Extended injection & protocol vectors (merged via --kb knowledge-base).
+vectors:
+  - id: sqli-union
+    class: sqli
+    title: SQL Injection (UNION-based)
+    severity: high
+    cwe: CWE-89
+    owasp: "API8:2023"
+    description: Attempts UNION SELECT to append attacker-controlled columns.
+    references:
+      - https://portswigger.net/web-security/sql-injection/union-attacks
+    applies_to:
+      locations: [query, path, body]
+      types: [string, integer, number, any]
+    payloads:
+      - {value: "1 UNION SELECT NULL-- -", technique: error}
+      - {value: "1' UNION SELECT NULL,NULL-- -", technique: error}
+      - {value: "-1 UNION SELECT 111,222,333-- -", technique: reflection}
+    detection:
+      error_signatures:
+        - "the used select statements have a different number of columns"
+        - "unknown column"
+      body_regex:
+        - "111.*222"
+
+  - id: crlf-injection
+    class: injection
+    title: CRLF / HTTP Response Splitting
+    severity: medium
+    cwe: CWE-93
+    owasp: "API8:2023"
+    description: Injects encoded CR/LF to add headers or split the response.
+    references:
+      - https://owasp.org/www-community/vulnerabilities/CRLF_Injection
+    applies_to:
+      locations: [query, header, body]
+      types: [string, any]
+      name_patterns: ["(?i)(url|redirect|next|lang|location|header|name)"]
+    payloads:
+      - {value: "%0d%0aX-Offat-Injected:1", technique: reflection}
+      - {value: "test%0d%0aSet-Cookie:offat=1", technique: reflection}
+    detection:
+      reflect_marker: true
+      body_regex:
+        - "x-offat-injected"
+
+  - id: graphql-introspection
+    class: security_misconfig
+    title: GraphQL Introspection Enabled
+    severity: low
+    cwe: CWE-200
+    owasp: "API8:2023"
+    description: Full schema introspection exposed to unauthenticated clients.
+    references:
+      - https://owasp.org/www-project-web-security-testing-guide/
+    applies_to:
+      locations: [query, body]
+      types: [string, any]
+      name_patterns: ["(?i)(query|graphql)"]
+    payloads:
+      - {value: "{__schema{types{name}}}", technique: reflection}
+    detection:
+      body_regex:
+        - "__schema"
+        - "queryType"
+
+  - id: host-header-injection
+    class: security_misconfig
+    title: Host Header Injection
+    severity: medium
+    cwe: CWE-644
+    owasp: "API8:2023"
+    description: >
+      Overrides the Host / X-Forwarded-Host header to test cache poisoning,
+      password-reset poisoning and routing confusion.
+    references:
+      - https://portswigger.net/web-security/host-header
+    applies_to:
+      locations: [header]
+      types: [any]
+    payloads:
+      - {value: "offat-evil.example", technique: reflection}
+    detection:
+      reflect_marker: true
+
+  - id: mongo-where
+    class: nosqli
+    title: NoSQL JavaScript Injection ($where)
+    severity: high
+    cwe: CWE-943
+    owasp: "API8:2023"
+    description: Injects JS into MongoDB $where evaluation.
+    references:
+      - https://owasp.org/www-community/attacks/NoSQL_Injection
+    applies_to:
+      locations: [query, body]
+      types: [string, any]
+    payloads:
+      - {value: "';return sleep(5000);var a='", technique: time}
+      - {value: "0;return true", technique: diff}
+    detection:
+      time_threshold_ms: 4500
+      error_signatures:
+        - "mongoerror"
+        - "syntaxerror"

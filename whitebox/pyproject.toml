@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "offat-whitebox"
+version = "1.0.0"
+description = "OFFAT-AI white-box (SAST) pipeline: recon, hunt, chain, verify, report"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Dhrumil Mistry" }]
+keywords = ["security", "sast", "static-analysis", "ai", "offat", "semgrep"]
+dependencies = ["offat-triage>=1.0.0"]
+
+[project.optional-dependencies]
+# External scanners are invoked as CLIs when present; listed here for reference.
+tools = []
+
+[project.scripts]
+offat-whitebox = "offat_wb.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/dmdhrumilmistry/offat-ai"
+
+[tool.setuptools]
+packages = ["offat_wb"]
