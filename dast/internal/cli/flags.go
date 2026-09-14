@@ -30,6 +30,7 @@ func parseFlags(args []string) (options, *flag.FlagSet, error) {
 	fs.StringVar(&opt.proxy, "proxy", "", "HTTP(S) proxy URL (e.g. for Burp/ZAP)")
 	fs.BoolVar(&opt.insecure, "insecure", false, "skip TLS verification")
 	fs.BoolVar(&opt.noAI, "no-ai", false, "disable AI triage (heuristic only)")
+	fs.StringVar(&opt.aiProvider, "ai-provider", "", "AI triage backend: auto (default), anthropic, claude-code, codex, heuristic")
 	fs.StringVar(&opt.aiModel, "ai-model", "", "AI model id for triage (else OFFAT_AI_MODEL)")
 	fs.BoolVar(&opt.dryRun, "dry-run", false, "generate the test plan without sending requests")
 	fs.IntVar(&opt.maxPayloads, "max-payloads", 0, "cap payloads per vector (0 = all)")
@@ -43,8 +44,12 @@ func parseFlags(args []string) (options, *flag.FlagSet, error) {
 		fmt.Fprintf(os.Stderr, "Flags:\n")
 		fs.PrintDefaults()
 		fmt.Fprintf(os.Stderr, "\nEnvironment:\n")
-		fmt.Fprintf(os.Stderr, "  OFFAT_AI_API_KEY / ANTHROPIC_API_KEY  enable AI triage\n")
-		fmt.Fprintf(os.Stderr, "  OFFAT_AI_MODEL                        AI model id (default: %s)\n", "claude-sonnet-5")
+		fmt.Fprintf(os.Stderr, "  OFFAT_AI_API_KEY / ANTHROPIC_API_KEY  enable the Anthropic-API triager\n")
+		fmt.Fprintf(os.Stderr, "  OFFAT_AI_PROVIDER                     auto|anthropic|claude-code|codex|heuristic\n")
+		fmt.Fprintf(os.Stderr, "  OFFAT_AI_MODEL                        API model id (default: %s)\n", "claude-sonnet-5")
+		fmt.Fprintf(os.Stderr, "  OFFAT_AI_CLAUDE_CMD / OFFAT_AI_CODEX_CMD    override the CLI invocation\n")
+		fmt.Fprintf(os.Stderr, "  OFFAT_AI_CLAUDE_MODEL / OFFAT_AI_CODEX_MODEL  CLI model id\n")
+		fmt.Fprintf(os.Stderr, "\n  With no API key, --ai-provider claude-code or codex uses a local agent CLI.\n")
 	}
 
 	if err := fs.Parse(args); err != nil {

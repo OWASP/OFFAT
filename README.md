@@ -17,6 +17,9 @@ OFFAT-AI migrates and extends [OWASP OFFAT](https://github.com/OWASP/offat)
 - 🤖 **AI triager** — shared across both modes. Adversarially validates each
   finding, prunes false positives, and assigns verdict / CVSS / remediation,
   producing security-harness-style reports (JSON, JSONL, SARIF, Markdown, HTML).
+  Backed by an **Anthropic API key**, or a local agent CLI — **Claude Code
+  (`claude`)** or **OpenAI Codex (`codex`)** — with a deterministic heuristic
+  fallback, so it runs with no key at all.
 
 > ⚠️ **Authorized use only.** The DAST engine sends real attack traffic and the
 > SAST pipeline is for code you own. Only test systems and code you own or are
@@ -104,6 +107,32 @@ offat-triage offat-report/report.json          # add/refresh AI verdicts
 ```
 
 Skills: `offat-dast`, `offat-whitebox`, `offat-triage`; agent: `offat-verifier`.
+
+## AI triage backends
+
+The triager picks a backend automatically, or you can force one with
+`--ai-provider` (DAST) / `--provider` (white-box, triage) or `OFFAT_AI_PROVIDER`:
+
+| Provider | How | Needs |
+|---|---|---|
+| `anthropic` | Anthropic Messages API | `OFFAT_AI_API_KEY` (or `ANTHROPIC_API_KEY`) |
+| `claude-code` | `claude -p` (Claude Code CLI) | the `claude` CLI, already signed in |
+| `codex` | `codex exec` (OpenAI Codex CLI) | the `codex` CLI, already signed in |
+| `heuristic` | deterministic, offline | nothing |
+
+`auto` (default) prefers an API key, then Claude Code, then Codex, then the
+heuristic. Examples:
+
+```bash
+# Use Claude Code — no API key needed, uses your local claude login
+./bin/offat-dast -f api.yaml --url "$T" --ai-provider claude-code --yes
+python -m offat_wb ./repo --provider codex          # use Codex
+offat-triage report.json --provider claude-code     # re-triage via Claude Code
+```
+
+Model/command overrides: `OFFAT_AI_MODEL` (API), `OFFAT_AI_CLAUDE_MODEL` /
+`OFFAT_AI_CODEX_MODEL` (CLI models), `OFFAT_AI_CLAUDE_CMD` / `OFFAT_AI_CODEX_CMD`
+(replace the CLI invocation entirely).
 
 ## What it tests
 

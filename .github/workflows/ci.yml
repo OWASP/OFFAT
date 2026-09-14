@@ -63,7 +63,13 @@ jobs:
         run: python3 -m compileall -q triager/offat_triage whitebox/offat_wb
       - name: Install packages
         run: pip install ./triager ./whitebox
-      - name: Triage smoke
+      - name: Triage smoke (heuristic)
         run: |
           printf '[{"class":"sqli","severity":"high","confidence":0.9,"title":"t"}]' > /tmp/f.json
           offat-triage /tmp/f.json --no-ai
+      - name: Triage smoke (CLI provider via stub)
+        run: |
+          printf '#!/bin/sh\necho "{\\"verdict\\":\\"confirmed\\",\\"confidence\\":0.9,\\"severity\\":\\"high\\"}"\n' > /tmp/stub
+          chmod +x /tmp/stub
+          OFFAT_AI_CODEX_CMD=/tmp/stub offat-triage /tmp/f.json --provider codex -o /tmp/t.json
+          python3 -c "import json; d=json.load(open('/tmp/t.json')); assert d[0]['triage']['source']=='codex', d; print('CLI provider OK')"

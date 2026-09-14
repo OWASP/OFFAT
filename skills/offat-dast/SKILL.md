@@ -45,6 +45,9 @@ authorized to test the target** before running. The CLI refuses to scan without
    - AI triage turns on automatically when `OFFAT_AI_API_KEY` (or
      `ANTHROPIC_API_KEY`) is set; otherwise the heuristic triager is used. Pass
      `--no-ai` to force heuristic.
+   - No API key? Use a local agent CLI instead: `--ai-provider claude-code`
+     (uses the signed-in `claude` CLI) or `--ai-provider codex`. `auto`
+     (default) prefers a key, then `claude`, then `codex`, then heuristic.
    - Limit scope with `--classes sqli,access_control,ssrf`.
    - Route through a proxy for inspection with `--proxy http://127.0.0.1:8080`.
 

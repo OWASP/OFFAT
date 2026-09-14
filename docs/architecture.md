@@ -63,10 +63,19 @@ The triager exists twice by design, once per runtime, with identical behavior:
 - **Python** (`triager/offat_triage`) serves the white-box pipeline and the
   standalone `offat-triage` CLI (re-triage any findings file).
 
-Both call the Anthropic Messages API with an *adversarial* system prompt (refute
-first), and both fall back to the same deterministic heuristic (verdict from
-confidence, CVSS from severity, per-class remediation) so a run never fails and
-never requires a key.
+Both support three interchangeable AI backends behind one selection function
+(`triage.Select` in Go, `make_triager` in Python):
+
+- **`anthropic`** — the Anthropic Messages API (needs a key).
+- **`claude-code`** — shells out to the Claude Code CLI (`claude -p`).
+- **`codex`** — shells out to the OpenAI Codex CLI (`codex exec`).
+
+All use the same *adversarial* prompt (refute first) and parse a compact JSON
+verdict from the response, and all fall back to the same deterministic heuristic
+(verdict from confidence, CVSS from severity, per-class remediation) so a run
+never fails and never requires a key. `auto` (default) prefers a key, then
+Claude Code, then Codex, then the heuristic. CLI backends are capped at low
+concurrency since each finding spawns a process.
 
 ## Extensibility
 

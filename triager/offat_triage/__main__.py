@@ -44,6 +44,8 @@ def main(argv: List[str] | None = None) -> int:
     ap.add_argument("input", help="findings file (JSON report, JSON array, or JSONL)")
     ap.add_argument("-o", "--out", help="write triaged findings to this file (JSON)")
     ap.add_argument("--no-ai", action="store_true", help="use the heuristic triager only")
+    ap.add_argument("--provider", default=None,
+                    help="AI backend: auto (default), anthropic, claude-code, codex, heuristic")
     ap.add_argument("--concurrency", type=int, default=4)
     args = ap.parse_args(argv)
 
@@ -52,7 +54,8 @@ def main(argv: List[str] | None = None) -> int:
         print("no findings to triage", file=sys.stderr)
         return 0
 
-    source = triage_findings(findings, use_ai=not args.no_ai, concurrency=args.concurrency)
+    source = triage_findings(findings, use_ai=not args.no_ai,
+                             concurrency=args.concurrency, provider=args.provider)
     print(f"triaged {len(findings)} findings via {source}")
 
     verdicts = Counter((f.get("triage") or {}).get("verdict", "?") for f in findings)

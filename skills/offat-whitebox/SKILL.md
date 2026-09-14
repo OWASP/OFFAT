@@ -29,7 +29,8 @@ Scope is **owned or authorized code only** (no live testing of third parties).
    Run it from the repo root, or `pip install ./triager ./whitebox` first so
    `offat-whitebox` is on PATH.
    - AI triage engages when `OFFAT_AI_API_KEY` is set; else heuristic. `--no-ai`
-     forces heuristic; `--no-semgrep` skips semgrep.
+     forces heuristic; `--no-semgrep` skips semgrep. No key? Use a local agent
+     CLI with `--provider claude-code` or `--provider codex`.
    - Limit classes with `--classes sqli,secrets,command_injection`.
 
 3. **Report.** Read `offat-report/whitebox/report.md`, then summarize by severity

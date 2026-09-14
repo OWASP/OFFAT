@@ -32,15 +32,33 @@ offat-dast --spec <file> [--url <base>] [flags]
 | `--proxy` | — | HTTP(S) proxy (Burp/ZAP) |
 | `--insecure` | false | Skip TLS verification |
 | `--no-ai` | false | Heuristic triage only |
-| `--ai-model` | `OFFAT_AI_MODEL` | Model id for AI triage |
+| `--ai-provider` | auto | Triage backend: `auto`, `anthropic`, `claude-code`, `codex`, `heuristic` |
+| `--ai-model` | `OFFAT_AI_MODEL` | API model id for AI triage |
 | `--dry-run` | false | Generate the plan, send nothing |
 | `--graph` | false | Print the dataflow graph |
 | `--list-classes` | false | List vuln classes and exit |
 | `--max-payloads` | 0 | Cap payloads per vector |
 | `--yes` | false | **Confirm authorization** to scan |
 
-Environment: `OFFAT_AI_API_KEY` / `ANTHROPIC_API_KEY` enable AI triage;
-`OFFAT_AI_MODEL`, `OFFAT_AI_BASE_URL` override the model/endpoint.
+### AI triage backends
+
+The triager runs against an Anthropic API key **or** a local agent CLI:
+
+| Provider | Invocation | Needs |
+|---|---|---|
+| `anthropic` | Anthropic Messages API | `OFFAT_AI_API_KEY` / `ANTHROPIC_API_KEY` |
+| `claude-code` | `claude -p "<prompt>"` | the `claude` CLI, signed in |
+| `codex` | `codex exec "<prompt>"` | the `codex` CLI, signed in |
+| `heuristic` | offline, deterministic | nothing |
+
+`--ai-provider auto` (default) prefers an API key, then `claude`, then `codex`,
+then the heuristic. CLI backends spawn one process per finding, so the engine
+caps their concurrency at 2 automatically.
+
+Environment: `OFFAT_AI_API_KEY`/`ANTHROPIC_API_KEY` (API); `OFFAT_AI_PROVIDER`;
+`OFFAT_AI_MODEL`/`OFFAT_AI_BASE_URL` (API model/endpoint);
+`OFFAT_AI_CLAUDE_MODEL`/`OFFAT_AI_CODEX_MODEL` (CLI model);
+`OFFAT_AI_CLAUDE_CMD`/`OFFAT_AI_CODEX_CMD` (override the whole CLI invocation).
 
 ## Examples
 

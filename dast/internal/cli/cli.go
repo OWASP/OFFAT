@@ -37,6 +37,7 @@ type options struct {
 	proxy       string
 	insecure    bool
 	noAI        bool
+	aiProvider  string
 	aiModel     string
 	dryRun      bool
 	maxPayloads int
@@ -162,18 +163,21 @@ func runTriage(ctx context.Context, opt options, findings []*detect.Finding) str
 	if len(findings) == 0 {
 		return "none"
 	}
-	var t triage.Triager = triage.Heuristic{}
-	source := "heuristic"
-	if !opt.noAI {
-		if ai, ok := triage.NewAnthropicFromEnv(); ok {
-			t = ai
-			source = ai.Name()
-			fmt.Printf("AI triage enabled (%s)\n", source)
-		} else {
-			fmt.Println("AI triage: no API key found (set OFFAT_AI_API_KEY); using heuristic triager")
+	t, source := triage.Select(opt.aiProvider, opt.noAI)
+	switch source {
+	case "heuristic":
+		if !opt.noAI {
+			fmt.Println("AI triage: no provider available (set OFFAT_AI_API_KEY, or install the claude/codex CLI); using heuristic triager")
 		}
+	default:
+		fmt.Printf("AI triage enabled (%s)\n", source)
 	}
-	triage.Run(ctx, t, findings, opt.concurrency)
+	// CLI-backed triagers spawn a process per finding; keep concurrency modest.
+	conc := opt.concurrency
+	if _, ok := t.(*triage.CommandTriager); ok && conc > 2 {
+		conc = 2
+	}
+	triage.Run(ctx, t, findings, conc)
 	return source
 }
 

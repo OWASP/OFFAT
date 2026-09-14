@@ -214,20 +214,55 @@ def _parse_json_object(text: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+def make_triager(provider: Optional[str] = None, use_ai: bool = True):
+    """Select a triager. ``None`` means use the heuristic.
+
+    Providers: ``anthropic`` (API key), ``claude-code`` (the ``claude`` CLI),
+    ``codex`` (the ``codex`` CLI), ``heuristic``, or ``auto`` (default) which
+    prefers an API key, then Claude Code, then Codex, then the heuristic.
+    """
+    if not use_ai:
+        return None
+    provider = (provider or os.environ.get("OFFAT_AI_PROVIDER") or "auto").strip().lower()
+    # Imported lazily to avoid an import cycle (cli_providers imports this module).
+    from .cli_providers import ClaudeCodeTriager, CodexTriager, cli_available
+
+    if provider in ("auto", ""):
+        ai = AnthropicTriager.from_env()
+        if ai is not None:
+            return ai
+        if cli_available("claude"):
+            return ClaudeCodeTriager()
+        if cli_available("codex"):
+            return CodexTriager()
+        return None
+    if provider in ("anthropic", "api", "anthropic-api"):
+        return AnthropicTriager.from_env()
+    if provider in ("claude", "claude-code", "claudecode"):
+        return ClaudeCodeTriager()
+    if provider in ("codex", "openai-codex"):
+        return CodexTriager()
+    # "heuristic" / "none" / "off" / unknown -> heuristic
+    return None
+
+
 def triage_findings(
     findings: Iterable[Dict[str, Any]],
     use_ai: bool = True,
     concurrency: int = 4,
+    provider: Optional[str] = None,
 ) -> str:
     """Triage a collection of findings in place. Returns the triage source label."""
     findings = list(findings)
     if not findings:
         return "none"
-    ai = AnthropicTriager.from_env() if use_ai else None
-    if ai is None:
+    triager = make_triager(provider, use_ai)
+    if triager is None:
         for f in findings:
             heuristic_triage(f)
         return "heuristic"
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, concurrency)) as pool:
-        list(pool.map(ai.triage, findings))
-    return ai.name
+    # CLI-backed triagers spawn a process per finding; keep concurrency modest.
+    workers = min(concurrency, 2) if getattr(triager, "is_cli", False) else concurrency
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+        list(pool.map(triager.triage, findings))
+    return triager.name

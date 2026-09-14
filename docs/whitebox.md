@@ -21,9 +21,13 @@ offat-whitebox /path/to/repo
 | `--classes` | all | Comma-separated classes to hunt |
 | `--out, -o` | `offat-report/whitebox` | Output directory |
 | `--no-ai` | false | Heuristic triage only |
+| `--provider` | auto | Triage backend: `auto`, `anthropic`, `claude-code`, `codex`, `heuristic` |
 | `--no-semgrep` | false | Skip semgrep even if installed |
 
-`OFFAT_AI_API_KEY` enables AI triage.
+AI triage runs against an Anthropic API key (`OFFAT_AI_API_KEY`) **or** a local
+agent CLI — Claude Code (`claude`) or OpenAI Codex (`codex`) — selected with
+`--provider` / `OFFAT_AI_PROVIDER`. See the shared triager
+([`../triager`](../triager)) for the full backend list and env vars.
 
 ## Stages
 

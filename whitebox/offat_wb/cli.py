@@ -53,7 +53,7 @@ def _chain(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def run_pipeline(target: str, classes: List[str] | None, use_ai: bool,
-                 use_semgrep: bool, out_dir: str) -> Dict[str, Any]:
+                 use_semgrep: bool, out_dir: str, provider: str | None = None) -> Dict[str, Any]:
     status = ToolStatus()
     print(f"[recon] scanning {target} ...")
     recon_info = recon.recon(target, status)
@@ -79,7 +79,7 @@ def run_pipeline(target: str, classes: List[str] | None, use_ai: bool,
     findings = _chain(findings)
 
     print("[verify] triaging ...")
-    source = triage_findings(findings, use_ai=use_ai)
+    source = triage_findings(findings, use_ai=use_ai, provider=provider)
     print(f"[verify] triage source: {source}")
 
     rep = report.build_report(target, findings, recon_info, source, status)
@@ -109,6 +109,8 @@ def main(argv: List[str] | None = None) -> int:
     ap.add_argument("--classes", default="", help="comma-separated classes to hunt (default: all)")
     ap.add_argument("-o", "--out", default="offat-report/whitebox", help="output directory")
     ap.add_argument("--no-ai", action="store_true", help="use heuristic triage only")
+    ap.add_argument("--provider", default=None,
+                    help="AI backend: auto (default), anthropic, claude-code, codex, heuristic")
     ap.add_argument("--no-semgrep", action="store_true", help="skip semgrep even if installed")
     args = ap.parse_args(argv)
 
@@ -118,7 +120,7 @@ def main(argv: List[str] | None = None) -> int:
         return 2
     classes = [c.strip() for c in args.classes.split(",") if c.strip()] or None
     run_pipeline(target, classes, use_ai=not args.no_ai,
-                 use_semgrep=not args.no_semgrep, out_dir=args.out)
+                 use_semgrep=not args.no_semgrep, out_dir=args.out, provider=args.provider)
     return 0
 
 

@@ -11,15 +11,21 @@ from .triager import (
     AnthropicTriager,
     heuristic_triage,
     triage_findings,
+    make_triager,
     cvss_for,
     remediation_for,
     DEFAULT_MODEL,
 )
+from .cli_providers import ClaudeCodeTriager, CodexTriager, cli_available
 
 __all__ = [
     "AnthropicTriager",
+    "ClaudeCodeTriager",
+    "CodexTriager",
+    "cli_available",
     "heuristic_triage",
     "triage_findings",
+    "make_triager",
     "cvss_for",
     "remediation_for",
     "DEFAULT_MODEL",
