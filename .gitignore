@@ -1,0 +1,29 @@
+# Build artifacts
+/bin/
+*.exe
+dast/offat-dast
+offat-dast
+
+# Reports / scan output
+offat-report/
+*-report/
+*.sarif
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+dist/
+build/
+
+# Env / secrets
+.env
+*.local
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
