@@ -13,6 +13,7 @@ import os
 from collections import Counter
 from typing import Any, Dict, List
 
+from offat_triage import api_summary
 from offat_wb import report as wb_report
 
 _SEVS = ["critical", "high", "medium", "low", "info"]
@@ -43,6 +44,7 @@ def build_report(target: str, findings: List[Dict[str, Any]], endpoints: List[Di
         "recon": recon,
         "endpoints": endpoints,
         "tools": {"available": tool_status.available, "notes": tool_status.notes},
+        "threat_mapping": api_summary(findings),
         "summary": {
             "total": len(findings),
             "endpoints": len(endpoints),
@@ -118,11 +120,22 @@ def _markdown(report: Dict[str, Any]) -> str:
     for sev in _SEVS:
         if s["by_severity"].get(sev):
             lines.append(f"| {sev.title()} | {s['by_severity'][sev]} |")
-    lines += ["", f"**Total findings:** {s['total']}", "", "## Findings", ""]
+    lines += ["", f"**Total findings:** {s['total']}", ""]
+
+    tm = report.get("threat_mapping") or []
+    if tm:
+        lines += ["## Threat mapping (OWASP API Top 10 - 2023)", "",
+                  "| Category | Name | Findings |", "|---|---|---|"]
+        for row in tm:
+            lines.append(f"| {row['id']} | {row['name']} | {row['count']} |")
+        lines += [""]
+
+    lines += ["## Findings", ""]
     if not report["findings"]:
         lines.append("_No findings._")
     for i, f in enumerate(report["findings"], 1):
         t = f.get("triage") or {}
+        th = f.get("threat") or {}
         lines.append(f"### {i}. {f.get('title', '')}")
         head = f"- **Severity:** {f.get('severity', '').title()}"
         if t:
@@ -134,7 +147,11 @@ def _markdown(report: Dict[str, Any]) -> str:
         lines.append(f"- **Location:** `{loc}`")
         rf = f.get("reachable_from") or []
         lines.append(f"- **Reachable from:** {', '.join(f'`{r}`' for r in rf) if rf else '_not reachable from a mapped endpoint_'}")
-        lines.append(f"- **Class:** {f.get('class')}  |  **CWE:** {f.get('cwe')}  |  **OWASP:** {f.get('owasp')}")
+        lines.append(f"- **Class:** {f.get('class')}")
+        lines.append(
+            f"- **Threat:** {th.get('owasp_api','')} {th.get('owasp_api_name','')}  |  "
+            f"OWASP Web {th.get('owasp_web','')} {th.get('owasp_web_name','')}  |  "
+            f"{th.get('cwe','')} {th.get('cwe_name','')}")
         if f.get("code"):
             lines += ["", "```", f["code"][:800], "```"]
         if t.get("rationale"):

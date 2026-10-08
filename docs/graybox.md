@@ -68,7 +68,10 @@ never breaks and never requires a key.
 
 `report.json`, `findings.jsonl`, `endpoints.json`, `results.sarif`, `report.md`,
 `report.html`, `report.junit.xml`. Each finding carries `reachable`,
-`reachable_from` (the endpoints that reach the sink) and `source_mode: graybox`.
+`reachable_from` (the endpoints that reach the sink), `source_mode: graybox`, and
+a `threat` block mapping it to the **OWASP API Security Top 10 (2023)**, **OWASP
+Top 10 (2021)** and a primary **CWE**. The report includes a Threat mapping
+summary counting findings per OWASP API Top 10 category.
 
 ## Lineage
 

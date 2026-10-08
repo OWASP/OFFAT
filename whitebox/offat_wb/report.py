@@ -11,6 +11,12 @@ import os
 from collections import Counter
 from typing import Any, Dict, List
 
+try:  # pragma: no cover
+    from offat_triage import api_summary
+except ImportError:  # pragma: no cover
+    def api_summary(findings):
+        return []
+
 _SEV_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4, "": 5}
 _VERDICT_ORDER = {"confirmed": 0, "likely": 1, "inconclusive": 2, "false_positive": 3, "": 4}
 _SEVS = ["critical", "high", "medium", "low", "info"]
@@ -32,6 +38,7 @@ def build_report(target: str, findings: List[Dict[str, Any]], recon: Dict[str, A
         "recon": recon,
         "tools": {"available": tool_status.available, "notes": tool_status.notes},
         "summary": _summary(findings),
+        "threat_mapping": api_summary(findings),
         "findings": findings,
     }
 
@@ -164,11 +171,22 @@ def _markdown(report: Dict[str, Any]) -> str:
     for sev in _SEVS:
         if s["by_severity"].get(sev):
             lines.append(f"| {sev.title()} | {s['by_severity'][sev]} |")
-    lines += ["", f"**Total findings:** {s['total']}", "", "## Findings", ""]
+    lines += ["", f"**Total findings:** {s['total']}", ""]
+
+    tm = report.get("threat_mapping") or []
+    if tm:
+        lines += ["## Threat mapping (OWASP API Top 10 - 2023)", "",
+                  "| Category | Name | Findings |", "|---|---|---|"]
+        for row in tm:
+            lines.append(f"| {row['id']} | {row['name']} | {row['count']} |")
+        lines += [""]
+
+    lines += ["## Findings", ""]
     if not report["findings"]:
         lines.append("_No findings._")
     for i, f in enumerate(report["findings"], 1):
         t = f.get("triage") or {}
+        th = f.get("threat") or {}
         lines.append(f"### {i}. {f.get('title', '')}")
         head = f"- **Severity:** {f.get('severity', '').title()}"
         if t:
@@ -178,7 +196,11 @@ def _markdown(report: Dict[str, Any]) -> str:
         if f.get("line"):
             loc += f":{f['line']}"
         lines.append(f"- **Location:** `{loc}`")
-        lines.append(f"- **Class:** {f.get('class')}  |  **CWE:** {f.get('cwe')}  |  **OWASP:** {f.get('owasp')}  |  **Tool:** {f.get('source_tool')}")
+        lines.append(f"- **Class:** {f.get('class')}  |  **Tool:** {f.get('source_tool')}")
+        lines.append(
+            f"- **Threat:** {th.get('owasp_api','')} {th.get('owasp_api_name','')}  |  "
+            f"OWASP Web {th.get('owasp_web','')} {th.get('owasp_web_name','')}  |  "
+            f"{th.get('cwe','')} {th.get('cwe_name','')}")
         if f.get("code"):
             lines += ["", "```", f["code"][:800], "```"]
         if t.get("rationale"):
@@ -205,14 +227,27 @@ def _html(report: Dict[str, Any]) -> str:
         if s["by_severity"].get(sev):
             parts.append(f"<div class='card sev-{sev}'><span class='n'>{s['by_severity'][sev]}</span><span class='l'>{sev.title()}</span></div>")
     parts.append("</div>")
+
+    tm = report.get("threat_mapping") or []
+    if tm:
+        parts.append("<h2 style='font-size:17px'>Threat mapping - OWASP API Top 10 (2023)</h2><div class='tags'>")
+        for row in tm:
+            parts.append(f"<span class='tag'>{html.escape(row['id'])} {html.escape(row['name'])}: {row['count']}</span>")
+        parts.append("</div>")
+
     for i, f in enumerate(report["findings"], 1):
         t = f.get("triage") or {}
+        th = f.get("threat") or {}
         sev = f.get("severity", "info")
         parts.append(f"<div class='finding b-{sev}'><h2><span class='pill sev-{sev}'>{sev.title()}</span> {i}. {html.escape(f.get('title',''))}</h2>")
         parts.append("<div class='tags'>")
         loc = f.get("file", "") + (f":{f['line']}" if f.get("line") else "")
         parts.append(f"<span class='tag'>{html.escape(loc)}</span>")
-        parts.append(f"<span class='tag'>{html.escape(f.get('cwe',''))}</span><span class='tag'>{html.escape(f.get('class',''))}</span>")
+        parts.append(f"<span class='tag'>{html.escape(f.get('class',''))}</span>")
+        if th:
+            parts.append(f"<span class='tag'>{html.escape(th.get('owasp_api',''))}</span>")
+            parts.append(f"<span class='tag'>OWASP Web {html.escape(th.get('owasp_web',''))}</span>")
+            parts.append(f"<span class='tag'>{html.escape(th.get('cwe',''))}</span>")
         if t:
             parts.append(f"<span class='tag v-{t.get('verdict','')}'>{t.get('verdict','')} · CVSS {t.get('cvss','')}</span>")
         parts.append("</div>")

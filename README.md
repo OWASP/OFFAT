@@ -188,6 +188,15 @@ vulnerable dependencies (SCA), plus anything semgrep's `--config auto` finds.
 Add a new attack technique by dropping a YAML file in `knowledge-base/` — no
 code changes. See [`knowledge-base/README.md`](knowledge-base/README.md).
 
+## Threat mapping
+
+Every finding is classified against a shared threat taxonomy — the **OWASP API
+Security Top 10 (2023)**, the **OWASP Top 10 (2021)** web categories, and a
+primary **CWE** (each with names). The knowledge-base vectors carry the OWASP API
+Top 10 + CWE directly; the white-box and gray-box pipelines attach a `threat`
+block to each finding (via `offat_triage.taxonomy`) and render a Threat mapping
+summary - findings per OWASP API Top 10 category - in every report.
+
 ## Development
 
 ```bash

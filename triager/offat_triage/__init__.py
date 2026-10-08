@@ -19,6 +19,15 @@ from .triager import (
 from .cli_providers import ClaudeCodeTriager, CodexTriager, cli_available
 from .cache import VerdictCache, finding_key
 from .batch import tiered_triage, default_block
+from .taxonomy import (
+    enrich as enrich_threats,
+    threat_for,
+    api_summary,
+    api_label,
+    web_label,
+    OWASP_API_2023,
+    OWASP_WEB_2021,
+)
 
 __all__ = [
     "AnthropicTriager",
@@ -34,6 +43,13 @@ __all__ = [
     "remediation_for",
     "VerdictCache",
     "finding_key",
+    "enrich_threats",
+    "threat_for",
+    "api_summary",
+    "api_label",
+    "web_label",
+    "OWASP_API_2023",
+    "OWASP_WEB_2021",
     "DEFAULT_MODEL",
 ]
 

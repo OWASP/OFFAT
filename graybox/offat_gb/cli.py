@@ -17,6 +17,7 @@ import os
 import sys
 from typing import Any, Dict, List, Optional
 
+from offat_triage import enrich_threats
 from offat_wb import hunt, recon
 from offat_wb.tools import ToolStatus, have
 
@@ -61,6 +62,9 @@ def run_pipeline(target: str, classes: Optional[List[str]], *, use_ai: bool, use
     findings += recon_info.pop("dependency_findings", [])
     findings = _dedupe(findings)
     print(f"[hunt] {len(findings)} candidate findings")
+
+    # Threat mapping: OWASP API Top 10 (2023) + OWASP Top 10 (2021) + CWE.
+    enrich_threats(findings)
 
     print("[reach] linking findings to endpoints ...")
     findings = reachability.link(target, findings, endpoints, status)

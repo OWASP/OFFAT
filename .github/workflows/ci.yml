@@ -76,6 +76,8 @@ jobs:
         run: python3 -m compileall -q triager/offat_triage whitebox/offat_wb graybox/offat_gb
       - name: Install packages
         run: pip install ./triager ./whitebox ./graybox
+      - name: Triager unit tests (offline)
+        run: PYTHONPATH=triager python3 -m unittest discover -s triager/tests -p 'test_*.py'
       - name: White-box unit tests (offline)
         run: PYTHONPATH=whitebox:triager python3 -m unittest discover -s whitebox/tests -p 'test_*.py'
       - name: Gray-box unit tests (offline)

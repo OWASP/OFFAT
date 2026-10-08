@@ -22,7 +22,7 @@ vectors:
     title: JWT alg=none / signature stripping
     severity: high
     cwe: CWE-347
-    owasp: "API2:2023"
+    owasp: "API2:2023 Broken Authentication"
     description: >
       Re-signs the presented bearer JWT with the "none" algorithm and an empty
       signature. Acceptance indicates the verifier trusts the token header.
@@ -71,7 +71,7 @@ vectors:
     title: CORS Misconfiguration
     severity: medium
     cwe: CWE-942
-    owasp: "API8:2023"
+    owasp: "API8:2023 Security Misconfiguration"
     description: >
       Sends a crafted Origin; a reflected Access-Control-Allow-Origin combined
       with Allow-Credentials:true indicates an exploitable CORS policy.

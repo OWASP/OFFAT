@@ -5,7 +5,7 @@ vectors:
     title: Reflected Cross-Site Scripting / HTML injection
     severity: medium
     cwe: CWE-79
-    owasp: "API8:2023"
+    owasp: "API8:2023 Security Misconfiguration"
     description: >
       Injects a unique HTML/JS marker; if it is reflected unencoded in an
       HTML response the endpoint is vulnerable to reflected XSS.
@@ -27,7 +27,7 @@ vectors:
     title: Path Traversal / Local File Inclusion
     severity: high
     cwe: CWE-22
-    owasp: "API8:2023"
+    owasp: "API8:2023 Security Misconfiguration"
     description: >
       Walks out of the intended directory to read sensitive files; known file
       contents in the response confirm the traversal.
@@ -85,7 +85,7 @@ vectors:
     title: Open Redirect
     severity: medium
     cwe: CWE-601
-    owasp: "API8:2023"
+    owasp: "API8:2023 Security Misconfiguration"
     description: >
       Supplies an external URL to a redirect parameter; a 3xx Location header
       pointing at the attacker host confirms the open redirect.
@@ -108,7 +108,7 @@ vectors:
     title: XML External Entity Injection
     severity: high
     cwe: CWE-611
-    owasp: "API8:2023"
+    owasp: "API8:2023 Security Misconfiguration"
     description: >
       Sends an XML body declaring an external entity that reads a local file;
       reflected file contents confirm XXE.

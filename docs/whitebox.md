@@ -79,6 +79,11 @@ discipline). Offline heuristic when no key is set.
 `report.json`, `findings.jsonl`, `results.sarif`, `report.md`, `report.html`,
 `report.junit.xml`. Use `--fail-on <severity>` to gate CI on actionable findings.
 
+Every finding is mapped to a threat taxonomy - **OWASP API Security Top 10
+(2023)**, **OWASP Top 10 (2021)** and a primary **CWE** (each with names) - in a
+`threat` block, and the report includes a Threat mapping summary counting
+findings per OWASP API Top 10 category.
+
 ## Deepening results
 
 The pipeline runs with **no external tools**, but installing them materially

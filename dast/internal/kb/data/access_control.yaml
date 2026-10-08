@@ -61,7 +61,7 @@ vectors:
     title: Excessive Data Exposure
     severity: medium
     cwe: CWE-213
-    owasp: "API3:2023"
+    owasp: "API3:2023 Broken Object Property Level Authorization"
     description: >
       Flags responses that return sensitive-looking fields (password, token,
       ssn, secret, credit card) that clients should never receive.

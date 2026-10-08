@@ -16,10 +16,10 @@ from .tools import ToolStatus, have
 # Import the shared triager, falling back to the sibling repo package when the
 # distribution is not installed.
 try:  # pragma: no cover
-    from offat_triage import tiered_triage
+    from offat_triage import tiered_triage, enrich_threats
 except ImportError:  # pragma: no cover
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "triager")))
-    from offat_triage import tiered_triage
+    from offat_triage import tiered_triage, enrich_threats
 
 
 def _dedupe(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -75,6 +75,9 @@ def run_pipeline(target: str, classes: List[str] | None, use_ai: bool,
     findings += recon_info.pop("dependency_findings", [])
     findings = _dedupe(findings)
     print(f"[hunt] {len(findings)} candidate findings")
+
+    # Threat mapping: OWASP API Top 10 (2023) + OWASP Top 10 (2021) + CWE.
+    enrich_threats(findings)
 
     if use_graft:
         print("[trace] source-to-sink tracing (graft) ...")

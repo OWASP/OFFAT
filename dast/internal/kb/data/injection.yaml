@@ -6,7 +6,7 @@ vectors:
     title: SQL Injection (error-based)
     severity: high
     cwe: CWE-89
-    owasp: "API8:2023 Security Misconfiguration / injection"
+    owasp: "API8:2023 Security Misconfiguration"
     description: >
       Breaks out of a SQL string/identifier context; a database error surfaced
       in the response indicates the payload reached a SQL interpreter.
@@ -41,7 +41,7 @@ vectors:
     title: SQL Injection (boolean-based blind)
     severity: high
     cwe: CWE-89
-    owasp: "API8:2023"
+    owasp: "API8:2023 Security Misconfiguration"
     description: >
       Sends a logically-true and a logically-false condition; a consistent
       difference between the two responses indicates blind SQL injection.
@@ -61,7 +61,7 @@ vectors:
     title: SQL Injection (time-based blind)
     severity: high
     cwe: CWE-89
-    owasp: "API8:2023"
+    owasp: "API8:2023 Security Misconfiguration"
     description: >
       Injects a database sleep; a response delayed past the baseline by the
       configured threshold indicates time-based blind SQL injection.
@@ -82,7 +82,7 @@ vectors:
     title: NoSQL Injection (operator injection)
     severity: high
     cwe: CWE-943
-    owasp: "API8:2023"
+    owasp: "API8:2023 Security Misconfiguration"
     description: >
       Injects MongoDB-style query operators to subvert authentication or
       filtering logic.
@@ -106,7 +106,7 @@ vectors:
     title: OS Command Injection
     severity: critical
     cwe: CWE-78
-    owasp: "API8:2023"
+    owasp: "API8:2023 Security Misconfiguration"
     description: >
       Appends shell metacharacters and a delay/echo command; a delayed or
       reflected response indicates command execution.
@@ -134,7 +134,7 @@ vectors:
     title: Server-Side Template Injection
     severity: critical
     cwe: CWE-1336
-    owasp: "API8:2023"
+    owasp: "API8:2023 Security Misconfiguration"
     description: >
       Injects template expressions; an evaluated arithmetic result in the
       response indicates template injection.
@@ -157,7 +157,7 @@ vectors:
     title: LDAP Injection
     severity: high
     cwe: CWE-90
-    owasp: "API8:2023"
+    owasp: "API8:2023 Security Misconfiguration"
     description: Injects LDAP filter metacharacters to alter directory queries.
     references:
       - https://owasp.org/www-community/attacks/LDAP_Injection
