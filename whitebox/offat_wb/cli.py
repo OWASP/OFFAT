@@ -10,16 +10,16 @@ import os
 import sys
 from typing import Any, Dict, List
 
-from . import hunt, recon, report
+from . import hunt, recon, report, trace
 from .tools import ToolStatus, have
 
 # Import the shared triager, falling back to the sibling repo package when the
 # distribution is not installed.
 try:  # pragma: no cover
-    from offat_triage import triage_findings
+    from offat_triage import tiered_triage
 except ImportError:  # pragma: no cover
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "triager")))
-    from offat_triage import triage_findings
+    from offat_triage import tiered_triage
 
 
 def _dedupe(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -53,7 +53,8 @@ def _chain(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def run_pipeline(target: str, classes: List[str] | None, use_ai: bool,
-                 use_semgrep: bool, out_dir: str, provider: str | None = None) -> Dict[str, Any]:
+                 use_semgrep: bool, out_dir: str, provider: str | None = None,
+                 use_graft: bool = True, use_cache: bool = True) -> Dict[str, Any]:
     status = ToolStatus()
     print(f"[recon] scanning {target} ...")
     recon_info = recon.recon(target, status)
@@ -75,16 +76,25 @@ def run_pipeline(target: str, classes: List[str] | None, use_ai: bool,
     findings = _dedupe(findings)
     print(f"[hunt] {len(findings)} candidate findings")
 
+    if use_graft:
+        print("[trace] source-to-sink tracing (graft) ...")
+        findings = trace.trace(target, findings, status)
+        traced = sum(1 for f in findings if f.get("traced"))
+        if status.available.get("graft_graph"):
+            print(f"[trace] {traced}/{len(findings)} findings reachable from an entry point")
+
     print("[chain] composing attack paths ...")
     findings = _chain(findings)
 
-    print("[verify] triaging ...")
-    source = triage_findings(findings, use_ai=use_ai, provider=provider)
+    print("[verify] triaging (cached, batched, tiered) ...")
+    source = tiered_triage(findings, out_dir, provider=provider, use_ai=use_ai,
+                           cache_enabled=use_cache)
     print(f"[verify] triage source: {source}")
 
     rep = report.build_report(target, findings, recon_info, source, status)
     report.write_all(out_dir, rep)
-    print(f"[report] written to {out_dir}/ (report.json, findings.jsonl, results.sarif, report.md, report.html)")
+    print(f"[report] written to {out_dir}/ "
+          f"(report.json, findings.jsonl, results.sarif, report.md, report.html, report.junit.xml)")
     _print_summary(rep)
     return rep
 
@@ -112,6 +122,11 @@ def main(argv: List[str] | None = None) -> int:
     ap.add_argument("--provider", default=None,
                     help="AI backend: auto (default), anthropic, claude-code, codex, heuristic")
     ap.add_argument("--no-semgrep", action="store_true", help="skip semgrep even if installed")
+    ap.add_argument("--no-graft", action="store_true", help="skip graft source-to-sink tracing")
+    ap.add_argument("--no-cache", action="store_true", help="do not read/write the AI-verdict cache")
+    ap.add_argument("--fail-on", default="",
+                    help="exit non-zero if an actionable finding is at/above this severity "
+                         "(critical|high|medium|low|info)")
     args = ap.parse_args(argv)
 
     target = os.path.abspath(args.target)
@@ -119,8 +134,17 @@ def main(argv: List[str] | None = None) -> int:
         print(f"error: {target} is not a directory", file=sys.stderr)
         return 2
     classes = [c.strip() for c in args.classes.split(",") if c.strip()] or None
-    run_pipeline(target, classes, use_ai=not args.no_ai,
-                 use_semgrep=not args.no_semgrep, out_dir=args.out, provider=args.provider)
+    rep = run_pipeline(target, classes, use_ai=not args.no_ai,
+                       use_semgrep=not args.no_semgrep, out_dir=args.out,
+                       provider=args.provider, use_graft=not args.no_graft,
+                       use_cache=not args.no_cache)
+
+    if args.fail_on:
+        n = report.count_at_or_above(rep, args.fail_on)
+        if n > 0:
+            print(f"\nfail-on: {n} finding(s) at or above severity {args.fail_on!r} - exiting non-zero",
+                  file=sys.stderr)
+            return 1
     return 0
 
 

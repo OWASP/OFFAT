@@ -17,6 +17,8 @@ from .triager import (
     DEFAULT_MODEL,
 )
 from .cli_providers import ClaudeCodeTriager, CodexTriager, cli_available
+from .cache import VerdictCache, finding_key
+from .batch import tiered_triage, default_block
 
 __all__ = [
     "AnthropicTriager",
@@ -25,9 +27,13 @@ __all__ = [
     "cli_available",
     "heuristic_triage",
     "triage_findings",
+    "tiered_triage",
+    "default_block",
     "make_triager",
     "cvss_for",
     "remediation_for",
+    "VerdictCache",
+    "finding_key",
     "DEFAULT_MODEL",
 ]
 

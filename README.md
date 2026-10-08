@@ -12,8 +12,10 @@ OFFAT-AI migrates and extends [OWASP OFFAT](https://github.com/OWASP/offat)
   and **verifies** the results.
 - 🔍 **White-box (SAST)** — a **Python pipeline** modeled on the
   [security-harness](https://github.com/dmdhrumilmistry/security-harness)
-  workflow (recon → hunt → chain → verify → report), integrating `graft`,
-  `semgrep`, `syft`/`grype` when present with a dependency-free fallback hunter.
+  workflow (recon → hunt → **trace** → chain → verify → report), integrating
+  `graft` (source-to-sink tracing), `semgrep`, `syft`/`grype` when present with a
+  dependency-free fallback hunter. Token-disciplined triage (cached, batched,
+  model-tiered), JUnit output and a `--fail-on` CI gate.
 - 🩶 **Gray-box** — a **Python pipeline** that maps the HTTP endpoint attack
   surface from source with **graft**, fuses it with the SAST hunters, and lets AI
   judge each finding by **reachability** (which exposed endpoint reaches the

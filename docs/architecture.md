@@ -49,11 +49,14 @@ the OpenAPI parser is self-contained for robustness.
 recon ──▶ hunt ──▶ chain ──▶ verify (triage) ──▶ report
 ```
 
-Mirrors the security-harness stages. External tools (`semgrep`, `syft`,
-`grype`/`trivy`/`osv-scanner`, `graft`) are used when present; a dependency-free
-multi-language pattern hunter guarantees output otherwise. **Why Python:** easy
-subprocess orchestration of the security toolchain and zero-dependency
-distribution.
+Mirrors the security-harness stages (now recon -> hunt -> trace -> chain ->
+verify -> report). External tools (`semgrep`, `syft`, `grype`/`trivy`/
+`osv-scanner`, `graft`) are used when present; a dependency-free multi-language
+pattern hunter guarantees output otherwise. The **trace** stage uses graft (when
+installed) to bump confidence on sinks reachable from an entry point; **verify**
+uses the shared token-disciplined triager (cached, batched, model-tiered) and the
+reporter emits JUnit plus a `--fail-on` CI gate. **Why Python:** easy subprocess
+orchestration of the security toolchain and zero-dependency distribution.
 
 ## Gray-box pipeline (`graybox/`, Python)
 

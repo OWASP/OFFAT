@@ -32,10 +32,17 @@ Scope is **owned or authorized code only** (no live testing of third parties).
      forces heuristic; `--no-semgrep` skips semgrep. No key? Use a local agent
      CLI with `--provider claude-code` or `--provider codex`.
    - Limit classes with `--classes sqli,secrets,command_injection`.
+   - Token discipline: verdicts are cached by content hash and (on the API
+     backend) screened by a cheap model then verified by a strong model. `--no-cache`
+     disables reuse; `OFFAT_SCREEN_MODEL` / `OFFAT_VERIFY_MODEL` tune the tiers.
+   - `--fail-on high` makes the run a CI gate (non-zero on actionable high+ findings).
+   - With graft installed, a source-to-sink trace bumps confidence on sinks
+     reachable from an entry point; `--no-graft` skips it.
 
 3. **Report.** Read `offat-report/whitebox/report.md`, then summarize by severity
    and verdict with `file:line`, the code snippet, and remediation. The run also
-   emits `report.html`, `report.json`, `findings.jsonl` and `results.sarif`.
+   emits `report.html`, `report.json`, `findings.jsonl`, `results.sarif` and
+   `report.junit.xml`.
 
 ## Stages
 
@@ -43,9 +50,10 @@ Scope is **owned or authorized code only** (no live testing of third parties).
 |---|---|
 | recon | language mix, dependency manifests, SBOM (syft), CVEs (grype/trivy/osv) |
 | hunt | secrets, injection sinks, unsafe deserialization, weak crypto, TLS-off, XSS, SSRF, misconfig; + semgrep `--config auto` |
+| trace | graft source-to-sink: bump confidence on sinks reachable from an entry point (no-op without graft) |
 | chain | annotate co-located source/sink findings into attack paths |
-| verify | AI/heuristic triager refutes then validates each finding |
-| report | JSON, JSONL, SARIF, Markdown, HTML |
+| verify | AI/heuristic triager refutes then validates each finding (cached, batched, model-tiered) |
+| report | JSON, JSONL, SARIF, Markdown, HTML, JUnit (+ `--fail-on` CI gate) |
 
 For a deeper, agentic multi-pass review, prefer the upstream
 [security-harness](https://github.com/dmdhrumilmistry/security-harness) plugin;

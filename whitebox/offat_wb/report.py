@@ -61,6 +61,59 @@ def write_all(out_dir: str, report: Dict[str, Any]) -> None:
         fh.write(_markdown(report))
     with open(os.path.join(out_dir, "report.html"), "w", encoding="utf-8") as fh:
         fh.write(_html(report))
+    with open(os.path.join(out_dir, "report.junit.xml"), "w", encoding="utf-8") as fh:
+        fh.write(_junit(report))
+
+
+def count_at_or_above(report: Dict[str, Any], sev: str) -> int:
+    """Actionable findings (not false-positive) at or above severity sev."""
+    threshold = _SEV_ORDER.get((sev or "").strip().lower())
+    if threshold is None or not sev:
+        return 0
+    n = 0
+    for f in report["findings"]:
+        rank = _SEV_ORDER.get(f.get("severity", ""))
+        if rank is None or rank == 5:
+            continue
+        verdict = (f.get("triage") or {}).get("verdict", "")
+        if rank <= threshold and verdict != "false_positive":
+            n += 1
+    return n
+
+
+def _junit(report: Dict[str, Any]) -> str:
+    import xml.sax.saxutils as sx
+
+    cases, failures = [], 0
+    for f in report["findings"]:
+        t = f.get("triage") or {}
+        name = f.get("title", "")
+        loc = f.get("file", "")
+        if f.get("line"):
+            loc += f":{f['line']}"
+        if loc:
+            name += f" [{loc}]"
+        classname = f.get("class", "")
+        verdict = t.get("verdict", "")
+        if verdict != "false_positive":
+            failures += 1
+            body = (f"{f.get('severity','')} {classname} - verdict {verdict}\n"
+                    f"{t.get('remediation','')}")
+            cases.append(
+                f'  <testcase name={sx.quoteattr(name)} classname={sx.quoteattr(classname)} time="0">\n'
+                f'    <failure type={sx.quoteattr(f.get("severity",""))} '
+                f'message={sx.quoteattr(f"{classname} {verdict}")}>'
+                f'{sx.escape(body)}</failure>\n  </testcase>'
+            )
+        else:
+            cases.append(
+                f'  <testcase name={sx.quoteattr(name)} classname={sx.quoteattr(classname)} time="0"/>'
+            )
+    total = len(report["findings"])
+    head = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+            f'<testsuites tests="{total}" failures="{failures}">\n'
+            f'  <testsuite name="offat-ai-whitebox" tests="{total}" failures="{failures}" time="0">\n')
+    return head + "\n".join(cases) + "\n  </testsuite>\n</testsuites>\n"
 
 
 def _sarif(report: Dict[str, Any]) -> Dict[str, Any]:
