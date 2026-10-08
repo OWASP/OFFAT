@@ -1,5 +1,5 @@
 ---
-description: Run an OFFAT-AI security scan (black-box DAST from an OpenAPI spec, white-box SAST over a codebase, or both) and summarize triaged findings.
+description: Run an OFFAT-AI security scan (black-box DAST from an OpenAPI spec, white-box SAST over a codebase, gray-box source-plus-surface, or both) and summarize triaged findings.
 ---
 
 You are running an **OFFAT-AI** security scan. Interpret the user's request
@@ -9,6 +9,10 @@ You are running an **OFFAT-AI** security scan. Interpret the user's request
   `offat-dast` skill).
 - A source directory / repository → **white-box SAST** (invoke the
   `offat-whitebox` skill).
+- A source directory and the user wants reachability-aware or "gray-box"
+  analysis (endpoints mapped from code, AI-judged by what the exposed surface can
+  reach, no live traffic): invoke the `offat-graybox` skill. This is also the
+  most token-efficient AI pass over code.
 - Both provided, or "full scan" → run **both**, then merge the summaries.
 - An existing findings file → **re-triage** (invoke the `offat-triage` skill).
 

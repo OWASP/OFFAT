@@ -55,6 +55,29 @@ multi-language pattern hunter guarantees output otherwise. **Why Python:** easy
 subprocess orchestration of the security toolchain and zero-dependency
 distribution.
 
+## Gray-box pipeline (`graybox/`, Python)
+
+```
+recon --> map endpoints (graft) --> hunt (SAST) --> reachability --> analyze (AI) --> report
+```
+
+Gray-box fuses the two views: it maps the HTTP endpoint attack surface from
+source with **graft** (structural graph, free, no key) and links each vulnerable
+sink to the endpoints that reach it through the call graph. The AI then judges
+findings by reachability, not just presence. It sends **no live traffic**.
+
+It reuses the white-box recon and hunters and the shared triager's AI backends,
+adding `graph_map` (endpoint mapping, graft or native), `reachability` (sink <->
+endpoint linking), `analyze` (token-disciplined AI), `cache` (verdict reuse) and
+an endpoint-centric `report`.
+
+**Token discipline** - AI is the only token-spending stage and is kept cheap by
+construction: reachable-only (unreachable sinks are triaged offline), batched +
+tiered (a cheap model screens in batches; a strong model verifies only the
+confirmed/likely subset), and cached (verdicts keyed on a content hash, so
+re-runs pay only for new or changed findings). Every AI path degrades to the
+deterministic heuristic.
+
 ## Shared triager (`triager/`, Python) & the Go triager
 
 The triager exists twice by design, once per runtime, with identical behavior:

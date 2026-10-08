@@ -1,7 +1,7 @@
 {
   "name": "offat-ai",
   "version": "1.0.0",
-  "description": "AI-augmented API pentesting automation: an OpenAPI-driven black-box DAST engine and a white-box (SAST) pipeline, with AI-assisted triage and reporting.",
+  "description": "AI-augmented API pentesting automation: an OpenAPI-driven black-box DAST engine, a white-box (SAST) pipeline, and a gray-box mode that maps endpoints with graft and AI-analyzes reachable findings, with AI-assisted triage and reporting.",
   "author": { "name": "Dhrumil Mistry" },
   "homepage": "https://github.com/dmdhrumilmistry/offat-ai",
   "license": "MIT",

@@ -14,6 +14,11 @@ OFFAT-AI migrates and extends [OWASP OFFAT](https://github.com/OWASP/offat)
   [security-harness](https://github.com/dmdhrumilmistry/security-harness)
   workflow (recon → hunt → chain → verify → report), integrating `graft`,
   `semgrep`, `syft`/`grype` when present with a dependency-free fallback hunter.
+- 🩶 **Gray-box** — a **Python pipeline** that maps the HTTP endpoint attack
+  surface from source with **graft**, fuses it with the SAST hunters, and lets AI
+  judge each finding by **reachability** (which exposed endpoint reaches the
+  sink). No live traffic. Token-disciplined: AI runs only on reachable findings,
+  **batched, cached, and model-tiered**.
 - 🤖 **AI triager** — shared across both modes. Adversarially validates each
   finding, prunes false positives, and assigns verdict / CVSS / remediation,
   producing security-harness-style reports (JSON, JSONL, SARIF, Markdown, HTML).
@@ -54,6 +59,7 @@ See [`docs/architecture.md`](docs/architecture.md) for the full design.
 |---|---|
 | `dast/` | Go DAST engine (`offat-dast`) — spec, graph, kb, attack, engine, detect, triage, report |
 | `whitebox/` | Python SAST pipeline (`offat-whitebox`) |
+| `graybox/` | Python gray-box pipeline (`offat-graybox`) — graft endpoint mapping + reachability + AI |
 | `triager/` | Shared AI/heuristic triager (`offat-triage`) |
 | `knowledge-base/` | Extended attack-vector library + bug-bounty patterns (`--kb`) |
 | `skills/`, `commands/`, `agents/`, `.claude-plugin/` | Claude Code plugin |
@@ -90,6 +96,19 @@ PYTHONPATH=whitebox:triager python3 -m offat_wb /path/to/your/repo -o offat-repo
 pip install ./triager ./whitebox
 offat-whitebox /path/to/your/repo
 ```
+
+### Gray-box (source + endpoint surface, AI reachability)
+
+```bash
+pip install ./triager ./whitebox ./graybox
+offat-graybox /path/to/your/repo                  # AI when a provider is available
+offat-graybox ./repo --no-ai                       # offline heuristic only
+offat-graybox ./repo --fail-on high                # CI gate on reachable high+ findings
+```
+
+Maps endpoints with graft, links them to vulnerable sinks via the call graph,
+and spends AI tokens only on reachable findings (batched, cached, model-tiered).
+See [`docs/graybox.md`](docs/graybox.md).
 
 ### Re-triage existing results
 

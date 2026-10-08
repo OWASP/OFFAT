@@ -42,6 +42,19 @@ jobs:
         run: ./bin/offat-dast --spec examples/vulnshop-openapi.yaml --kb knowledge-base --graph --dry-run
       - name: White-box pipeline (offline)
         run: PYTHONPATH=whitebox:triager python3 -m offat_wb examples/vuln-code --no-ai -o /tmp/wb
+      - name: Gray-box pipeline (offline, no graft/AI)
+        run: PYTHONPATH=graybox:whitebox:triager python3 -m offat_gb graybox/tests/fixtures/app --no-ai --no-graft -o /tmp/gb
+      - name: Assert gray-box mapped endpoints
+        run: |
+          python3 - <<'PY'
+          import json
+          eps = json.load(open("/tmp/gb/endpoints.json"))
+          assert len(eps) >= 2, eps
+          rep = json.load(open("/tmp/gb/report.json"))
+          assert rep["mode"] == "graybox"
+          assert rep["summary"]["endpoints"] >= 2
+          print("gray-box endpoints:", rep["summary"]["endpoints"], "findings:", rep["summary"]["total"])
+          PY
       - name: Assert findings produced
         run: |
           python3 - <<'PY'
@@ -60,9 +73,11 @@ jobs:
         with:
           python-version: "3.12"
       - name: Byte-compile
-        run: python3 -m compileall -q triager/offat_triage whitebox/offat_wb
+        run: python3 -m compileall -q triager/offat_triage whitebox/offat_wb graybox/offat_gb
       - name: Install packages
-        run: pip install ./triager ./whitebox
+        run: pip install ./triager ./whitebox ./graybox
+      - name: Gray-box unit tests (offline)
+        run: PYTHONPATH=graybox:whitebox:triager python3 -m unittest discover -s graybox/tests -p 'test_*.py'
       - name: Triage smoke (heuristic)
         run: |
           printf '[{"class":"sqli","severity":"high","confidence":0.9,"title":"t"}]' > /tmp/f.json

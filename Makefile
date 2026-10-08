@@ -33,12 +33,16 @@ triage-install: ## Install the shared Python triager
 whitebox-install: triage-install ## Install the white-box pipeline (+ triager)
 	pip install ./whitebox
 
+graybox-install: whitebox-install ## Install the gray-box pipeline (+ whitebox + triager)
+	pip install ./graybox
+
 python-check: ## Byte-compile the Python packages
-	python3 -m compileall -q triager/offat_triage whitebox/offat_wb
+	python3 -m compileall -q triager/offat_triage whitebox/offat_wb graybox/offat_gb
 
 smoke: dast ## Quick offline smoke test (spec parse + test generation)
 	./$(DAST) --spec examples/vulnshop-openapi.yaml --kb knowledge-base --graph --dry-run
 	PYTHONPATH=whitebox:triager python3 -m offat_wb examples/vuln-code --no-ai -o /tmp/offat-smoke >/dev/null && echo "whitebox smoke OK"
+	PYTHONPATH=graybox:whitebox:triager python3 -m offat_gb graybox/tests/fixtures/app --no-ai --no-graft -o /tmp/offat-gb-smoke >/dev/null && echo "graybox smoke OK"
 
 docker: ## Build the combined Docker image
 	docker build -t offat-ai:latest -f docker/Dockerfile .
