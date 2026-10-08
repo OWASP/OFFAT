@@ -89,24 +89,38 @@ def link(root: str, findings: List[Dict[str, Any]],
 
     for f in findings:
         reached: Dict[str, Dict[str, Any]] = {}
+        how = ""
 
-        if have_graft:
-            symbol = _enclosing_symbol(root, f)
-            callers = set(_graft_callers(symbol, root)) | ({symbol} if symbol else set())
+        # 1. Handler-name match: the finding's enclosing function is an endpoint
+        #    handler (decorator target or OpenAPI operationId). Works offline and
+        #    links spec-driven routes to their code.
+        symbol = _enclosing_symbol(root, f)
+        if symbol:
+            for ep in handlers_by_name.get(symbol, []):
+                reached[_ep_label(ep)] = ep
+            if reached:
+                how = "handler match"
+
+        # 2. graft call graph: walk callers up to a handler symbol.
+        if have_graft and not reached:
+            callers = set(_graft_callers(symbol, root))
             for name in callers:
                 for ep in handlers_by_name.get(name, []):
                     reached[_ep_label(ep)] = ep
+            if reached:
+                how = "graft call graph"
 
-        # Native / supplementary heuristic: same-file endpoints reach the sink.
+        # 3. Same-file heuristic: a sink in a file that declares routes.
         if not reached:
             for ep in eps_by_file.get(f.get("file", ""), []):
                 reached[_ep_label(ep)] = ep
+            if reached:
+                how = "same-file heuristic"
 
         f["reachable_from"] = sorted(reached.keys())
         f["reachable"] = bool(reached)
         if reached:
             f.setdefault("evidence", {})["reachability"] = (
-                "reachable from " + ", ".join(sorted(reached.keys()))
-                + (" (graft call graph)" if have_graft else " (same-file heuristic)")
+                "reachable from " + ", ".join(sorted(reached.keys())) + f" ({how})"
             )
     return findings

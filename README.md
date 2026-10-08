@@ -197,6 +197,65 @@ Top 10 + CWE directly; the white-box and gray-box pipelines attach a `threat`
 block to each finding (via `offat_triage.taxonomy`) and render a Threat mapping
 summary - findings per OWASP API Top 10 category - in every report.
 
+## Benchmarks
+
+Validated offline against four public deliberately-vulnerable apps across Python
+and Node, exercising endpoint mapping, detection, reachability and threat
+mapping. Baseline run: heuristic triage (`--no-ai`, no tokens), `semgrep` off,
+graft off (native mapping + same-file/handler reachability), SCA (`syft`+`grype`)
+on. Pinned revisions:
+
+| App | Stack | Revision |
+|---|---|---|
+| [VAmPI](https://github.com/erev0s/VAmPI) | Python / Flask + connexion (OpenAPI) | `f16052d` |
+| [DSVW](https://github.com/stamparm/DSVW) | Python / custom WSGI | `9ca3c9a` |
+| [vulpy](https://github.com/fportantier/vulpy) | Python / Flask | `5249cc8` |
+| [dvna](https://github.com/appsecco/dvna) | Node / Express | `9ba473a` |
+
+**Gray-box** (endpoints mapped from source, findings linked by reachability):
+
+| App | Endpoints | Findings | Reachable | Crit/High/Med/Low | OWASP API cats | Time |
+|---|--:|--:|--:|:--:|--:|--:|
+| VAmPI | 14 | 15 | 0 | 1/5/6/3 | 1 | 2.6s |
+| DSVW | 0 | 7 | 0 | 0/6/1/0 | 2 | 2.2s |
+| vulpy | 40 | 14 | 4 | 0/6/4/4 | 2 | 2.3s |
+| dvna | 32 | 1 | 0 | 0/1/0/0 | 1 | 2.3s |
+
+**White-box** (SAST over source):
+
+| App | Findings | Crit/High/Med/Low | Classes | OWASP API cats | Time |
+|---|--:|:--:|--:|--:|--:|
+| VAmPI | 15 | 1/5/6/3 | 2 | 1 | 2.5s |
+| DSVW | 7 | 0/6/1/0 | 4 | 2 | 2.3s |
+| vulpy | 14 | 0/6/4/4 | 4 | 2 | 2.3s |
+| dvna | 1 | 0/1/0/0 | 1 | 1 | 2.3s |
+
+Notes, read honestly:
+
+- **Endpoint mapping** covers decorator routes (Flask/FastAPI/Express/Spring/Go/
+  Rails) **and OpenAPI/Swagger specs** shipped in the repo. VAmPI defines its
+  routes in an OpenAPI spec (connexion), so all 14 are mapped from the spec; the
+  same spec drives the DAST engine (`14 endpoints -> 539 test cases` on a
+  dry-run). DSVW uses a hand-rolled WSGI dispatcher, which no generic mapper
+  resolves - 0 endpoints is the honest result.
+- **Reachable** counts findings a mapped endpoint reaches. vulpy's sinks sit
+  inside route handlers (4 reachable); VAmPI's findings are dependency CVEs and
+  global misconfig that no single endpoint "reaches", so 0 is correct. graft
+  (`--no-graft` off) adds call-graph reachability beyond the same-file/handler
+  heuristics used here.
+- **OWASP API cats** is the number of distinct OWASP API Top 10 (2023) categories
+  the findings span; every finding also carries OWASP Web Top 10 + CWE.
+
+Reproduce:
+
+```bash
+mkdir bench && cd bench
+git clone --depth 1 https://github.com/erev0s/VAmPI
+pip install ../triager ../whitebox ../graybox
+offat-graybox ./VAmPI --no-ai -o out/VAmPI       # gray-box
+offat-whitebox ./VAmPI --no-ai -o out/VAmPI-wb   # white-box
+```
+
 ## Development
 
 ```bash

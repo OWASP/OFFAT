@@ -147,12 +147,93 @@ def _scan_file(path: str, rel: str, ext: str) -> List[Dict[str, Any]]:
     return out
 
 
+_HTTP_METHODS = {"get", "post", "put", "delete", "patch", "head", "options", "trace"}
+
+
+def _spec_endpoints(path: str, rel: str) -> List[Dict[str, Any]]:
+    """Endpoints declared in an OpenAPI/Swagger spec (YAML or JSON).
+
+    Covers spec-driven frameworks (e.g. connexion) where routes live in the spec
+    rather than code decorators. operationId, when present, becomes the handler so
+    the reachability stage can link the route back to its function.
+    """
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+            text = fh.read()
+    except OSError:
+        return []
+    low = text.lower()
+    if "paths" not in low or ("openapi" not in low and "swagger" not in low):
+        return []
+
+    data = None
+    try:
+        import yaml  # optional; PyYAML
+        data = yaml.safe_load(text)
+    except Exception:
+        try:
+            import json
+            data = json.loads(text)
+        except Exception:
+            data = None
+    if not isinstance(data, dict) or not isinstance(data.get("paths"), dict):
+        return _spec_endpoints_regex(text, rel)
+
+    out: List[Dict[str, Any]] = []
+    for route, item in data["paths"].items():
+        if not isinstance(item, dict):
+            continue
+        for method, op in item.items():
+            if method.lower() not in _HTTP_METHODS:
+                continue
+            handler = ""
+            if isinstance(op, dict) and op.get("operationId"):
+                handler = str(op["operationId"]).split(".")[-1]
+            out.append({
+                "method": method.upper(), "path": str(route), "handler": handler,
+                "file": rel, "line": _line_of(text, route), "framework": "openapi",
+            })
+    return out
+
+
+def _spec_endpoints_regex(text: str, rel: str) -> List[Dict[str, Any]]:
+    """Fallback spec parse when no YAML/JSON loader yields a dict."""
+    out: List[Dict[str, Any]] = []
+    lines = text.splitlines()
+    cur_path = None
+    path_indent = -1
+    for i, line in enumerate(lines):
+        pm = re.match(r"^(\s*)(/\S*):\s*$", line)
+        if pm:
+            cur_path = pm.group(2)
+            path_indent = len(pm.group(1))
+            continue
+        if cur_path:
+            mm = re.match(r"^(\s*)(get|post|put|delete|patch|head|options):", line, re.IGNORECASE)
+            if mm and len(mm.group(1)) > path_indent:
+                out.append({
+                    "method": mm.group(2).upper(), "path": cur_path, "handler": "",
+                    "file": rel, "line": i + 1, "framework": "openapi",
+                })
+    return out
+
+
+def _line_of(text: str, needle: str) -> int:
+    for i, line in enumerate(text.splitlines(), 1):
+        if needle in line:
+            return i
+    return 0
+
+
 def native_map(root: str) -> List[Dict[str, Any]]:
-    """Dependency-free endpoint discovery across supported frameworks."""
+    """Dependency-free endpoint discovery across supported frameworks + specs."""
     endpoints: List[Dict[str, Any]] = []
     for path, ext in iter_source_files(root):
         rel = os.path.relpath(path, root)
-        endpoints.extend(_scan_file(path, rel, ext))
+        if ext in (".yaml", ".yml", ".json"):
+            endpoints.extend(_spec_endpoints(path, rel))
+        else:
+            endpoints.extend(_scan_file(path, rel, ext))
     return _dedupe(endpoints)
 
 

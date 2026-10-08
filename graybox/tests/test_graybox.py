@@ -42,6 +42,55 @@ class TestEndpointMapping(unittest.TestCase):
             self.assertIn(("POST", "/login"), paths)
 
 
+class TestSpecMapping(unittest.TestCase):
+    def test_openapi_json_spec_endpoints(self):
+        import json
+        spec = {
+            "openapi": "3.0.0",
+            "paths": {
+                "/users/{id}": {"get": {"operationId": "api.users.get_user"}},
+                "/books": {"post": {"operationId": "add_book"}},
+            },
+        }
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "openapi.json"), "w") as fh:
+                json.dump(spec, fh)
+            eps = graph_map.native_map(d)
+            paths = {(e["method"], e["path"]) for e in eps}
+            self.assertIn(("GET", "/users/{id}"), paths)
+            self.assertIn(("POST", "/books"), paths)
+            handlers = {e["handler"] for e in eps}
+            self.assertIn("get_user", handlers)  # operationId last segment
+
+    def test_regex_fallback_spec(self):
+        text = ("swagger: '2.0'\npaths:\n  /ping:\n    get:\n      summary: x\n"
+                "  /echo:\n    post:\n      summary: y\n")
+        eps = graph_map._spec_endpoints_regex(text, "api.yaml")
+        paths = {(e["method"], e["path"]) for e in eps}
+        self.assertEqual(paths, {("GET", "/ping"), ("POST", "/echo")})
+
+
+class TestHandlerReachability(unittest.TestCase):
+    def test_spec_handler_links_to_sink(self):
+        status = ToolStatus()
+        with tempfile.TemporaryDirectory() as d:
+            # Handler function with a SQLi sink, and a spec that exposes it.
+            with open(os.path.join(d, "views.py"), "w") as fh:
+                fh.write("def get_user(uid):\n"
+                         "    cur.execute(\"SELECT * FROM u WHERE id='%s'\" % uid)\n")
+            import json
+            with open(os.path.join(d, "openapi.json"), "w") as fh:
+                json.dump({"openapi": "3.0.0", "paths": {
+                    "/users/{uid}": {"get": {"operationId": "views.get_user"}}}}, fh)
+            from offat_wb import hunt
+            eps = graph_map.map_endpoints(d, status, use_graft=False)
+            findings = hunt.builtin_hunt(d, None)
+            findings = reachability.link(d, findings, eps, status)
+            sink = next(f for f in findings if f["file"].endswith("views.py"))
+            self.assertTrue(sink["reachable"])
+            self.assertIn("GET /users/{uid}", sink["reachable_from"])
+
+
 class TestReachability(unittest.TestCase):
     def test_same_file_reachable_and_orphan_unreachable(self):
         from offat_wb import hunt

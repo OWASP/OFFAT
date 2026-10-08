@@ -46,9 +46,16 @@ graft builds a structural graph for free (tree-sitter, no API key, no LLM
 tokens); the pipeline queries it and confirms each route with a native parser so
 output is deterministic. Supported route forms: Flask/FastAPI decorators, Django
 `path()`, Express `app/router.verb()`, Spring `@*Mapping`, Go routers
-(`GET/POST/Handle/HandleFunc`), and Rails `routes.rb`. When graft is absent the
-native parser runs alone and reachability falls back to a conservative same-file
-heuristic (noted in the report).
+(`GET/POST/Handle/HandleFunc`), Rails `routes.rb`, **and OpenAPI/Swagger specs
+shipped in the repo** (YAML or JSON - covers spec-driven frameworks like
+connexion, where the `operationId` becomes the handler). When graft is absent the
+native parser runs alone.
+
+Reachability links a finding to an endpoint three ways, in order: the finding's
+enclosing function is an endpoint handler / `operationId` (works offline and for
+spec-driven apps); the graft call graph connects the sink's symbol up to a
+handler; or, as a conservative fallback, the sink shares a file with a route.
+Each finding records which method established reachability.
 
 ## Token discipline
 
