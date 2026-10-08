@@ -83,6 +83,27 @@ func verdictOf(f *detect.Finding) string {
 	return ""
 }
 
+// CountAtOrAbove returns how many actionable findings (not ruled out as false
+// positives by the triager) have a severity at or above sev. It powers the
+// CLI's --fail-on CI gate. An empty or unknown sev matches nothing.
+func CountAtOrAbove(r *Report, sev string) int {
+	threshold, ok := severityRank[strings.ToLower(strings.TrimSpace(sev))]
+	if !ok || sev == "" {
+		return 0
+	}
+	n := 0
+	for _, f := range r.Findings {
+		rank, known := severityRank[f.Severity]
+		if !known {
+			continue
+		}
+		if rank <= threshold && isActionable(f) {
+			n++
+		}
+	}
+	return n
+}
+
 // WriteJSON writes the full report as indented JSON.
 func WriteJSON(w io.Writer, r *Report) error {
 	enc := json.NewEncoder(w)

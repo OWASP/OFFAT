@@ -159,7 +159,10 @@ vulnerable dependencies (SCA), plus anything semgrep's `--config auto` finds.
    differential detection.
 5. **Detect** using per-vector rules (error signatures, reflection, timing,
    boolean/diff, status), suppressing signals already present in the baseline.
-6. **Triage** each candidate with the AI triager (or heuristic), then report.
+6. **Triage** each candidate with the AI triager (or heuristic), then report in
+   JSON, JSONL, SARIF, Markdown, HTML and JUnit XML. Pass `--fail-on <severity>`
+   to exit non-zero when a finding at/above that level survives triage - a drop-in
+   CI gate.
 
 Add a new attack technique by dropping a YAML file in `knowledge-base/` — no
 code changes. See [`knowledge-base/README.md`](knowledge-base/README.md).

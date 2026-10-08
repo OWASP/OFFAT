@@ -44,6 +44,7 @@ type options struct {
 	listClasses bool
 	printGraph  bool
 	iUnderstand bool
+	failOn      string
 }
 
 type multiFlag []string
@@ -156,6 +157,13 @@ func Run(args []string) int {
 		return 1
 	}
 	printSummary(rep, opt.outDir)
+
+	if opt.failOn != "" {
+		if n := report.CountAtOrAbove(rep, opt.failOn); n > 0 {
+			fmt.Fprintf(os.Stderr, "\nfail-on: %d finding(s) at or above severity %q — exiting non-zero\n", n, opt.failOn)
+			return 1
+		}
+	}
 	return 0
 }
 
@@ -210,11 +218,12 @@ func writeReports(dir string, rep *report.Report) error {
 		return err
 	}
 	writers := map[string]func(f *os.File) error{
-		"report.json":    func(f *os.File) error { return report.WriteJSON(f, rep) },
-		"findings.jsonl": func(f *os.File) error { return report.WriteJSONL(f, rep) },
-		"results.sarif":  func(f *os.File) error { return report.WriteSARIF(f, rep) },
-		"report.md":      func(f *os.File) error { return report.WriteMarkdown(f, rep) },
-		"report.html":    func(f *os.File) error { return report.WriteHTML(f, rep) },
+		"report.json":      func(f *os.File) error { return report.WriteJSON(f, rep) },
+		"findings.jsonl":   func(f *os.File) error { return report.WriteJSONL(f, rep) },
+		"results.sarif":    func(f *os.File) error { return report.WriteSARIF(f, rep) },
+		"report.md":        func(f *os.File) error { return report.WriteMarkdown(f, rep) },
+		"report.html":      func(f *os.File) error { return report.WriteHTML(f, rep) },
+		"report.junit.xml": func(f *os.File) error { return report.WriteJUnit(f, rep) },
 	}
 	for name, fn := range writers {
 		f, err := os.Create(filepath.Join(dir, name))

@@ -38,6 +38,7 @@ offat-dast --spec <file> [--url <base>] [flags]
 | `--graph` | false | Print the dataflow graph |
 | `--list-classes` | false | List vuln classes and exit |
 | `--max-payloads` | 0 | Cap payloads per vector |
+| `--fail-on` | — | Exit non-zero if any actionable finding is at/above this severity (CI gate) |
 | `--yes` | false | **Confirm authorization** to scan |
 
 ### AI triage backends
@@ -73,6 +74,10 @@ offat-dast -f api.yaml --url https://api.example.com \
 
 # CI-friendly SARIF for code scanning
 offat-dast -f api.yaml --url "$STAGING" --yes && cat offat-report/results.sarif
+
+# Gate a pipeline: non-zero exit when a high+ finding survives triage
+offat-dast -f api.yaml --url "$STAGING" --fail-on high --yes
+# JUnit results for the CI test-report UI are written to report.junit.xml
 ```
 
 ## Dataflow graph & chaining
@@ -109,8 +114,12 @@ graph rather than payload injection.
 ## Output
 
 `offat-report/` contains `report.json`, `findings.jsonl`, `results.sarif`,
-`report.md`, and a styled `report.html`. Findings are sorted by verdict, then
-severity, then confidence.
+`report.md`, a styled `report.html`, and `report.junit.xml` (for CI test-report
+UIs). Findings are sorted by verdict, then severity, then confidence.
+
+Use `--fail-on <severity>` to turn the scan into a CI gate: the process exits
+non-zero when any finding at or above that severity survives triage (i.e. is not
+ruled a false positive), so a pipeline step fails on real findings.
 
 ## Extending
 

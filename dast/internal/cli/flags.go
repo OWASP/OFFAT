@@ -37,6 +37,7 @@ func parseFlags(args []string) (options, *flag.FlagSet, error) {
 	fs.BoolVar(&opt.listClasses, "list-classes", false, "list available vuln classes and exit")
 	fs.BoolVar(&opt.printGraph, "graph", false, "print the dataflow graph")
 	fs.BoolVar(&opt.iUnderstand, "yes", false, "confirm you are authorized to scan the target")
+	fs.StringVar(&opt.failOn, "fail-on", "", "exit non-zero if any actionable finding is at/above this severity (critical|high|medium|low|info)")
 
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "offat-dast — OpenAPI-driven DAST engine (OFFAT-AI)\n\n")
@@ -108,5 +109,5 @@ func printSummary(rep *report.Report, dir string) {
 			fmt.Printf("    %-15s %d\n", v, c)
 		}
 	}
-	fmt.Printf("\nReports written to %s/ (report.json, findings.jsonl, results.sarif, report.md, report.html)\n", dir)
+	fmt.Printf("\nReports written to %s/ (report.json, findings.jsonl, results.sarif, report.md, report.html, report.junit.xml)\n", dir)
 }
