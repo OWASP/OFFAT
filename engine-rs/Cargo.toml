@@ -1,0 +1,22 @@
+[package]
+name = "offat-engine"
+version = "0.1.0"
+edition = "2021"
+description = "OFFAT-AI execution engine: high-performance, multi-protocol request executor over the OFFAT Bundle"
+license = "MIT"
+repository = "https://github.com/dmdhrumilmistry/offat-ai"
+
+[[bin]]
+name = "offat-engine"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "sync", "time"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "http2", "gzip"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+
+[profile.release]
+opt-level = 3
+lto = true

@@ -70,7 +70,8 @@ mapping + parameter-relation-graph stage) have landed.
 | `graybox/` | Python gray-box pipeline (`offat-graybox`) — graft endpoint mapping + reachability + AI |
 | `triager/` | Shared AI/heuristic triager (`offat-triage`) |
 | `bundle/` | Canonical interchange document (`offat-bundle`) - the platform's data contract |
-| `platform/` | Platform orchestrator (`offat-platform`) - mapping, parameter relation graph (more stages landing) |
+| `platform/` | Platform orchestrator (`offat-platform`) - mapping, PRG, threat model, test-gen |
+| `engine-rs/` | Rust execution engine (`offat-engine`) - multi-protocol request executor over the Bundle |
 | `knowledge-base/` | Extended attack-vector library + bug-bounty patterns (`--kb`) |
 | `skills/`, `commands/`, `agents/`, `.claude-plugin/` | Claude Code plugin |
 | `examples/` | Sample OpenAPI spec + vulnerable code fixture |

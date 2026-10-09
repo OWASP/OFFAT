@@ -4,11 +4,11 @@ This document describes the staged platform OFFAT-AI is evolving into, and the
 single data contract that holds it together. It is the reference for the phased
 build; each phase ships independently and writes into one shared file.
 
-> Status: **Phases 0-3 landed** - the Bundle contract ([`bundle/`](../bundle)) and
-> the mapping, parameter-relation-graph, threat-modeling and test-generation
-> stages ([`platform/`](../platform),
-> `offat-platform map|threat-model|test-gen`). Later phases are tracked in
-> [Phasing](#phasing).
+> Status: **Phases 0-3 landed; P4 in progress** - the Bundle contract
+> ([`bundle/`](../bundle)); the mapping, parameter-relation-graph, threat-modeling
+> and test-generation stages ([`platform/`](../platform)); and the Rust execution
+> engine ([`engine-rs/`](../engine-rs), HTTP/1.1 + HTTP/2). Later phases are
+> tracked in [Phasing](#phasing).
 
 ## Principle: contracts over components
 
@@ -98,7 +98,7 @@ visualizer. It generalizes the existing Go `dast/internal/graph` package.
 - [x] **P1 Mapping + PRG** - `offat-platform map` writes `asm`, `inventory` and `prg` into the Bundle (endpoints with params + response fields; sinks/sources; producer->consumer edges).
 - [x] **P2 Threat model** - `offat-platform threat-model` writes `threat_model` (assets, trust boundaries, data flows, STRIDE threats mapped to OWASP API + CWE with likelihood x impact risk, and a Mermaid DFD).
 - [x] **P3 Test-gen** - `offat-platform test-gen` writes `test_plan`: meaningful rule-based cases (vectors matched to params by location + name hints), multi-step chains seeded from the PRG, BOLA/IDOR cases on id path params, and optional `--ai` payload augmentation.
-- [ ] **P4 Rust engine** - write `results` (H1/H2 first, then gRPC/WS, then H3/QUIC).
+- [~] **P4 Rust engine** - `offat-engine` ([`engine-rs/`](../engine-rs)) reads the `test_plan`, executes against an authorized target and writes `results`. **HTTP/1.1 + HTTP/2 implemented**; gRPC (tonic), WebSocket (tungstenite) and HTTP/3/QUIC (quinn + h3) are the next protocol increments (recognized and recorded as skipped until wired).
 - [ ] **P5 Consolidate + triage** - write `findings`.
 - [ ] **P6 Reporter** - Bundle -> SARIF/HTML/MD/PDF/compliance.
 - [ ] **P7 Visualizer** - static web app over the Bundle (import/export).
