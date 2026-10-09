@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "offat-report"
+version = "1.0.0"
+description = "OFFAT-AI reporter: render an OFFAT Bundle into SARIF/HTML/Markdown/compliance/PDF"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Dhrumil Mistry" }]
+keywords = ["security", "offat", "sarif", "report", "compliance"]
+dependencies = []
+
+[project.optional-dependencies]
+taxonomy = ["offat-triage>=1.0.0"]
+
+[project.scripts]
+offat-report = "offat_report.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/dmdhrumilmistry/offat-ai"
+
+[tool.setuptools]
+packages = ["offat_report"]

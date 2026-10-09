@@ -72,6 +72,7 @@ mapping + parameter-relation-graph stage) have landed.
 | `bundle/` | Canonical interchange document (`offat-bundle`) - the platform's data contract |
 | `platform/` | Platform orchestrator (`offat-platform`) - mapping, PRG, threat model, test-gen |
 | `engine-rs/` | Rust execution engine (`offat-engine`) - multi-protocol request executor over the Bundle |
+| `reporter/` | Reporter (`offat-report`) - Bundle -> SARIF/HTML/Markdown/compliance/PDF |
 | `knowledge-base/` | Extended attack-vector library + bug-bounty patterns (`--kb`) |
 | `skills/`, `commands/`, `agents/`, `.claude-plugin/` | Claude Code plugin |
 | `examples/` | Sample OpenAPI spec + vulnerable code fixture |
