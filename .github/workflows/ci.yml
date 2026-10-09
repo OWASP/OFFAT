@@ -73,9 +73,11 @@ jobs:
         with:
           python-version: "3.12"
       - name: Byte-compile
-        run: python3 -m compileall -q triager/offat_triage whitebox/offat_wb graybox/offat_gb
+        run: python3 -m compileall -q triager/offat_triage whitebox/offat_wb graybox/offat_gb bundle/offat_bundle
       - name: Install packages
-        run: pip install ./triager ./whitebox ./graybox
+        run: pip install ./triager ./whitebox ./graybox ./bundle jsonschema
+      - name: Bundle unit tests (offline, jsonschema path)
+        run: PYTHONPATH=bundle python3 -m unittest discover -s bundle/tests -p 'test_*.py'
       - name: Triager unit tests (offline)
         run: PYTHONPATH=triager python3 -m unittest discover -s triager/tests -p 'test_*.py'
       - name: White-box unit tests (offline)

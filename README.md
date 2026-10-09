@@ -53,7 +53,12 @@ OFFAT-AI migrates and extends [OWASP OFFAT](https://github.com/OWASP/offat)
                          └─────────────────────────────────┘
 ```
 
-See [`docs/architecture.md`](docs/architecture.md) for the full design.
+See [`docs/architecture.md`](docs/architecture.md) for the current design, and
+[`docs/platform.md`](docs/platform.md) for the staged **platform (v2)** it is
+evolving into - a pipeline of focused tools (mapping, parameter relation graph,
+threat modeling, AI test generation, a Rust multi-protocol execution engine,
+triage, reporting and a visualizer) connected by one canonical
+[Bundle](bundle/README.md) file. Phase 0 (the Bundle contract) has landed.
 
 ## Repository layout
 
@@ -63,6 +68,7 @@ See [`docs/architecture.md`](docs/architecture.md) for the full design.
 | `whitebox/` | Python SAST pipeline (`offat-whitebox`) |
 | `graybox/` | Python gray-box pipeline (`offat-graybox`) — graft endpoint mapping + reachability + AI |
 | `triager/` | Shared AI/heuristic triager (`offat-triage`) |
+| `bundle/` | Canonical interchange document (`offat-bundle`) - the platform's data contract |
 | `knowledge-base/` | Extended attack-vector library + bug-bounty patterns (`--kb`) |
 | `skills/`, `commands/`, `agents/`, `.claude-plugin/` | Claude Code plugin |
 | `examples/` | Sample OpenAPI spec + vulnerable code fixture |

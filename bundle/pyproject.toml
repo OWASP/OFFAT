@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "offat-bundle"
+version = "1.0.0"
+description = "OFFAT Bundle - canonical interchange document (schema + builders + validation) for the OFFAT-AI platform"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Dhrumil Mistry" }]
+keywords = ["security", "offat", "sarif", "schema", "pipeline"]
+dependencies = []
+
+[project.optional-dependencies]
+validate = ["jsonschema>=4"]
+
+[project.urls]
+Homepage = "https://github.com/dmdhrumilmistry/offat-ai"
+
+[tool.setuptools]
+packages = ["offat_bundle"]
+
+[tool.setuptools.package-data]
+offat_bundle = ["schema/*.json"]
