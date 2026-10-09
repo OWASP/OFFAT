@@ -15,12 +15,17 @@ Implemented now (Phases 1-2):
 - **`test-gen`** - a **test plan**: vectors matched to each param by location and
   name hints, multi-step cases seeded from the PRG, BOLA/IDOR cases on id path
   params, and optional `--ai` payload augmentation.
+- **`triage`** - detect DAST findings from the engine's `results`, fold in SAST
+  sinks, attach the OWASP/CWE threat mapping, triage (tiered/cached), and write
+  `findings` + `summary` (with `--fail-on`).
 - **`validate`** - check a Bundle against the schema and its cross-references.
 
 ```bash
 pip install ./bundle ./triager ./whitebox ./graybox ./platform
 offat-platform map /path/to/repo --threat-model -o out/app.offat.json
 offat-platform test-gen out/app.offat.json            # add a test plan (--ai to augment)
+offat-engine --bundle out/app.offat.json --url https://target --yes   # execute (Rust)
+offat-platform triage out/app.offat.json --fail-on high               # findings + summary
 offat-platform validate out/app.offat.json
 ```
 
@@ -31,5 +36,5 @@ another endpoint's **request params** (consumers) when they refer to the same
 value, so a later stage can seed Y's input from X's output (and replay foreign
 identifiers for BOLA/IDOR).
 
-Later phases add `execute` (the Rust engine), `triage` and `report`, each reading
-and writing the same Bundle.
+The remaining phase adds the reporter (Bundle -> SARIF/HTML/MD/PDF/compliance) and
+the visualizer, both consuming the same Bundle.

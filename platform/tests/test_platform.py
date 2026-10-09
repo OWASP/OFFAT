@@ -11,7 +11,7 @@ for p in ("bundle", "triager", "whitebox", "graybox", "platform"):
     sys.path.insert(0, os.path.join(ROOT, p))
 
 import offat_bundle as ob  # noqa: E402
-from offat_platform import mapping, prg, testgen, threat_model  # noqa: E402
+from offat_platform import consolidate, mapping, prg, testgen, threat_model  # noqa: E402
 
 SPEC = {
     "openapi": "3.0.0",
@@ -142,6 +142,45 @@ class TestTestGen(unittest.TestCase):
             classes = {c["class"] for c in b["test_plan"]["cases"]}
             self.assertIn("ssrf", classes)
             self.assertIn("open_redirect", classes)
+
+
+class TestConsolidate(unittest.TestCase):
+    def _bundle_with_result(self):
+        b = ob.new_bundle()
+        ep = ob.add_endpoint(b, ob.endpoint("GET", "/search",
+                                            params=[ob.param("q", "query")]))
+        tc = ob.add_test_case(b, ob.test_case(ep, param="q", location="query",
+                                              vclass="sqli", technique="error", payload="'"))
+        ob.add_execution(b, ob.execution(
+            tc, request={"method": "GET", "url": "http://t/search?q='"},
+            response={"status": 500, "body_snippet": "You have an error in your SQL syntax"}))
+        # a SAST sink too
+        ob.add_sink(b, ob.sink("secrets", symbol="cfg", file="config.py", line=3, cwe="CWE-798"))
+        return b
+
+    def test_dast_detection_and_sast_merge(self):
+        with tempfile.TemporaryDirectory() as out:
+            b = self._bundle_with_result()
+            summary = consolidate.build(b, out, use_ai=False)
+            self.assertGreaterEqual(summary["findings"], 2)  # sqli (dast) + secrets (sast)
+            classes = {f["class"] for f in b["findings"]}
+            self.assertIn("sqli", classes)
+            self.assertIn("secrets", classes)
+            sqli = next(f for f in b["findings"] if f["class"] == "sqli")
+            self.assertEqual(sqli["source_mode"], "dast")
+            self.assertTrue(sqli["threat"]["owasp_api"].startswith("API"))
+            self.assertIn("verdict", sqli["triage"])
+            self.assertIn("by_owasp_api", summary)
+            self.assertEqual(ob.validate_bundle(b), [])
+
+    def test_no_signal_no_finding(self):
+        with tempfile.TemporaryDirectory() as out:
+            b = ob.new_bundle()
+            ep = ob.add_endpoint(b, ob.endpoint("GET", "/ping"))
+            tc = ob.add_test_case(b, ob.test_case(ep, vclass="sqli", technique="error", payload="'"))
+            ob.add_execution(b, ob.execution(tc, response={"status": 200, "body_snippet": "pong"}))
+            summary = consolidate.build(b, out, use_ai=False)
+            self.assertEqual(summary["findings"], 0)
 
 
 if __name__ == "__main__":
