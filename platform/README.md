@@ -4,16 +4,20 @@ Orchestrates the staged platform pipeline over a single
 [Bundle](../bundle/README.md). See [`../docs/platform.md`](../docs/platform.md)
 for the full design.
 
-Implemented now (Phase 1):
+Implemented now (Phases 1-2):
 
 - **`map`** - attack surface (endpoints with params + response fields), sink/
   source inventory, and the **parameter relation graph** (PRG), written into a
-  Bundle.
+  Bundle. `--threat-model` also runs the next stage.
+- **`threat-model`** - assets, trust boundaries, data flows, **STRIDE threats**
+  mapped to the OWASP API Top 10 + CWE with a likelihood x impact risk, and a
+  Mermaid data-flow diagram.
 - **`validate`** - check a Bundle against the schema and its cross-references.
 
 ```bash
 pip install ./bundle ./triager ./whitebox ./graybox ./platform
-offat-platform map /path/to/repo -o out/app.offat.json
+offat-platform map /path/to/repo --threat-model -o out/app.offat.json
+offat-platform threat-model out/app.offat.json        # or add it later, in place
 offat-platform validate out/app.offat.json
 ```
 
@@ -24,5 +28,5 @@ another endpoint's **request params** (consumers) when they refer to the same
 value, so a later stage can seed Y's input from X's output (and replay foreign
 identifiers for BOLA/IDOR).
 
-Later phases add `threat-model`, `test-gen`, `execute` (the Rust engine),
-`triage` and `report`, each reading and writing the same Bundle.
+Later phases add `test-gen`, `execute` (the Rust engine), `triage` and `report`,
+each reading and writing the same Bundle.

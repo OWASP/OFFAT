@@ -6,7 +6,7 @@ relation graph; later phases add threat modeling, test generation, execution,
 triage and reporting.
 """
 
-from . import mapping, prg
+from . import mapping, prg, threat_model
 
-__all__ = ["mapping", "prg"]
+__all__ = ["mapping", "prg", "threat_model"]
 __version__ = "1.0.0"

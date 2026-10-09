@@ -11,7 +11,7 @@ for p in ("bundle", "triager", "whitebox", "graybox", "platform"):
     sys.path.insert(0, os.path.join(ROOT, p))
 
 import offat_bundle as ob  # noqa: E402
-from offat_platform import mapping, prg  # noqa: E402
+from offat_platform import mapping, prg, threat_model  # noqa: E402
 
 SPEC = {
     "openapi": "3.0.0",
@@ -86,6 +86,26 @@ class TestPRG(unittest.TestCase):
             prg.build(b)
             self.assertEqual(ob.validate_bundle(b), [])
             self.assertEqual(ob.cross_refs(b), [])
+
+
+class TestThreatModel(unittest.TestCase):
+    def test_threats_assets_dfd(self):
+        with tempfile.TemporaryDirectory() as d:
+            _fixture(d)
+            b = ob.new_bundle(target={"source_path": d})
+            mapping.map_target(b, d, use_graft=False)
+            prg.build(b)
+            stats = threat_model.build(b)
+            tm = b["threat_model"]
+            self.assertGreater(stats["threats"], 0)
+            self.assertTrue(tm["assets"])
+            self.assertTrue(tm["dfd_mermaid"].startswith("graph LR"))
+            # the SQLi sink yields a Tampering threat mapped to an OWASP API cat + CWE.
+            sqli = next(t for t in tm["threats"] if "sqli" in t["title"])
+            self.assertEqual(sqli["stride"], "Tampering")
+            self.assertTrue(sqli["owasp_api"].startswith("API"))
+            self.assertIn(sqli["risk"], ("critical", "high", "medium", "low"))
+            self.assertEqual(ob.validate_bundle(b), [])
 
 
 if __name__ == "__main__":

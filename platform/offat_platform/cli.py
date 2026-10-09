@@ -14,7 +14,7 @@ from typing import List, Optional
 
 import offat_bundle as ob
 
-from . import mapping, prg
+from . import mapping, prg, threat_model
 
 
 def _cmd_map(args) -> int:
@@ -36,6 +36,11 @@ def _cmd_map(args) -> int:
     stats = prg.build(bundle)
     print(f"[prg] producers: {stats['producers']}  consumers: {stats['consumers']}  edges: {stats['edges']}")
 
+    if args.threat_model:
+        print("[threat] modeling ...")
+        ts = threat_model.build(bundle)
+        print(f"[threat] assets: {ts['assets']}  threats: {ts['threats']}  dataflows: {ts['dataflows']}")
+
     problems = ob.validate_bundle(bundle)
     if problems:
         print("[warn] bundle validation issues:", file=sys.stderr)
@@ -44,6 +49,17 @@ def _cmd_map(args) -> int:
 
     out = args.out
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
+    ob.save(bundle, out)
+    print(f"[bundle] written to {out}")
+    return 0
+
+
+def _cmd_threat_model(args) -> int:
+    bundle = ob.load(args.bundle)
+    print("[threat] modeling ...")
+    ts = threat_model.build(bundle)
+    print(f"[threat] assets: {ts['assets']}  threats: {ts['threats']}  dataflows: {ts['dataflows']}")
+    out = args.out or args.bundle
     ob.save(bundle, out)
     print(f"[bundle] written to {out}")
     return 0
@@ -73,7 +89,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     m.add_argument("-o", "--out", default="offat-report/bundle.offat.json", help="output Bundle path")
     m.add_argument("--classes", default="", help="comma-separated vuln classes for the hunter")
     m.add_argument("--no-graft", action="store_true", help="map endpoints natively (skip graft)")
+    m.add_argument("--threat-model", action="store_true", help="also build the threat model")
     m.set_defaults(func=_cmd_map)
+
+    tmp = sub.add_parser("threat-model", help="add a threat model to an existing Bundle")
+    tmp.add_argument("bundle", help="path to a .offat.json Bundle")
+    tmp.add_argument("-o", "--out", default="", help="output path (default: in place)")
+    tmp.set_defaults(func=_cmd_threat_model)
 
     v = sub.add_parser("validate", help="validate a Bundle against the schema")
     v.add_argument("bundle", help="path to a .offat.json Bundle")
