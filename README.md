@@ -58,7 +58,8 @@ See [`docs/architecture.md`](docs/architecture.md) for the current design, and
 evolving into - a pipeline of focused tools (mapping, parameter relation graph,
 threat modeling, AI test generation, a Rust multi-protocol execution engine,
 triage, reporting and a visualizer) connected by one canonical
-[Bundle](bundle/README.md) file. Phase 0 (the Bundle contract) has landed.
+[Bundle](bundle/README.md) file. Phases 0-1 (the Bundle contract and the
+mapping + parameter-relation-graph stage) have landed.
 
 ## Repository layout
 
@@ -69,6 +70,7 @@ triage, reporting and a visualizer) connected by one canonical
 | `graybox/` | Python gray-box pipeline (`offat-graybox`) — graft endpoint mapping + reachability + AI |
 | `triager/` | Shared AI/heuristic triager (`offat-triage`) |
 | `bundle/` | Canonical interchange document (`offat-bundle`) - the platform's data contract |
+| `platform/` | Platform orchestrator (`offat-platform`) - mapping, parameter relation graph (more stages landing) |
 | `knowledge-base/` | Extended attack-vector library + bug-bounty patterns (`--kb`) |
 | `skills/`, `commands/`, `agents/`, `.claude-plugin/` | Claude Code plugin |
 | `examples/` | Sample OpenAPI spec + vulnerable code fixture |

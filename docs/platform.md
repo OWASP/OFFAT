@@ -4,8 +4,9 @@ This document describes the staged platform OFFAT-AI is evolving into, and the
 single data contract that holds it together. It is the reference for the phased
 build; each phase ships independently and writes into one shared file.
 
-> Status: **Phase 0 (contracts)** landed - the Bundle schema + helpers in
-> [`bundle/`](../bundle). Later phases are tracked in [Phasing](#phasing).
+> Status: **Phases 0-1 landed** - the Bundle contract ([`bundle/`](../bundle))
+> and the mapping + parameter-relation-graph stage ([`platform/`](../platform),
+> `offat-platform map`). Later phases are tracked in [Phasing](#phasing).
 
 ## Principle: contracts over components
 
@@ -92,7 +93,7 @@ visualizer. It generalizes the existing Go `dast/internal/graph` package.
 ## Phasing
 
 - [x] **P0 Contracts** - Bundle schema + Python helpers (build/validate/load/save/merge) + tests.
-- [ ] **P1 Mapping + PRG** - write `asm`, `inventory`, `prg` into the Bundle.
+- [x] **P1 Mapping + PRG** - `offat-platform map` writes `asm`, `inventory` and `prg` into the Bundle (endpoints with params + response fields; sinks/sources; producer->consumer edges).
 - [ ] **P2 Threat model** - write `threat_model` (DFD + ranked threats).
 - [ ] **P3 Test-gen** - write `test_plan` (AI + KB, multi-step via PRG).
 - [ ] **P4 Rust engine** - write `results` (H1/H2 first, then gRPC/WS, then H3/QUIC).

@@ -65,6 +65,20 @@ _GO_EXTS = {".go"}
 _RUBY_EXTS = {".rb"}
 
 
+_PATH_PARAM = re.compile(r"\{(\w+)\}|<(?:[\w.]+:)?(\w+)>|:(\w+)")
+
+
+def _path_params(route: str) -> List[Dict[str, Any]]:
+    """Extract path parameters from a route template (Flask/Express/FastAPI)."""
+    params = []
+    for m in _PATH_PARAM.finditer(route or ""):
+        name = m.group(1) or m.group(2) or m.group(3)
+        if name:
+            params.append({"name": name, "location": "path", "type": "string",
+                           "required": True})
+    return params
+
+
 def _next_handler(lines: List[str], idx: int) -> str:
     """Return the function/method name defined just after a decorator line."""
     for j in range(idx, min(idx + 6, len(lines))):
@@ -103,6 +117,8 @@ def _scan_file(path: str, rel: str, ext: str) -> List[Dict[str, Any]]:
             "file": rel,
             "line": lineno,
             "framework": fw,
+            "params": _path_params(route),
+            "responses": [],
         })
 
     for i, line in enumerate(lines):
@@ -183,16 +199,100 @@ def _spec_endpoints(path: str, rel: str) -> List[Dict[str, Any]]:
     for route, item in data["paths"].items():
         if not isinstance(item, dict):
             continue
+        shared = item.get("parameters") if isinstance(item.get("parameters"), list) else []
         for method, op in item.items():
             if method.lower() not in _HTTP_METHODS:
                 continue
             handler = ""
-            if isinstance(op, dict) and op.get("operationId"):
+            op = op if isinstance(op, dict) else {}
+            if op.get("operationId"):
                 handler = str(op["operationId"]).split(".")[-1]
             out.append({
                 "method": method.upper(), "path": str(route), "handler": handler,
                 "file": rel, "line": _line_of(text, route), "framework": "openapi",
+                "params": _spec_params(data, op, shared),
+                "responses": _spec_responses(data, op),
             })
+    return out
+
+
+def _resolve_ref(data: Dict[str, Any], node: Any) -> Any:
+    """Resolve a local ``$ref`` (one hop) against the spec root."""
+    seen = 0
+    while isinstance(node, dict) and "$ref" in node and seen < 10:
+        ref = node["$ref"]
+        if not isinstance(ref, str) or not ref.startswith("#/"):
+            return node
+        cur: Any = data
+        for part in ref[2:].split("/"):
+            if isinstance(cur, dict) and part in cur:
+                cur = cur[part]
+            else:
+                return node
+        node = cur
+        seen += 1
+    return node
+
+
+def _schema_fields(data: Dict[str, Any], schema: Any) -> List[Dict[str, str]]:
+    """Top-level field names/types of an object (or array-of-object) schema."""
+    schema = _resolve_ref(data, schema)
+    if not isinstance(schema, dict):
+        return []
+    if schema.get("type") == "array" or "items" in schema:
+        return _schema_fields(data, schema.get("items"))
+    props = schema.get("properties")
+    if not isinstance(props, dict):
+        return []
+    out = []
+    for name, sub in props.items():
+        sub = _resolve_ref(data, sub)
+        t = sub.get("type", "string") if isinstance(sub, dict) else "string"
+        out.append({"name": str(name), "type": str(t)})
+    return out
+
+
+def _spec_params(data: Dict[str, Any], op: Dict[str, Any],
+                 shared: List[Any]) -> List[Dict[str, Any]]:
+    params: List[Dict[str, Any]] = []
+    for p in list(shared) + (op.get("parameters") or []):
+        p = _resolve_ref(data, p)
+        if not isinstance(p, dict) or not p.get("name"):
+            continue
+        schema = _resolve_ref(data, p.get("schema") or {})
+        ptype = schema.get("type", p.get("type", "string")) if isinstance(schema, dict) else "string"
+        params.append({"name": str(p["name"]), "location": str(p.get("in", "query")),
+                       "type": str(ptype), "required": bool(p.get("required", False))})
+    # OpenAPI 3 requestBody -> body params from the object's properties.
+    body = _resolve_ref(data, op.get("requestBody") or {})
+    if isinstance(body, dict):
+        for _ctype, media in (body.get("content") or {}).items():
+            for f in _schema_fields(data, (media or {}).get("schema")):
+                params.append({"name": f["name"], "location": "body",
+                               "type": f["type"], "required": False})
+            break
+    return params
+
+
+def _spec_responses(data: Dict[str, Any], op: Dict[str, Any]) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    for status, resp in (op.get("responses") or {}).items():
+        resp = _resolve_ref(data, resp)
+        if not isinstance(resp, dict):
+            continue
+        fields: List[Dict[str, str]] = []
+        # OpenAPI 3 (content) and Swagger 2 (schema).
+        for _ctype, media in (resp.get("content") or {}).items():
+            fields = _schema_fields(data, (media or {}).get("schema"))
+            if fields:
+                break
+        if not fields and resp.get("schema"):
+            fields = _schema_fields(data, resp.get("schema"))
+        try:
+            code = int(status)
+        except (TypeError, ValueError):
+            code = 0
+        out.append({"status": code, "fields": fields})
     return out
 
 
