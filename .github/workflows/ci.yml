@@ -21,6 +21,20 @@ jobs:
       - run: cargo build --locked
       - run: cargo test --locked
 
+  viz:
+    name: Visualizer (static)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: viz
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: node --check app.js
+      - run: node tests/dom_smoke.js
+
   dast-go:
     name: DAST engine (Go)
     runs-on: ubuntu-latest

@@ -58,8 +58,9 @@ See [`docs/architecture.md`](docs/architecture.md) for the current design, and
 evolving into - a pipeline of focused tools (mapping, parameter relation graph,
 threat modeling, AI test generation, a Rust multi-protocol execution engine,
 triage, reporting and a visualizer) connected by one canonical
-[Bundle](bundle/README.md) file. Phases 0-1 (the Bundle contract and the
-mapping + parameter-relation-graph stage) have landed.
+[Bundle](bundle/README.md) file. All phases (0-7) have landed; the execution
+engine currently speaks HTTP/1.1 + HTTP/2, with gRPC/WebSocket/HTTP-3 as the next
+protocol increments.
 
 ## Repository layout
 
@@ -73,6 +74,7 @@ mapping + parameter-relation-graph stage) have landed.
 | `platform/` | Platform orchestrator (`offat-platform`) - mapping, PRG, threat model, test-gen |
 | `engine-rs/` | Rust execution engine (`offat-engine`) - multi-protocol request executor over the Bundle |
 | `reporter/` | Reporter (`offat-report`) - Bundle -> SARIF/HTML/Markdown/compliance/PDF |
+| `viz/` | Static visualizer - import a Bundle; view attack surface, PRG, threat model, findings |
 | `knowledge-base/` | Extended attack-vector library + bug-bounty patterns (`--kb`) |
 | `skills/`, `commands/`, `agents/`, `.claude-plugin/` | Claude Code plugin |
 | `examples/` | Sample OpenAPI spec + vulnerable code fixture |

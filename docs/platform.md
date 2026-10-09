@@ -4,13 +4,14 @@ This document describes the staged platform OFFAT-AI is evolving into, and the
 single data contract that holds it together. It is the reference for the phased
 build; each phase ships independently and writes into one shared file.
 
-> Status: **Phases 0-6 landed** (P4 engine covers HTTP/1.1 + HTTP/2) - the Bundle
-> contract ([`bundle/`](../bundle)); the mapping, PRG, threat-modeling,
-> test-generation and consolidation+triage stages ([`platform/`](../platform));
-> the Rust execution engine ([`engine-rs/`](../engine-rs)); and the reporter
-> ([`reporter/`](../reporter)). The pipeline runs `map -> prg -> threat-model ->
-> test-gen -> execute -> triage -> report` over one Bundle. Remaining: the
-> visualizer (P7).
+> Status: **all phases (0-7) landed** (P4 engine covers HTTP/1.1 + HTTP/2; more
+> protocols are the documented next increment). The Bundle contract
+> ([`bundle/`](../bundle)); the mapping, PRG, threat-modeling, test-generation and
+> consolidation+triage stages ([`platform/`](../platform)); the Rust execution
+> engine ([`engine-rs/`](../engine-rs)); the reporter ([`reporter/`](../reporter));
+> and the visualizer ([`viz/`](../viz)). The pipeline runs `map -> prg ->
+> threat-model -> test-gen -> execute -> triage -> report` over one Bundle, which
+> the visualizer imports.
 
 ## Principle: contracts over components
 
@@ -103,7 +104,7 @@ visualizer. It generalizes the existing Go `dast/internal/graph` package.
 - [~] **P4 Rust engine** - `offat-engine` ([`engine-rs/`](../engine-rs)) reads the `test_plan`, executes against an authorized target and writes `results`. **HTTP/1.1 + HTTP/2 implemented**; gRPC (tonic), WebSocket (tungstenite) and HTTP/3/QUIC (quinn + h3) are the next protocol increments (recognized and recorded as skipped until wired).
 - [x] **P5 Consolidate + triage** - `offat-platform triage` detects DAST findings from `results` (signature/reflection/status heuristics), folds in SAST sinks, attaches the OWASP/CWE threat mapping, triages with the shared tiered triager, and writes `findings` + `summary` (with `--fail-on`).
 - [x] **P6 Reporter** - `offat-report` ([`reporter/`](../reporter)) renders a Bundle into SARIF 2.1.0, Markdown, a self-contained HTML report (with the threat-model DFD), an OWASP API Top 10 / ASVS compliance report, and best-effort PDF.
-- [ ] **P7 Visualizer** - static web app over the Bundle (import/export).
+- [x] **P7 Visualizer** - [`viz/`](../viz): a dependency-free static web app that imports/exports the Bundle and renders the attack surface, the PRG (inline SVG), the threat model (DFD + ranked threats) and filterable findings.
 
 Each phase is independently shippable and leaves the repo green.
 
