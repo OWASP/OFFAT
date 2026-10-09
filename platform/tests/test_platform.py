@@ -11,7 +11,7 @@ for p in ("bundle", "triager", "whitebox", "graybox", "platform"):
     sys.path.insert(0, os.path.join(ROOT, p))
 
 import offat_bundle as ob  # noqa: E402
-from offat_platform import mapping, prg, threat_model  # noqa: E402
+from offat_platform import mapping, prg, testgen, threat_model  # noqa: E402
 
 SPEC = {
     "openapi": "3.0.0",
@@ -106,6 +106,42 @@ class TestThreatModel(unittest.TestCase):
             self.assertTrue(sqli["owasp_api"].startswith("API"))
             self.assertIn(sqli["risk"], ("critical", "high", "medium", "low"))
             self.assertEqual(ob.validate_bundle(b), [])
+
+
+class TestTestGen(unittest.TestCase):
+    def test_rule_cases_and_chain(self):
+        with tempfile.TemporaryDirectory() as d:
+            _fixture(d)
+            b = ob.new_bundle(target={"source_path": d})
+            mapping.map_target(b, d, use_graft=False)
+            prg.build(b)
+            stats = testgen.build(b, use_ai=False)
+            cases = b["test_plan"]["cases"]
+            self.assertGreater(stats["rule"], 0)
+            self.assertEqual(stats["ai"], 0)
+            # the id path param should produce sqli cases.
+            self.assertTrue(any(c["class"] == "sqli" for c in cases))
+            # every case references a real endpoint.
+            ep_ids = {e["id"] for e in b["asm"]["endpoints"]}
+            self.assertTrue(all(c["endpoint"] in ep_ids for c in cases))
+            self.assertEqual(ob.validate_bundle(b), [])
+            self.assertEqual(ob.cross_refs(b), [])
+
+    def test_name_hint_selects_ssrf(self):
+        with tempfile.TemporaryDirectory() as d:
+            import json as _json
+            spec = {"openapi": "3.0.0", "paths": {"/fetch": {"get": {
+                "operationId": "fetch", "parameters": [
+                    {"name": "callback_url", "in": "query", "schema": {"type": "string"}}]}}}}
+            with open(os.path.join(d, "openapi.json"), "w") as fh:
+                _json.dump(spec, fh)
+            b = ob.new_bundle()
+            mapping.map_target(b, d, use_graft=False)
+            prg.build(b)
+            testgen.build(b, use_ai=False)
+            classes = {c["class"] for c in b["test_plan"]["cases"]}
+            self.assertIn("ssrf", classes)
+            self.assertIn("open_redirect", classes)
 
 
 if __name__ == "__main__":

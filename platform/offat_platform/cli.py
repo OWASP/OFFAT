@@ -14,7 +14,7 @@ from typing import List, Optional
 
 import offat_bundle as ob
 
-from . import mapping, prg, threat_model
+from . import mapping, prg, testgen, threat_model
 
 
 def _cmd_map(args) -> int:
@@ -65,6 +65,17 @@ def _cmd_threat_model(args) -> int:
     return 0
 
 
+def _cmd_test_gen(args) -> int:
+    bundle = ob.load(args.bundle)
+    print("[test-gen] generating test cases ...")
+    stats = testgen.build(bundle, use_ai=args.ai, provider=args.provider)
+    print(f"[test-gen] rule: {stats['rule']}  ai: {stats['ai']}  total: {stats['total']}")
+    out = args.out or args.bundle
+    ob.save(bundle, out)
+    print(f"[bundle] written to {out}")
+    return 0
+
+
 def _cmd_validate(args) -> int:
     bundle = ob.load(args.bundle)
     problems = ob.validate_bundle(bundle) + ob.cross_refs(bundle)
@@ -96,6 +107,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     tmp.add_argument("bundle", help="path to a .offat.json Bundle")
     tmp.add_argument("-o", "--out", default="", help="output path (default: in place)")
     tmp.set_defaults(func=_cmd_threat_model)
+
+    tg = sub.add_parser("test-gen", help="generate a test plan into an existing Bundle")
+    tg.add_argument("bundle", help="path to a .offat.json Bundle")
+    tg.add_argument("-o", "--out", default="", help="output path (default: in place)")
+    tg.add_argument("--ai", action="store_true", help="augment with AI-generated payloads")
+    tg.add_argument("--provider", default=None, help="AI backend (auto|anthropic|...)")
+    tg.set_defaults(func=_cmd_test_gen)
 
     v = sub.add_parser("validate", help="validate a Bundle against the schema")
     v.add_argument("bundle", help="path to a .offat.json Bundle")
