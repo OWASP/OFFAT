@@ -1,0 +1,10 @@
+[
+  {"name": "admin", "role": "admin",
+   "headers": {"Authorization": "Bearer <ADMIN_TOKEN>"}},
+  {"name": "userA", "role": "user",
+   "headers": {"Authorization": "Bearer <USER_A_TOKEN>"},
+   "owns": {"id": "1"}},
+  {"name": "userB", "role": "user",
+   "headers": {"Authorization": "Bearer <USER_B_TOKEN>"},
+   "owns": {"id": "2"}}
+]

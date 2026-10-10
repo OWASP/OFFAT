@@ -31,6 +31,7 @@ offat-engine --bundle app.offat.json --url https://api.your-authorized-target.ex
 | `--rate` | 25 | max requests/sec (0 = unlimited) |
 | `--timeout` | 15 | per-request timeout (s) |
 | `-H` | - | extra header `Name: Value` (repeatable) |
+| `--identities` | - | JSON file of identities ({name, role, headers, owns}) for BOLA/BFLA/RBAC/auth tests |
 | `--insecure` | false | skip TLS verification |
 | `--yes` | false | confirm authorization |
 

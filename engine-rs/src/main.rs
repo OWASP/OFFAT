@@ -11,6 +11,7 @@
 
 mod exec;
 
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -29,6 +30,7 @@ struct Opts {
     insecure: bool,
     yes: bool,
     headers: Vec<(String, String)>,
+    identities: String,
 }
 
 fn usage() -> ! {
@@ -55,6 +57,7 @@ fn parse_args() -> Opts {
         insecure: false,
         yes: false,
         headers: Vec::new(),
+        identities: String::new(),
     };
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mut i = 0;
@@ -77,6 +80,7 @@ fn parse_args() -> Opts {
                     o.headers.push((k.trim().to_string(), v.trim().to_string()));
                 }
             }
+            "--identities" => o.identities = value(&mut i),
             "--insecure" => o.insecure = true,
             "--yes" => o.yes = true,
             "-h" | "--help" => usage(),
@@ -94,6 +98,39 @@ fn parse_args() -> Opts {
         o.out = o.bundle.clone();
     }
     o
+}
+
+fn load_identities(path: &str) -> HashMap<String, Vec<(String, String)>> {
+    let mut map = HashMap::new();
+    if path.is_empty() {
+        return map;
+    }
+    let text = match std::fs::read_to_string(path) {
+        Ok(t) => t,
+        Err(_) => return map,
+    };
+    let data: Value = match serde_json::from_str(&text) {
+        Ok(d) => d,
+        Err(_) => return map,
+    };
+    if let Some(arr) = data.as_array() {
+        for it in arr {
+            let name = it.get("name").and_then(Value::as_str).unwrap_or("");
+            if name.is_empty() {
+                continue;
+            }
+            let mut hs = Vec::new();
+            if let Some(h) = it.get("headers").and_then(Value::as_object) {
+                for (k, v) in h {
+                    if let Some(vs) = v.as_str() {
+                        hs.push((k.clone(), vs.to_string()));
+                    }
+                }
+            }
+            map.insert(name.to_string(), hs);
+        }
+    }
+    map
 }
 
 #[tokio::main]
@@ -142,6 +179,13 @@ async fn main() -> Result<()> {
         opts.rate
     );
 
+    let identities = Arc::new(load_identities(&opts.identities));
+    if !opts.identities.is_empty() {
+        println!(
+            "Loaded {} identities for access-control tests",
+            identities.len()
+        );
+    }
     let sem = Arc::new(Semaphore::new(opts.concurrency.max(1)));
     let headers = Arc::new(opts.headers.clone());
     let min_gap = if opts.rate > 0.0 {
@@ -160,6 +204,7 @@ async fn main() -> Result<()> {
         let base = opts.url.clone();
         let endpoints = endpoints.clone();
         let headers = headers.clone();
+        let identities = identities.clone();
         let next_slot = next_slot.clone();
         let done = done.clone();
 
@@ -175,7 +220,7 @@ async fn main() -> Result<()> {
 
         set.spawn(async move {
             let _permit = permit;
-            let ex = exec::execute(&client, &base, &endpoints, &case, &headers).await;
+            let ex = exec::execute(&client, &base, &endpoints, &case, &headers, &identities).await;
             let n = done.fetch_add(1, Ordering::Relaxed) + 1;
             if n % 25 == 0 || n == total {
                 eprintln!("  {}/{}", n, total);

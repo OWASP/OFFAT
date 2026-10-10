@@ -4,7 +4,7 @@ Orchestrates the staged platform pipeline over a single
 [Bundle](../bundle/README.md). See [`../docs/platform.md`](../docs/platform.md)
 for the full design.
 
-Implemented now (Phases 1-2):
+Implemented now (Phases 1-6):
 
 - **`map`** - attack surface (endpoints with params + response fields), sink/
   source inventory, and the **parameter relation graph** (PRG), written into a
@@ -12,9 +12,10 @@ Implemented now (Phases 1-2):
 - **`threat-model`** - assets, trust boundaries, data flows, **STRIDE threats**
   mapped to the OWASP API Top 10 + CWE with a likelihood x impact risk, and a
   Mermaid data-flow diagram.
-- **`test-gen`** - a **test plan**: vectors matched to each param by location and
-  name hints, multi-step cases seeded from the PRG, BOLA/IDOR cases on id path
-  params, and optional `--ai` payload augmentation.
+- **`test-gen`** - a **test plan**: injection vectors matched to each param by
+  location and name hints, multi-step cases seeded from the PRG, and (with
+  `--identities`) **BOLA / BFLA / RBAC / broken-auth / business-logic** cases.
+  Optional `--ai` payload augmentation.
 - **`triage`** - detect DAST findings from the engine's `results`, fold in SAST
   sinks, attach the OWASP/CWE threat mapping, triage (tiered/cached), and write
   `findings` + `summary` (with `--fail-on`).
@@ -23,7 +24,7 @@ Implemented now (Phases 1-2):
 ```bash
 pip install ./bundle ./triager ./whitebox ./graybox ./platform
 offat-platform map /path/to/repo --threat-model -o out/app.offat.json
-offat-platform test-gen out/app.offat.json            # add a test plan (--ai to augment)
+offat-platform test-gen out/app.offat.json --identities examples/identities.example.json
 offat-engine --bundle out/app.offat.json --url https://target --yes   # execute (Rust)
 offat-platform triage out/app.offat.json --fail-on high               # findings + summary
 offat-platform validate out/app.offat.json

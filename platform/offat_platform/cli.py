@@ -16,7 +16,7 @@ import offat_bundle as ob
 
 import os.path as _osp
 
-from . import consolidate, mapping, prg, testgen, threat_model
+from . import consolidate, identities as idmod, mapping, prg, testgen, threat_model
 
 
 def _cmd_map(args) -> int:
@@ -69,9 +69,13 @@ def _cmd_threat_model(args) -> int:
 
 def _cmd_test_gen(args) -> int:
     bundle = ob.load(args.bundle)
+    ids = idmod.load(args.identities) if getattr(args, "identities", "") else []
+    if ids:
+        bundle.setdefault("meta", {})["identities"] = idmod.redacted(idmod.with_anon(ids))
+        print(f"[test-gen] {len(ids)} identities loaded (access-control/auth tests enabled)")
     print("[test-gen] generating test cases ...")
-    stats = testgen.build(bundle, use_ai=args.ai, provider=args.provider)
-    print(f"[test-gen] rule: {stats['rule']}  ai: {stats['ai']}  total: {stats['total']}")
+    stats = testgen.build(bundle, use_ai=args.ai, provider=args.provider, identities=ids)
+    print(f"[test-gen] rule: {stats['rule']} (authz: {stats.get('authz',0)}, business: {stats.get('business',0)})  ai: {stats['ai']}  total: {stats['total']}")
     out = args.out or args.bundle
     ob.save(bundle, out)
     print(f"[bundle] written to {out}")
@@ -138,6 +142,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     tg = sub.add_parser("test-gen", help="generate a test plan into an existing Bundle")
     tg.add_argument("bundle", help="path to a .offat.json Bundle")
     tg.add_argument("-o", "--out", default="", help="output path (default: in place)")
+    tg.add_argument("--identities", default="", help="JSON file of identities for BOLA/BFLA/RBAC/auth tests")
     tg.add_argument("--ai", action="store_true", help="augment with AI-generated payloads")
     tg.add_argument("--provider", default=None, help="AI backend (auto|anthropic|...)")
     tg.set_defaults(func=_cmd_test_gen)

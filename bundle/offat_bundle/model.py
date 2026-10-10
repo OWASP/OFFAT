@@ -116,12 +116,21 @@ def threat(title: str, *, stride: str = "", endpoint_id: str = "",
 def test_case(endpoint_id: str, *, param: str = "", location: str = "",
               vclass: str = "", technique: str = "", protocol: str = "http",
               payload: str = "", origin: str = "rule", rationale: str = "",
-              chain: Optional[List[str]] = None, expected_signal: str = "") -> Dict[str, Any]:
-    return {"id": make_id("tc", endpoint_id, param, vclass, technique, payload),
-            "endpoint": endpoint_id, "param": param, "location": location,
-            "class": vclass, "technique": technique, "protocol": protocol,
-            "payload": payload, "origin": origin, "rationale": rationale,
-            "chain": chain or [], "expected_signal": expected_signal}
+              chain: Optional[List[str]] = None, expected_signal: str = "",
+              identity: str = "", baseline_identity: str = "",
+              expected_status: str = "") -> Dict[str, Any]:
+    tc = {"id": make_id("tc", endpoint_id, param, vclass, technique, payload, identity, baseline_identity),
+          "endpoint": endpoint_id, "param": param, "location": location,
+          "class": vclass, "technique": technique, "protocol": protocol,
+          "payload": payload, "origin": origin, "rationale": rationale,
+          "chain": chain or [], "expected_signal": expected_signal}
+    if identity:
+        tc["identity"] = identity
+    if baseline_identity:
+        tc["baseline_identity"] = baseline_identity
+    if expected_status:
+        tc["expected_status"] = expected_status
+    return tc
 
 
 def execution(case_id: str, *, protocol: str = "http",

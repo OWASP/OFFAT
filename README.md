@@ -71,7 +71,7 @@ protocol increments.
 | `graybox/` | Python gray-box pipeline (`offat-graybox`) — graft endpoint mapping + reachability + AI |
 | `triager/` | Shared AI/heuristic triager (`offat-triage`) |
 | `bundle/` | Canonical interchange document (`offat-bundle`) - the platform's data contract |
-| `platform/` | Platform orchestrator (`offat-platform`) - mapping, PRG, threat model, test-gen |
+| `platform/` | Platform orchestrator (`offat-platform`) - mapping, PRG, threat model, test-gen (incl. BOLA/BFLA/RBAC/auth/business-logic via `--identities`) |
 | `engine-rs/` | Rust execution engine (`offat-engine`) - multi-protocol request executor over the Bundle |
 | `reporter/` | Reporter (`offat-report`) - Bundle -> SARIF/HTML/Markdown/compliance/PDF |
 | `viz/` | Static visualizer - import a Bundle; view attack surface, PRG, threat model, findings |

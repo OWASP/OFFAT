@@ -27,6 +27,7 @@ _SEVERITY = {
     "vulnerable_dependency": "high",
     "xss": "medium", "ssrf": "medium", "open_redirect": "medium", "mass_assignment": "medium",
     "data_exposure": "medium", "ldap_injection": "medium", "crypto": "medium", "csrf": "medium",
+    "rbac": "high", "business_logic": "medium",
     "security_misconfig": "low",
 }
 
@@ -44,6 +45,7 @@ def _detect(case: Dict[str, Any], ex: Dict[str, Any]) -> Optional[Dict[str, Any]
     technique = case.get("technique", "")
     signal = ""
     conf = 0.0
+    sev_override = None
 
     if cls in ("sqli", "nosqli"):
         if any(s in body for s in _SQL_ERRORS):
@@ -67,6 +69,27 @@ def _detect(case: Dict[str, Any], ex: Dict[str, Any]) -> Optional[Dict[str, Any]
             signal, conf = "command output in response", 0.85
         elif status >= 500:
             signal, conf = "server error on command injection", 0.45
+    elif cls == "broken_auth" and technique == "no-auth":
+        if 200 <= status < 300:
+            signal, conf = "endpoint returned 2xx with no credentials", 0.65
+    elif cls in ("bola", "bfla", "rbac"):
+        base = ex.get("baseline") or {}
+        bstatus = int(base.get("status", 0) or 0)
+        bbody = base.get("body_snippet") or ""
+        pbody = resp.get("body_snippet") or ""
+        if 200 <= status < 300:
+            if 200 <= bstatus < 300 and pbody and pbody == bbody:
+                signal, conf = "unauthorized identity got the SAME 2xx response as the authorized baseline", 0.85
+            elif 200 <= bstatus < 300:
+                signal, conf = "unauthorized identity received 2xx (authorized baseline also 2xx)", 0.8
+            else:
+                signal, conf = "unauthorized identity received 2xx where access should be denied", 0.7
+    elif cls == "business_logic":
+        if 200 <= status < 300:
+            if technique == "priv-field":
+                signal, conf, sev_override = "privilege field accepted (possible escalation)", 0.6, "high"
+            else:
+                signal, conf = "invalid business value accepted (%s)" % payload, 0.55
     else:
         if status >= 500:
             signal, conf = "server error", 0.4
@@ -78,11 +101,13 @@ def _detect(case: Dict[str, Any], ex: Dict[str, Any]) -> Optional[Dict[str, Any]
         "id": ob.make_id("f", case.get("id", ""), ex.get("id", "")),
         "vector_id": f"{cls}-{technique}" if technique else cls,
         "class": cls, "title": f"{cls} on {req.get('method','')} {req.get('url','')}",
-        "severity": _sev(cls), "endpoint": case.get("endpoint", ""),
+        "severity": sev_override or _sev(cls), "endpoint": case.get("endpoint", ""),
         "test_case": case.get("id", ""), "param": case.get("param", ""),
         "location": case.get("location", ""), "technique": technique, "payload": payload,
         "confidence": conf, "source_mode": "dast",
         "evidence": {"status_code": status, "matched_signature": signal,
+                     "identity": req.get("identity", ""), "baseline_identity": req.get("baseline_identity", ""),
+                     "baseline_status": (ex.get("baseline") or {}).get("status"),
                      "snippet": (resp.get("body_snippet") or "")[:400],
                      "request_url": req.get("url", "")},
     }

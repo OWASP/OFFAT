@@ -74,6 +74,7 @@ CWE_NAMES: Dict[str, str] = {
     "CWE-918": "Server-Side Request Forgery (SSRF)",
     "CWE-942": "Permissive Cross-domain Policy with Untrusted Domains",
     "CWE-943": "Improper Neutralization of Special Elements in Data Query Logic",
+    "CWE-840": "Business Logic Errors",
     "CWE-1035": "Using Components with Known Vulnerabilities",
     "CWE-1336": "Improper Neutralization of Special Elements Used in a Template Engine",
 }
@@ -83,6 +84,8 @@ CLASS_MAP: Dict[str, Dict[str, str]] = {
     "access_control":      {"api": "API1:2023", "web": "A01:2021", "cwe": "CWE-639"},
     "bola":                {"api": "API1:2023", "web": "A01:2021", "cwe": "CWE-639"},
     "bfla":                {"api": "API5:2023", "web": "A01:2021", "cwe": "CWE-285"},
+    "rbac":                {"api": "API5:2023", "web": "A01:2021", "cwe": "CWE-285"},
+    "business_logic":      {"api": "API6:2023", "web": "A04:2021", "cwe": "CWE-840"},
     "mass_assignment":     {"api": "API3:2023", "web": "A04:2021", "cwe": "CWE-915"},
     "data_exposure":       {"api": "API3:2023", "web": "A02:2021", "cwe": "CWE-213"},
     "broken_auth":         {"api": "API2:2023", "web": "A07:2021", "cwe": "CWE-287"},

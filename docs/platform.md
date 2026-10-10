@@ -82,6 +82,20 @@ can be seeded from it. Each edge carries a confidence and a basis (`exact-name`,
 test cases, powers BOLA/IDOR (replay a foreign id), and is rendered by the
 visualizer. It generalizes the existing Go `dast/internal/graph` package.
 
+
+### Access control, auth and business logic (identities)
+
+BOLA, BFLA, RBAC and broken-authentication tests need more than one principal, so
+the pipeline takes an **identities** file (`--identities`, see
+[`examples/identities.example.json`](../examples/identities.example.json)): each
+identity has a name, role, request `headers` (its credentials) and optional `owns`
+(object ids it holds). Test-gen emits differential cases (act as one identity,
+compare against an authorized baseline); the engine resolves each identity's
+headers at execution time (secrets stay in the file, never in the Bundle); and
+consolidation flags an authorization failure when an unauthorized identity gets a
+2xx where a deny was expected - strongest when it receives the same response as
+the authorized baseline. An implicit `anon` identity drives missing-auth tests.
+
 ## Components
 
 | # | Component | Language | Reuses |
@@ -100,7 +114,7 @@ visualizer. It generalizes the existing Go `dast/internal/graph` package.
 - [x] **P0 Contracts** - Bundle schema + Python helpers (build/validate/load/save/merge) + tests.
 - [x] **P1 Mapping + PRG** - `offat-platform map` writes `asm`, `inventory` and `prg` into the Bundle (endpoints with params + response fields; sinks/sources; producer->consumer edges).
 - [x] **P2 Threat model** - `offat-platform threat-model` writes `threat_model` (assets, trust boundaries, data flows, STRIDE threats mapped to OWASP API + CWE with likelihood x impact risk, and a Mermaid DFD).
-- [x] **P3 Test-gen** - `offat-platform test-gen` writes `test_plan`: meaningful rule-based cases (vectors matched to params by location + name hints), multi-step chains seeded from the PRG, BOLA/IDOR cases on id path params, and optional `--ai` payload augmentation.
+- [x] **P3 Test-gen** - `offat-platform test-gen` writes `test_plan`: injection vectors matched to params by location + name hints, multi-step chains seeded from the PRG, and (with `--identities`) **access-control / auth / business-logic** cases - BOLA (API1), broken authentication (API2), BFLA and RBAC (API5), and business-logic value tampering + privilege-field escalation (API6). Optional `--ai` payload augmentation.
 - [~] **P4 Rust engine** - `offat-engine` ([`engine-rs/`](../engine-rs)) reads the `test_plan`, executes against an authorized target and writes `results`. **HTTP/1.1 + HTTP/2 implemented**; gRPC (tonic), WebSocket (tungstenite) and HTTP/3/QUIC (quinn + h3) are the next protocol increments (recognized and recorded as skipped until wired).
 - [x] **P5 Consolidate + triage** - `offat-platform triage` detects DAST findings from `results` (signature/reflection/status heuristics), folds in SAST sinks, attaches the OWASP/CWE threat mapping, triages with the shared tiered triager, and writes `findings` + `summary` (with `--fail-on`).
 - [x] **P6 Reporter** - `offat-report` ([`reporter/`](../reporter)) renders a Bundle into SARIF 2.1.0, Markdown, a self-contained HTML report (with the threat-model DFD), an OWASP API Top 10 / ASVS compliance report, and best-effort PDF.

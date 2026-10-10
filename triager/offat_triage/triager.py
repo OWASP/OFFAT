@@ -69,7 +69,7 @@ def heuristic_triage(finding: Dict[str, Any]) -> Dict[str, Any]:
     conf = float(finding.get("confidence", 0.5))
     verdict = _verdict_from_confidence(conf)
     cls = finding.get("class", "")
-    if cls in ("access_control", "mass_assignment") and verdict == "confirmed":
+    if cls in ("access_control", "mass_assignment", "bola", "bfla", "rbac", "business_logic") and verdict == "confirmed":
         # Ownership-dependent classes cannot be blindly confirmed offline.
         verdict = "likely"
     sev = finding.get("severity", "")

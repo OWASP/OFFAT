@@ -138,6 +138,7 @@ pub async fn execute(
     endpoints: &HashMap<String, EndpointInfo>,
     case: &Value,
     extra_headers: &[(String, String)],
+    identities: &HashMap<String, Vec<(String, String)>>,
 ) -> Value {
     let case_id = case
         .get("id")
@@ -155,8 +156,7 @@ pub async fn execute(
     {
         return json!({
             "id": format!("ex-{}", short(&case_id)),
-            "case_id": case_id,
-            "protocol": proto,
+            "case_id": case_id, "protocol": proto,
             "response": {"skipped": format!("protocol '{}' not yet supported by the engine", proto)},
         });
     }
@@ -167,10 +167,9 @@ pub async fn execute(
         None => {
             return json!({
                 "id": format!("ex-{}", short(&case_id)),
-                "case_id": case_id,
-                "protocol": "http",
+                "case_id": case_id, "protocol": "http",
                 "response": {"error": format!("unknown endpoint {}", ep_id)},
-            });
+            })
         }
     };
 
@@ -197,33 +196,91 @@ pub async fn execute(
         base_url.trim_end_matches('/'),
         path.trim_start_matches('/')
     );
-
     let method = reqwest::Method::from_bytes(ep.method.to_uppercase().as_bytes())
         .unwrap_or(reqwest::Method::GET);
-    let mut req = client.request(method, &url);
 
-    for (k, v) in extra_headers {
+    // The principal this request acts as (its auth headers), merged over globals.
+    let id_name = case.get("identity").and_then(Value::as_str).unwrap_or("");
+    let mut primary_headers: Vec<(String, String)> = extra_headers.to_vec();
+    if !id_name.is_empty() {
+        if let Some(h) = identities.get(id_name) {
+            primary_headers.extend(h.iter().cloned());
+        }
+    }
+    let response = send_once(
+        client,
+        &method,
+        &url,
+        &primary_headers,
+        &target_param,
+        &location,
+        &payload,
+    )
+    .await;
+
+    // Differential baseline (resource owner / privileged identity) for authz tests.
+    let base_name = case
+        .get("baseline_identity")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    let mut baseline = json!({});
+    if !base_name.is_empty() {
+        let mut bh: Vec<(String, String)> = extra_headers.to_vec();
+        if let Some(h) = identities.get(base_name) {
+            bh.extend(h.iter().cloned());
+        }
+        baseline = send_once(
+            client,
+            &method,
+            &url,
+            &bh,
+            &target_param,
+            &location,
+            &payload,
+        )
+        .await;
+    }
+
+    json!({
+        "id": format!("ex-{}", short(&case_id)),
+        "case_id": case_id, "protocol": "http",
+        "request": {"method": ep.method, "url": url, "param": target_param, "location": location,
+                    "payload": payload, "identity": id_name, "baseline_identity": base_name},
+        "response": response,
+        "baseline": baseline,
+    })
+}
+
+async fn send_once(
+    client: &Client,
+    method: &reqwest::Method,
+    url: &str,
+    headers: &[(String, String)],
+    target_param: &str,
+    location: &str,
+    payload: &str,
+) -> Value {
+    let mut req = client.request(method.clone(), url);
+    for (k, v) in headers {
         req = req.header(k.as_str(), v.as_str());
     }
     if !target_param.is_empty() {
-        match location.as_str() {
-            "query" => req = req.query(&[(target_param.as_str(), payload.as_str())]),
-            "header" => req = req.header(target_param.as_str(), payload.as_str()),
+        match location {
+            "query" => req = req.query(&[(target_param, payload)]),
+            "header" => req = req.header(target_param, payload),
             "cookie" => req = req.header("cookie", format!("{}={}", target_param, payload)),
             "body" | "form" => {
                 let mut m = Map::new();
-                m.insert(target_param.clone(), Value::String(payload.clone()));
+                m.insert(target_param.to_string(), Value::String(payload.to_string()));
                 req = req.json(&Value::Object(m));
             }
-            _ => {} // path already substituted
+            _ => {}
         }
     }
-
     let started = Instant::now();
     let result = req.send().await;
     let latency_ms = started.elapsed().as_millis() as u64;
-
-    let response = match result {
+    match result {
         Ok(resp) => {
             let status = resp.status().as_u16();
             let version = format!("{:?}", resp.version());
@@ -233,26 +290,19 @@ pub async fn execute(
                 .and_then(|v| v.to_str().ok())
                 .unwrap_or("")
                 .to_string();
+            let location_hdr = resp
+                .headers()
+                .get("location")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("")
+                .to_string();
             let body = resp.text().await.unwrap_or_default();
             let snippet: String = body.chars().take(2048).collect();
-            json!({
-                "status": status,
-                "http_version": version,
-                "content_type": ctype,
-                "body_snippet": snippet,
-            })
+            json!({"status": status, "http_version": version, "content_type": ctype,
+                   "location": location_hdr, "body_snippet": snippet, "latency_ms": latency_ms})
         }
         Err(e) => json!({"error": e.to_string()}),
-    };
-
-    json!({
-        "id": format!("ex-{}", short(&case_id)),
-        "case_id": case_id,
-        "protocol": "http",
-        "request": {"method": ep.method, "url": url, "param": target_param, "location": location, "payload": payload},
-        "response": response,
-        "latency_ms": latency_ms,
-    })
+    }
 }
 
 fn short(s: &str) -> String {

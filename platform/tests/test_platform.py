@@ -185,3 +185,86 @@ class TestConsolidate(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestAccessControlGen(unittest.TestCase):
+    def _bundle_and_ids(self):
+        b = ob.new_bundle()
+        # object endpoint with an id path param, a privileged DELETE, a money param
+        ob.add_endpoint(b, ob.endpoint("GET", "/users/{id}", handler="get_user",
+                                       params=[ob.param("id", "path", type="integer")]))
+        ob.add_endpoint(b, ob.endpoint("DELETE", "/admin/users/{id}", handler="admin_delete",
+                                       params=[ob.param("id", "path", type="integer")]))
+        ob.add_endpoint(b, ob.endpoint("POST", "/checkout", handler="checkout",
+                                       params=[ob.param("price", "body", type="number"),
+                                               ob.param("role", "body", type="string")]))
+        ids = [
+            {"name": "admin", "role": "admin", "headers": {"Authorization": "Bearer A"}, "owns": {}},
+            {"name": "userA", "role": "user", "headers": {"Authorization": "Bearer B"}, "owns": {"id": "1"}},
+            {"name": "userB", "role": "user", "headers": {"Authorization": "Bearer C"}, "owns": {"id": "2"}},
+        ]
+        return b, ids
+
+    def test_generates_authz_auth_business_cases(self):
+        b, ids = self._bundle_and_ids()
+        testgen.build(b, use_ai=False, identities=ids)
+        cases = b["test_plan"]["cases"]
+        classes = {c["class"] for c in cases}
+        for expect in ("broken_auth", "bola", "bfla", "business_logic"):
+            self.assertIn(expect, classes, f"missing {expect}")
+        # BOLA cases carry a target identity and an owner baseline
+        bola = [c for c in cases if c["class"] == "bola"]
+        self.assertTrue(bola)
+        self.assertTrue(all(c.get("identity") and c.get("baseline_identity") for c in bola))
+        # a BOLA case uses an owner's object id as payload
+        self.assertTrue(any(c["payload"] in ("1", "2") for c in bola))
+        # business logic includes a negative price tamper and a priv-field escalation
+        biz = [c for c in cases if c["class"] == "business_logic"]
+        self.assertTrue(any(c["param"] == "price" and c["payload"] == "-1" for c in biz))
+        self.assertTrue(any(c["technique"] == "priv-field" and c["param"] == "role" for c in biz))
+
+    def test_no_identities_still_generates_noauth(self):
+        b, _ = self._bundle_and_ids()
+        testgen.build(b, use_ai=False, identities=[])
+        classes = {c["class"] for c in b["test_plan"]["cases"]}
+        self.assertIn("broken_auth", classes)  # missing-auth needs no creds
+
+
+class TestAccessControlDetect(unittest.TestCase):
+    def test_bola_differential_detected(self):
+        import tempfile
+        b = ob.new_bundle()
+        ep = ob.add_endpoint(b, ob.endpoint("GET", "/users/{id}",
+                                            params=[ob.param("id", "path")]))
+        tc = ob.add_test_case(b, ob.test_case(ep, param="id", location="path", vclass="bola",
+                                              technique="authz-diff", payload="1",
+                                              identity="userB", baseline_identity="userA"))
+        ob.add_execution(b, ob.execution(
+            tc, request={"method": "GET", "url": "http://t/users/1",
+                         "identity": "userB", "baseline_identity": "userA"},
+            response={"status": 200, "body_snippet": "{\"ssn\":\"secret\"}"}))
+        # attach a matching baseline (owner also 200, same body) -> strong BOLA signal
+        b["results"]["executions"][0]["baseline"] = {"status": 200, "body_snippet": "{\"ssn\":\"secret\"}"}
+        with tempfile.TemporaryDirectory() as out:
+            consolidate.build(b, out, use_ai=False)
+        bola = [f for f in b["findings"] if f["class"] == "bola"]
+        self.assertTrue(bola)
+        self.assertEqual(bola[0]["source_mode"], "dast")
+        self.assertIn("same", bola[0]["evidence"]["matched_signature"].lower())
+        # ownership-dependent -> heuristic must not blindly "confirm"
+        self.assertNotEqual(bola[0]["triage"]["verdict"], "confirmed")
+        self.assertEqual(bola[0]["threat"]["owasp_api"], "API1:2023")
+
+    def test_broken_auth_detected(self):
+        import tempfile
+        b = ob.new_bundle()
+        ep = ob.add_endpoint(b, ob.endpoint("GET", "/account"))
+        tc = ob.add_test_case(b, ob.test_case(ep, vclass="broken_auth", technique="no-auth",
+                                              identity="anon"))
+        ob.add_execution(b, ob.execution(tc, request={"method": "GET", "url": "http://t/account", "identity": "anon"},
+                                         response={"status": 200, "body_snippet": "{\"balance\":100}"}))
+        with tempfile.TemporaryDirectory() as out:
+            consolidate.build(b, out, use_ai=False)
+        ba = [f for f in b["findings"] if f["class"] == "broken_auth"]
+        self.assertTrue(ba)
+        self.assertEqual(ba[0]["threat"]["owasp_api"], "API2:2023")

@@ -80,7 +80,8 @@ def _producer_chain(bundle: Dict[str, Any], consumer_ep: str, pname: str) -> Lis
 
 
 def build(bundle: Dict[str, Any], *, use_ai: bool = False,
-          provider: Optional[str] = None, max_payloads: int = 2) -> Dict[str, int]:
+          provider: Optional[str] = None, max_payloads: int = 2,
+          identities: Optional[List[Dict[str, Any]]] = None) -> Dict[str, int]:
     endpoints = (bundle.get("asm") or {}).get("endpoints", [])
     rule_n = 0
     for ep in endpoints:
@@ -109,12 +110,17 @@ def build(bundle: Dict[str, Any], *, use_ai: bool = False,
                 ))
                 rule_n += 1
 
+    authz_n = _gen_access_control(bundle, endpoints, identities or [])
+    biz_n = _gen_business_logic(bundle, endpoints)
+
     ai_n = 0
     if use_ai:
         ai_n = _augment_with_ai(bundle, endpoints, provider)
 
     ob.record_stage(bundle, "test-gen", tool="offat-platform", version="1.0.0")
-    return {"rule": rule_n, "ai": ai_n, "total": rule_n + ai_n}
+    rule_total = rule_n + authz_n + biz_n
+    return {"rule": rule_total, "authz": authz_n, "business": biz_n, "ai": ai_n,
+            "total": rule_total + ai_n}
 
 
 def _augment_with_ai(bundle, endpoints, provider) -> int:
@@ -158,3 +164,110 @@ def _augment_with_ai(bundle, endpoints, provider) -> int:
                 origin="ai", rationale=str(item.get("rationale", ""))[:300]))
             added += 1
     return added
+
+
+# --- access control (BOLA/BFLA/RBAC), auth, business logic ------------------
+
+_PRIV_HINT = ("admin", "manage", "internal", "config", "approve", "promote",
+              "grant", "role", "setting", "delete", "disable", "enable", "owner")
+_WRITE = {"POST", "PUT", "PATCH", "DELETE"}
+_MONEY = ("price", "amount", "qty", "quantity", "total", "balance", "discount",
+          "cost", "credit", "points", "limit", "fee")
+_PRIV_FIELDS = {"role": "admin", "is_admin": "true", "isadmin": "true",
+                "admin": "true", "is_staff": "true", "verified": "true"}
+
+
+def _is_priv_endpoint(ep: Dict[str, Any]) -> bool:
+    text = (ep.get("path", "") + " " + ep.get("handler", "")).lower()
+    if any(h in text for h in _PRIV_HINT):
+        return True
+    return ep.get("method", "GET").upper() == "DELETE"
+
+
+def _id_path_params(ep: Dict[str, Any]):
+    return [p for p in ep.get("params", [])
+            if p.get("location") == "path" and
+            (p["name"].lower() == "id" or p["name"].lower().endswith("id")
+             or p["name"].lower().endswith("_id"))]
+
+
+def _gen_access_control(bundle, endpoints, identities) -> int:
+    from . import identities as idmod
+    ids = idmod.with_anon(identities) if identities else [{"name": "anon", "role": "anon", "owns": {}}]
+    privs = idmod.privileged(identities)
+    unprivs = idmod.unprivileged(identities)
+    owners = [i for i in identities if i.get("owns")]
+    n = 0
+
+    for ep in endpoints:
+        # 1) Missing authentication: call with no credentials, expect a deny.
+        n += _add(bundle, ep, vclass="broken_auth", technique="no-auth",
+                  identity="anon", expected_status="401/403",
+                  rationale="Call the endpoint with no credentials; a protected endpoint must deny.")
+
+        # 2) BOLA: request another principal's object id.
+        for idp in _id_path_params(ep):
+            for owner in owners:
+                oid = str(owner["owns"].get(idp["name"]) or owner["owns"].get("id") or "")
+                if not oid:
+                    continue
+                for other in ids:
+                    if other["name"] == owner["name"]:
+                        continue
+                    if idmod.is_privileged(other):
+                        continue  # a privileged principal reading others' objects is expected
+                    n += _add(bundle, ep, vclass="bola", technique="authz-diff",
+                              param=idp["name"], location="path", payload=oid,
+                              identity=other["name"], baseline_identity=owner["name"],
+                              expected_status="403/404",
+                              rationale=f"Access {owner['name']}'s object ({idp['name']}={oid}) as {other['name']}.")
+
+        # 3) BFLA: privileged endpoint reached by a non-privileged identity.
+        if _is_priv_endpoint(ep) and (unprivs or not identities):
+            targets = unprivs or [{"name": "anon", "role": "anon"}]
+            base = privs[0]["name"] if privs else ""
+            for other in targets:
+                n += _add(bundle, ep, vclass="bfla", technique="authz-diff",
+                          identity=other["name"], baseline_identity=base,
+                          expected_status="403",
+                          rationale=f"Privileged function reached as non-privileged '{other['name']}'.")
+
+        # 4) RBAC: state-changing endpoint invoked by each non-admin role.
+        elif ep.get("method", "GET").upper() in _WRITE and unprivs:
+            base = privs[0]["name"] if privs else ""
+            for other in unprivs:
+                n += _add(bundle, ep, vclass="rbac", technique="authz-diff",
+                          identity=other["name"], baseline_identity=base,
+                          expected_status="403",
+                          rationale=f"State-changing {ep.get('method')} invoked by role '{other['role']}'.")
+    return n
+
+
+def _gen_business_logic(bundle, endpoints) -> int:
+    n = 0
+    tampers = ["-1", "0", "999999999", "-99999"]
+    for ep in endpoints:
+        for p in ep.get("params", []):
+            name = p["name"].lower()
+            if any(m in name for m in _MONEY):
+                for val in tampers:
+                    n += _add(bundle, ep, vclass="business_logic", technique="value-tamper",
+                              param=p["name"], location=p.get("location", "query"), payload=val,
+                              expected_status="4xx",
+                              rationale=f"Tamper business value '{p['name']}'={val}; invalid values must be rejected.")
+            if name in _PRIV_FIELDS:
+                n += _add(bundle, ep, vclass="business_logic", technique="priv-field",
+                          param=p["name"], location=p.get("location", "body"),
+                          payload=_PRIV_FIELDS[name], expected_status="403/ignored",
+                          rationale=f"Set privilege field '{p['name']}'={_PRIV_FIELDS[name]} (mass-assignment / escalation).")
+    return n
+
+
+def _add(bundle, ep, *, vclass, technique, param="", location="", payload="",
+         identity="", baseline_identity="", expected_status="", rationale="") -> int:
+    ob.add_test_case(bundle, ob.test_case(
+        ep["id"], param=param, location=location, vclass=vclass, technique=technique,
+        payload=payload, origin="rule", identity=identity,
+        baseline_identity=baseline_identity, expected_status=expected_status,
+        rationale=rationale, expected_signal=expected_status))
+    return 1
