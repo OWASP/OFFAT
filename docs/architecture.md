@@ -1,113 +1,99 @@
 # Architecture
 
-OFFAT-AI is two scanners that share a finding schema, a triager, and a report
-format. This uniformity is deliberate: a single AI triager and a single set of
-report writers serve both the black-box and white-box pipelines.
+OFFAT-AI is a staged platform whose tools share one finding schema, one triager,
+and one interchange document (the [Bundle](../bundle/README.md)). The uniformity
+is deliberate: a single AI triager and a single set of report writers serve the
+live platform pipeline and the source-only modes alike. The full platform design
+is in [`platform.md`](platform.md).
 
 ## Shared finding schema
 
-Both pipelines emit findings as JSON objects with the same core keys, so
-`offat-triage` and any downstream tooling work identically on either:
+Findings are JSON objects with the same core keys, so `offat-triage` and any
+downstream tooling work identically on either a live (DAST) or a source (SAST)
+finding:
 
 ```jsonc
 {
-  "id": "…", "vector_id": "sqli-error", "class": "sqli",
-  "title": "…", "severity": "high", "cwe": "CWE-89", "owasp": "API8:2023",
-  "endpoint": "GET /search",        // DAST
-  "file": "app.py", "line": 8,      // SAST
+  "id": "...", "vector_id": "sqli-error", "class": "sqli",
+  "title": "...", "severity": "high", "cwe": "CWE-89", "owasp": "API8:2023",
+  "endpoint": "ep-...",             // live finding (references an ASM endpoint)
+  "file": "app.py", "line": 8,      // source finding
   "param": "q", "location": "query",
   "technique": "error", "payload": "'", "confidence": 0.85,
-  "evidence": { "status_code": 500, "matched_signature": "…", "snippet": "…" },
-  "triage": { "verdict": "confirmed", "cvss": 7.5, "remediation": "…", "source": "ai" }
+  "source_mode": "dast",            // dast | sast | graybox
+  "evidence": { "status_code": 500, "matched_signature": "...", "snippet": "..." },
+  "threat": { "owasp_api": "API8:2023", "owasp_web": "A03:2021", "cwe": "CWE-89" },
+  "triage": { "verdict": "confirmed", "cvss": 7.5, "remediation": "...", "source": "ai" }
 }
 ```
 
-## Black-box pipeline (`dast/`, Go)
+## Platform pipeline (`platform/` + `engine-rs/`)
 
 ```
-spec ──▶ graph ──▶ kb ──▶ attack ──▶ engine ──▶ detect ──▶ triage ──▶ report
+map --> prg --> threat-model --> test-gen --> execute --> triage --> report
 ```
 
-| Package | Responsibility |
-|---|---|
-| `internal/spec` | Parse Swagger 2.0 & OpenAPI 3.x into one model; resolve local `$ref`s |
-| `internal/graph` | Link response producers to request consumers (dataflow) |
-| `internal/kb` | Load embedded + external attack vectors; filter by class |
-| `internal/attack` | Instantiate applicable vectors per parameter; structural attacks |
-| `internal/engine` | Concurrent, rate-limited executor; runtime value store; auth/JWT |
-| `internal/detect` | Baseline-differential detectors → candidate findings |
-| `internal/triage` | AI (Anthropic) + heuristic verdict/CVSS/remediation |
-| `internal/report` | JSON / JSONL / SARIF / Markdown / HTML |
+| Stage | Where | Responsibility |
+|---|---|---|
+| map | `platform` (reuses `graybox.graph_map`, `whitebox.hunt`) | endpoints (routes + OpenAPI/Swagger specs, params, response fields), sink/source inventory |
+| prg | `platform.prg` | link response-field producers to request-param consumers (dataflow across endpoints) |
+| threat-model | `platform.threat_model` | STRIDE threats, OWASP API Top 10 + CWE, risk, Mermaid DFD |
+| test-gen | `platform.testgen` | injection vectors, PRG chains, identity-aware BOLA/BFLA/RBAC/auth/business cases |
+| execute | `engine-rs` (`offat-engine`) | Rust async executor: multi-identity requests + differential baseline, response capture |
+| triage | `platform.consolidate` + `triager` | detect findings, attach threat mapping, triage (AI/heuristic) |
+| report | `reporter` (`offat-report`) | SARIF / Markdown / HTML (with DFD) / compliance / PDF |
 
-**Why Go:** the engine is an I/O-bound concurrent HTTP fuzzer; Go's goroutines
-and single-binary distribution fit. The only dependency is `gopkg.in/yaml.v3`;
-the OpenAPI parser is self-contained for robustness.
+**Why Rust for the engine:** the executor is an I/O-bound concurrent HTTP client
+where performance, memory safety and a single static binary matter; `tokio` +
+`reqwest` (rustls) provide HTTP/1.1 + HTTP/2 today, with gRPC / WebSocket /
+HTTP-3+QUIC as the next protocol increments.
 
-## White-box pipeline (`whitebox/`, Python)
+## Source-only modes
 
-```
-recon ──▶ hunt ──▶ chain ──▶ verify (triage) ──▶ report
-```
-
-Mirrors the security-harness stages (now recon -> hunt -> trace -> chain ->
-verify -> report). External tools (`semgrep`, `syft`, `grype`/`trivy`/
-`osv-scanner`, `graft`) are used when present; a dependency-free multi-language
-pattern hunter guarantees output otherwise. The **trace** stage uses graft (when
-installed) to bump confidence on sinks reachable from an entry point; **verify**
-uses the shared token-disciplined triager (cached, batched, model-tiered) and the
-reporter emits JUnit plus a `--fail-on` CI gate. **Why Python:** easy subprocess
-orchestration of the security toolchain and zero-dependency distribution.
-
-## Gray-box pipeline (`graybox/`, Python)
+### White-box pipeline (`whitebox/`, Python)
 
 ```
-recon --> map endpoints (graft) --> hunt (SAST) --> reachability --> analyze (AI) --> report
+recon --> hunt --> trace --> chain --> verify (triage) --> report
 ```
 
-Gray-box fuses the two views: it maps the HTTP endpoint attack surface from
-source with **graft** (structural graph, free, no key) and links each vulnerable
-sink to the endpoints that reach it through the call graph. The AI then judges
-findings by reachability, not just presence. It sends **no live traffic**.
+External tools (`semgrep`, `syft`, `grype`/`trivy`/`osv-scanner`, `graft`) are used
+when present; a dependency-free multi-language pattern hunter guarantees output
+otherwise. The **trace** stage uses graft (when installed) to bump confidence on
+sinks reachable from an entry point; **verify** uses the shared token-disciplined
+triager and the reporter emits JUnit plus a `--fail-on` CI gate.
 
-It reuses the white-box recon and hunters and the shared triager's AI backends,
-adding `graph_map` (endpoint mapping, graft or native), `reachability` (sink <->
-endpoint linking), `analyze` (token-disciplined AI), `cache` (verdict reuse) and
-an endpoint-centric `report`.
+### Gray-box pipeline (`graybox/`, Python)
 
-**Token discipline** - AI is the only token-spending stage and is kept cheap by
-construction: reachable-only (unreachable sinks are triaged offline), batched +
-tiered (a cheap model screens in batches; a strong model verifies only the
-confirmed/likely subset), and cached (verdicts keyed on a content hash, so
-re-runs pay only for new or changed findings). Every AI path degrades to the
-deterministic heuristic.
+```
+recon --> map endpoints (graft) --> hunt --> reachability --> analyze (AI) --> report
+```
 
-## Shared triager (`triager/`, Python) & the Go triager
+Fuses the source view with a graft-mapped endpoint surface and judges each finding
+by reachability (which exposed endpoint reaches the sink). No live traffic. AI runs
+only on reachable findings - reachable-only, batched, cached and model-tiered.
 
-The triager exists twice by design, once per runtime, with identical behavior:
+## Shared triager (`triager/`, Python)
 
-- **Go** (`dast/internal/triage`) keeps the DAST binary self-contained.
-- **Python** (`triager/offat_triage`) serves the white-box pipeline and the
-  standalone `offat-triage` CLI (re-triage any findings file).
+The triager enriches each finding with a verdict, CVSS and remediation, and carries
+the threat taxonomy (OWASP API Top 10 2023, OWASP Top 10 2021, CWE). It supports
+interchangeable backends behind one selection function (`make_triager`):
 
-Both support three interchangeable AI backends behind one selection function
-(`triage.Select` in Go, `make_triager` in Python):
+- **`anthropic`** - the Anthropic Messages API (needs a key).
+- **`claude-code`** - shells out to the Claude Code CLI (`claude -p`).
+- **`codex`** - shells out to the OpenAI Codex CLI (`codex exec`).
+- **`heuristic`** - deterministic, offline, always available.
 
-- **`anthropic`** — the Anthropic Messages API (needs a key).
-- **`claude-code`** — shells out to the Claude Code CLI (`claude -p`).
-- **`codex`** — shells out to the OpenAI Codex CLI (`codex exec`).
-
-All use the same *adversarial* prompt (refute first) and parse a compact JSON
-verdict from the response, and all fall back to the same deterministic heuristic
-(verdict from confidence, CVSS from severity, per-class remediation) so a run
-never fails and never requires a key. `auto` (default) prefers a key, then
-Claude Code, then Codex, then the heuristic. CLI backends are capped at low
-concurrency since each finding spawns a process.
+All use the same adversarial prompt (refute first) and fall back to the heuristic,
+so a run never fails and never requires a key. `tiered_triage` adds a content-hash
+verdict cache plus a cheap-model screen before a strong-model verify.
 
 ## Extensibility
 
-- **New attack vector:** add YAML to `knowledge-base/` (black-box) — no code.
+- **New attack vector / test case:** extend `platform.testgen` (vectors matched to
+  params, or a new generator).
 - **New SAST rule:** add a pattern to `whitebox/offat_wb/hunt.py`, or install
   semgrep for its full ruleset.
-- **New report format:** add a writer in `internal/report` / `report.py`.
+- **New report format:** add a writer in `reporter/offat_report/render.py`.
+- **New threat mapping:** extend `triager/offat_triage/taxonomy.py`.
 - **Different AI backend:** point `OFFAT_AI_BASE_URL` at an Anthropic-compatible
   endpoint, or set `OFFAT_AI_MODEL`.

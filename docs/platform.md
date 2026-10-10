@@ -80,7 +80,7 @@ resources or types match - e.g. `POST /users` returns `id`, so `GET /users/{id}`
 can be seeded from it. Each edge carries a confidence and a basis (`exact-name`,
 `resource-id`, `type-semantic`). The PRG seeds real identifiers for multi-step
 test cases, powers BOLA/IDOR (replay a foreign id), and is rendered by the
-visualizer. It generalizes the existing Go `dast/internal/graph` package.
+visualizer. It generalizes the producer-to-consumer linking heuristics.
 
 
 ### Access control, auth and business logic (identities)
@@ -101,7 +101,7 @@ the authorized baseline. An implicit `anon` identity drives missing-auth tests.
 | # | Component | Language | Reuses |
 |---|---|---|---|
 | 1 | Mapping | Python | `offat_gb.graph_map` + graft + spec parsing + AI classification |
-| 2 | PRG builder | Go/Python | `dast/internal/graph` producer->consumer heuristics |
+| 2 | PRG builder | Python | producer->consumer name/resource/type heuristics |
 | 3 | Threat modeling | Python | `offat_triage.taxonomy` (OWASP API/Web + CWE) |
 | 4 | Test-case generation | Python | KB vectors + `offat_triage` batched/cached AI |
 | 5 | Execution engine | **Rust** | new; tokio + hyper/reqwest (H1/H2), quinn+h3 (H3/QUIC), tonic (gRPC), tungstenite (WS), SSE, GraphQL |

@@ -35,62 +35,34 @@ jobs:
       - run: node --check app.js
       - run: node tests/dom_smoke.js
 
-  dast-go:
-    name: DAST engine (Go)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: dast
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
-          cache-dependency-path: dast/go.sum
-      - run: go vet ./...
-      - run: go test -race ./...
-      - run: go build ./...
-      - name: gofmt check
-        run: test -z "$(gofmt -l .)" || (gofmt -l . && echo 'run gofmt -w' && exit 1)
-
   smoke:
-    name: End-to-end smoke
+    name: End-to-end smoke (platform, offline)
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: platform:graybox:whitebox:triager:bundle:reporter
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
-          cache-dependency-path: dast/go.sum
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Build DAST binary
-        run: make dast
-      - name: DAST dry-run (offline)
-        run: ./bin/offat-dast --spec examples/vulnshop-openapi.yaml --kb knowledge-base --graph --dry-run
-      - name: White-box pipeline (offline)
-        run: PYTHONPATH=whitebox:triager python3 -m offat_wb examples/vuln-code --no-ai -o /tmp/wb
-      - name: Gray-box pipeline (offline, no graft/AI)
-        run: PYTHONPATH=graybox:whitebox:triager python3 -m offat_gb graybox/tests/fixtures/app --no-ai --no-graft -o /tmp/gb
-      - name: Assert gray-box mapped endpoints
+      - run: pip install pyyaml
+      - name: Pipeline (map -> prg -> threat-model -> test-gen -> triage)
+        run: |
+          python3 -m offat_platform map graybox/tests/fixtures/app --no-graft --threat-model -o /tmp/b.offat.json
+          python3 -m offat_platform test-gen /tmp/b.offat.json
+          python3 -m offat_platform triage /tmp/b.offat.json --no-ai
+          python3 -m offat_platform validate /tmp/b.offat.json
+      - name: Reports (bundle -> sarif/md/html/compliance)
+        run: python3 -m offat_report /tmp/b.offat.json -o /tmp/reports --formats sarif,md,html,compliance
+      - name: Assert mapped + reported
         run: |
           python3 - <<'PY'
-          import json
-          eps = json.load(open("/tmp/gb/endpoints.json"))
-          assert len(eps) >= 2, eps
-          rep = json.load(open("/tmp/gb/report.json"))
-          assert rep["mode"] == "graybox"
-          assert rep["summary"]["endpoints"] >= 2
-          print("gray-box endpoints:", rep["summary"]["endpoints"], "findings:", rep["summary"]["total"])
-          PY
-      - name: Assert findings produced
-        run: |
-          python3 - <<'PY'
-          import json
-          r = json.load(open("/tmp/wb/report.json"))
-          assert r["summary"]["total"] > 0, "expected white-box findings"
-          print("white-box findings:", r["summary"]["total"])
+          import json, os
+          b = json.load(open("/tmp/b.offat.json"))
+          assert b["summary"]["endpoints"] >= 2, b["summary"]
+          for f in ("results.sarif", "report.md", "report.html", "compliance.md"):
+              assert os.path.exists(os.path.join("/tmp/reports", f)), f
+          print("endpoints:", b["summary"]["endpoints"], "findings:", b["summary"]["findings"])
           PY
 
   python:
@@ -102,28 +74,18 @@ jobs:
         with:
           python-version: "3.12"
       - name: Byte-compile
-        run: python3 -m compileall -q triager/offat_triage whitebox/offat_wb graybox/offat_gb bundle/offat_bundle platform/offat_platform reporter/offat_report
+        run: python3 -m compileall -q bundle/offat_bundle triager/offat_triage whitebox/offat_wb graybox/offat_gb platform/offat_platform reporter/offat_report
       - name: Install packages
-        run: pip install ./triager ./whitebox ./graybox ./bundle ./platform ./reporter jsonschema pyyaml
-      - name: Bundle unit tests (offline, jsonschema path)
+        run: pip install ./bundle ./triager ./whitebox ./graybox ./platform ./reporter jsonschema pyyaml
+      - name: Bundle unit tests
         run: PYTHONPATH=bundle python3 -m unittest discover -s bundle/tests -p 'test_*.py'
-      - name: Platform unit tests (offline)
-        run: PYTHONPATH=platform:graybox:whitebox:triager:bundle python3 -m unittest discover -s platform/tests -p 'test_*.py'
-      - name: Reporter unit tests (offline)
-        run: PYTHONPATH=reporter:triager python3 -m unittest discover -s reporter/tests -p 'test_*.py'
-      - name: Triager unit tests (offline)
+      - name: Triager unit tests
         run: PYTHONPATH=triager python3 -m unittest discover -s triager/tests -p 'test_*.py'
-      - name: White-box unit tests (offline)
+      - name: White-box unit tests
         run: PYTHONPATH=whitebox:triager python3 -m unittest discover -s whitebox/tests -p 'test_*.py'
-      - name: Gray-box unit tests (offline)
+      - name: Gray-box unit tests
         run: PYTHONPATH=graybox:whitebox:triager python3 -m unittest discover -s graybox/tests -p 'test_*.py'
-      - name: Triage smoke (heuristic)
-        run: |
-          printf '[{"class":"sqli","severity":"high","confidence":0.9,"title":"t"}]' > /tmp/f.json
-          offat-triage /tmp/f.json --no-ai
-      - name: Triage smoke (CLI provider via stub)
-        run: |
-          printf '#!/bin/sh\necho "{\\"verdict\\":\\"confirmed\\",\\"confidence\\":0.9,\\"severity\\":\\"high\\"}"\n' > /tmp/stub
-          chmod +x /tmp/stub
-          OFFAT_AI_CODEX_CMD=/tmp/stub offat-triage /tmp/f.json --provider codex -o /tmp/t.json
-          python3 -c "import json; d=json.load(open('/tmp/t.json')); assert d[0]['triage']['source']=='codex', d; print('CLI provider OK')"
+      - name: Platform unit tests
+        run: PYTHONPATH=platform:graybox:whitebox:triager:bundle python3 -m unittest discover -s platform/tests -p 'test_*.py'
+      - name: Reporter unit tests
+        run: PYTHONPATH=reporter:triager python3 -m unittest discover -s reporter/tests -p 'test_*.py'

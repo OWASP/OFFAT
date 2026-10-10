@@ -1,8 +1,7 @@
 # Build artifacts
 /bin/
 *.exe
-/dast/offat-dast
-/offat-dast
+engine-rs/target/
 
 # Reports / scan output
 offat-report/
