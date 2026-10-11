@@ -844,6 +844,7 @@ dependencies = [
  "futures-util",
  "http",
  "reqwest",
+ "rustls",
  "serde",
  "serde_json",
  "tokio",

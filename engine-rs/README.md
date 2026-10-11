@@ -59,6 +59,11 @@ recorded as skipped with a note, so the Bundle stays complete.
   (UNAUTHENTICATED / PERMISSION_DENIED) when called with no, or an unprivileged,
   identity is the broken-auth / BFLA signal.
 
+`--timeout` applies to every protocol (HTTP, WebSocket handshake, gRPC connect +
+call). `--insecure` (accept an invalid / self-signed certificate) applies to HTTP,
+HTTP/3 and `wss://`; gRPC over TLS always verifies the certificate, so point at a
+`grpc://` URL for a plaintext test target.
+
 ### HTTP/3 build
 
 reqwest's HTTP/3 support is behind its own unstable cfg, so it is an opt-in cargo

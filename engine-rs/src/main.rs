@@ -220,9 +220,21 @@ async fn main() -> Result<()> {
             tokio::time::sleep_until(at).await;
         }
 
+        let timeout_s = opts.timeout;
+        let insecure = opts.insecure;
         set.spawn(async move {
             let _permit = permit;
-            let ex = exec::execute(&client, &base, &endpoints, &case, &headers, &identities).await;
+            let ex = exec::execute(
+                &client,
+                &base,
+                &endpoints,
+                &case,
+                &headers,
+                &identities,
+                timeout_s,
+                insecure,
+            )
+            .await;
             let n = done.fetch_add(1, Ordering::Relaxed) + 1;
             if n % 25 == 0 || n == total {
                 eprintln!("  {}/{}", n, total);

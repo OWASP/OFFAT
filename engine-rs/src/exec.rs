@@ -134,6 +134,7 @@ fn protocol_of(case: &Value) -> String {
 }
 
 /// Execute a single test case. Returns an execution object for `results`.
+#[allow(clippy::too_many_arguments)]
 pub async fn execute(
     client: &Client,
     base_url: &str,
@@ -141,6 +142,8 @@ pub async fn execute(
     case: &Value,
     extra_headers: &[(String, String)],
     identities: &HashMap<String, Vec<(String, String)>>,
+    timeout_s: u64,
+    insecure: bool,
 ) -> Value {
     let case_id = case
         .get("id")
@@ -155,16 +158,41 @@ pub async fn execute(
             execute_http(client, base_url, endpoints, case, extra_headers, identities).await
         }
         "ws" | "wss" | "websocket" => {
-            return crate::ws::execute(base_url, endpoints, case, extra_headers, identities).await;
+            return crate::ws::execute(
+                base_url,
+                endpoints,
+                case,
+                extra_headers,
+                identities,
+                timeout_s,
+                insecure,
+            )
+            .await;
         }
         "grpc" | "grpcs" | "grpc/2" => {
-            return crate::grpc::execute(base_url, endpoints, case, extra_headers, identities)
-                .await;
+            return crate::grpc::execute(
+                base_url,
+                endpoints,
+                case,
+                extra_headers,
+                identities,
+                timeout_s,
+            )
+            .await;
         }
         "http/3" | "h3" | "quic" | "http3" => {
             #[cfg(feature = "http3")]
             {
-                return http3_send(base_url, endpoints, case, extra_headers, identities).await;
+                return http3_send(
+                    base_url,
+                    endpoints,
+                    case,
+                    extra_headers,
+                    identities,
+                    timeout_s,
+                    insecure,
+                )
+                .await;
             }
             #[cfg(not(feature = "http3"))]
             {
@@ -350,12 +378,15 @@ pub fn short(s: &str) -> String {
 /// the request shaping is identical to HTTP/1.1+2, so this reuses the same
 /// param placement. Only compiled with `--features http3`.
 #[cfg(feature = "http3")]
+#[allow(clippy::too_many_arguments)]
 async fn http3_send(
     base_url: &str,
     endpoints: &HashMap<String, EndpointInfo>,
     case: &Value,
     extra_headers: &[(String, String)],
     identities: &HashMap<String, Vec<(String, String)>>,
+    timeout_s: u64,
+    insecure: bool,
 ) -> Value {
     let case_id = case
         .get("id")
@@ -364,6 +395,8 @@ async fn http3_send(
         .to_string();
     let client = match Client::builder()
         .user_agent("offat-engine/0.1")
+        .danger_accept_invalid_certs(insecure)
+        .timeout(std::time::Duration::from_secs(timeout_s.max(1)))
         .http3_prior_knowledge()
         .build()
     {

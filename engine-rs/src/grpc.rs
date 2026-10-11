@@ -65,8 +65,10 @@ impl Decoder for BytesCoder {
 }
 
 /// gRPC authority: http(s) base URL -> a tonic endpoint URL (plaintext h2 for
-/// http://, TLS for https://).
-fn grpc_endpoint(base_url: &str, insecure_tls: bool) -> Result<Endpoint, String> {
+/// http:// / grpc://, TLS for https:// / grpcs://). `--insecure` selects plaintext
+/// via a grpc:// URL; gRPC-over-TLS always verifies the certificate (a tonic
+/// transport limitation), so point at grpc:// for a plaintext test target.
+fn grpc_endpoint(base_url: &str, timeout_s: u64) -> Result<Endpoint, String> {
     let url = base_url.trim_end_matches('/').to_string();
     let (url, tls) = if let Some(rest) = url.strip_prefix("grpcs://") {
         (format!("https://{}", rest), true)
@@ -76,7 +78,10 @@ fn grpc_endpoint(base_url: &str, insecure_tls: bool) -> Result<Endpoint, String>
         (url.clone(), url.starts_with("https://"))
     };
     let mut ep = Channel::from_shared(url).map_err(|e| e.to_string())?;
-    if tls && !insecure_tls {
+    ep = ep
+        .timeout(std::time::Duration::from_secs(timeout_s.max(1)))
+        .connect_timeout(std::time::Duration::from_secs(timeout_s.max(1)));
+    if tls {
         ep = ep
             .tls_config(ClientTlsConfig::new().with_webpki_roots())
             .map_err(|e| e.to_string())?;
@@ -101,6 +106,7 @@ pub async fn execute(
     case: &Value,
     extra_headers: &[(String, String)],
     identities: &HashMap<String, Vec<(String, String)>>,
+    timeout_s: u64,
 ) -> Value {
     let case_id = case.get("id").and_then(Value::as_str).unwrap_or("");
     let ep_id = case.get("endpoint").and_then(Value::as_str).unwrap_or("");
@@ -124,7 +130,7 @@ pub async fn execute(
     }
 
     let path = method_path(&ep);
-    let response = invoke(base_url, &path, &headers).await;
+    let response = invoke(base_url, &path, &headers, timeout_s).await;
 
     json!({
         "id": format!("ex-{}", short(case_id)),
@@ -135,8 +141,8 @@ pub async fn execute(
     })
 }
 
-async fn invoke(base_url: &str, path: &str, headers: &[(String, String)]) -> Value {
-    let endpoint = match grpc_endpoint(base_url, false) {
+async fn invoke(base_url: &str, path: &str, headers: &[(String, String)], timeout_s: u64) -> Value {
+    let endpoint = match grpc_endpoint(base_url, timeout_s) {
         Ok(e) => e,
         Err(e) => return json!({"error": format!("bad grpc target: {}", e)}),
     };
@@ -197,8 +203,8 @@ mod tests {
 
     #[test]
     fn endpoint_scheme() {
-        assert!(grpc_endpoint("http://localhost:50051", false).is_ok());
-        assert!(grpc_endpoint("https://api.example:443", false).is_ok());
-        assert!(grpc_endpoint("grpc://localhost:50051", false).is_ok());
+        assert!(grpc_endpoint("http://localhost:50051", 15).is_ok());
+        assert!(grpc_endpoint("https://api.example:443", 15).is_ok());
+        assert!(grpc_endpoint("grpc://localhost:50051", 15).is_ok());
     }
 }

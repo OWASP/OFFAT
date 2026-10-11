@@ -25,6 +25,8 @@ serde_json = "1"
 anyhow = "1"
 # WebSocket driver (ws:// and wss://), pure-rustls.
 tokio-tungstenite = { version = "0.24", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
+# Direct rustls handle, only for the WebSocket --insecure (accept-any-cert) connector.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 futures-util = { version = "0.3", default-features = false, features = ["std", "sink"] }
 # gRPC driver: tonic generic client + a schema-less bytes codec.
 tonic = { version = "0.12", default-features = false, features = ["transport", "codegen", "prost", "tls", "tls-webpki-roots"] }

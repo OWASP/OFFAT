@@ -8,6 +8,7 @@
 //! signal.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use futures_util::{SinkExt, StreamExt};
@@ -54,6 +55,8 @@ pub async fn execute(
     case: &Value,
     extra_headers: &[(String, String)],
     identities: &HashMap<String, Vec<(String, String)>>,
+    timeout_s: u64,
+    insecure: bool,
 ) -> Value {
     let case_id = case.get("id").and_then(Value::as_str).unwrap_or("");
     let proto = case
@@ -85,7 +88,7 @@ pub async fn execute(
     }
 
     let url = ws_url(base_url, &ep.path);
-    let response = connect_and_probe(&url, &headers, param, payload).await;
+    let response = connect_and_probe(&url, &headers, param, payload, timeout_s, insecure).await;
 
     json!({
         "id": format!("ex-{}", short(case_id)),
@@ -101,6 +104,8 @@ async fn connect_and_probe(
     headers: &[(String, String)],
     param: &str,
     payload: &str,
+    timeout_s: u64,
+    insecure: bool,
 ) -> Value {
     let mut request = match url.into_client_request() {
         Ok(r) => r,
@@ -117,9 +122,14 @@ async fn connect_and_probe(
     }
 
     let started = Instant::now();
+    let connector = if insecure {
+        Some(tokio_tungstenite::Connector::Rustls(insecure_tls_config()))
+    } else {
+        None
+    };
     let connect = tokio::time::timeout(
-        Duration::from_secs(15),
-        tokio_tungstenite::connect_async(request),
+        Duration::from_secs(timeout_s.max(1)),
+        tokio_tungstenite::connect_async_tls_with_config(request, None, false, connector),
     )
     .await;
     let (mut stream, http_resp) = match connect {
@@ -174,5 +184,59 @@ fn handshake_status(e: &tokio_tungstenite::tungstenite::Error) -> u16 {
         resp.status().as_u16()
     } else {
         0
+    }
+}
+
+/// A rustls client config that accepts any server certificate, used only for
+/// `--insecure` wss:// connections to targets with self-signed / invalid certs.
+fn insecure_tls_config() -> Arc<rustls::ClientConfig> {
+    let provider = Arc::new(rustls::crypto::ring::default_provider());
+    let config = rustls::ClientConfig::builder_with_provider(provider)
+        .with_safe_default_protocol_versions()
+        .expect("rustls default protocol versions")
+        .dangerous()
+        .with_custom_certificate_verifier(Arc::new(NoCertVerify))
+        .with_no_client_auth();
+    Arc::new(config)
+}
+
+/// Certificate verifier that accepts everything. Only reachable with `--insecure`.
+#[derive(Debug)]
+struct NoCertVerify;
+
+impl rustls::client::danger::ServerCertVerifier for NoCertVerify {
+    fn verify_server_cert(
+        &self,
+        _end_entity: &rustls::pki_types::CertificateDer<'_>,
+        _intermediates: &[rustls::pki_types::CertificateDer<'_>],
+        _server_name: &rustls::pki_types::ServerName<'_>,
+        _ocsp: &[u8],
+        _now: rustls::pki_types::UnixTime,
+    ) -> Result<rustls::client::danger::ServerCertVerified, rustls::Error> {
+        Ok(rustls::client::danger::ServerCertVerified::assertion())
+    }
+
+    fn verify_tls12_signature(
+        &self,
+        _message: &[u8],
+        _cert: &rustls::pki_types::CertificateDer<'_>,
+        _dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+    }
+
+    fn verify_tls13_signature(
+        &self,
+        _message: &[u8],
+        _cert: &rustls::pki_types::CertificateDer<'_>,
+        _dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+    }
+
+    fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
+        rustls::crypto::ring::default_provider()
+            .signature_verification_algorithms
+            .supported_schemes()
     }
 }
