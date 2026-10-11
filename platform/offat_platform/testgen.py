@@ -83,8 +83,12 @@ def build(bundle: Dict[str, Any], *, use_ai: bool = False,
           provider: Optional[str] = None, max_payloads: int = 2,
           identities: Optional[List[Dict[str, Any]]] = None) -> Dict[str, int]:
     endpoints = (bundle.get("asm") or {}).get("endpoints", [])
+    http_eps = [e for e in endpoints if e.get("protocol", "http") in ("http", "https", "")]
+    ws_eps = [e for e in endpoints if e.get("protocol", "http") in ("ws", "wss")]
+    grpc_eps = [e for e in endpoints if e.get("protocol", "http") == "grpc"]
+
     rule_n = 0
-    for ep in endpoints:
+    for ep in http_eps:
         for p in ep.get("params", []):
             chain = _producer_chain(bundle, ep["id"], p["name"])
             for cls in _classes_for(p["name"], p.get("location", "query")):
@@ -110,16 +114,19 @@ def build(bundle: Dict[str, Any], *, use_ai: bool = False,
                 ))
                 rule_n += 1
 
-    authz_n = _gen_access_control(bundle, endpoints, identities or [])
-    biz_n = _gen_business_logic(bundle, endpoints)
+    authz_n = _gen_access_control(bundle, http_eps, identities or [])
+    biz_n = _gen_business_logic(bundle, http_eps)
+    ws_n = _gen_websocket(bundle, ws_eps, identities or [], max_payloads)
+    grpc_n = _gen_grpc(bundle, grpc_eps, identities or [])
 
     ai_n = 0
     if use_ai:
-        ai_n = _augment_with_ai(bundle, endpoints, provider)
+        ai_n = _augment_with_ai(bundle, http_eps, provider)
 
     ob.record_stage(bundle, "test-gen", tool="offat-platform", version="1.0.0")
-    rule_total = rule_n + authz_n + biz_n
-    return {"rule": rule_total, "authz": authz_n, "business": biz_n, "ai": ai_n,
+    rule_total = rule_n + authz_n + biz_n + ws_n + grpc_n
+    return {"rule": rule_total, "authz": authz_n, "business": biz_n,
+            "websocket": ws_n, "grpc": grpc_n, "ai": ai_n,
             "total": rule_total + ai_n}
 
 
@@ -263,11 +270,72 @@ def _gen_business_logic(bundle, endpoints) -> int:
     return n
 
 
+# --- WebSocket + gRPC generation --------------------------------------------
+
+# Compact vector set for WebSocket message injection (payloads reuse _VECTORS).
+_WS_VECTORS = ("xss", "sqli", "ssti", "command_injection")
+
+
+def _gen_websocket(bundle, ws_eps, identities, max_payloads) -> int:
+    """Cases for ws:// / wss:// endpoints: a no-credential handshake probe and
+    message-content injection sent as a JSON ``message`` field."""
+    n = 0
+    for ep in ws_eps:
+        # 1) Missing authentication on the handshake.
+        n += _add(bundle, ep, vclass="broken_auth", technique="no-auth",
+                  protocol="ws", identity="anon", expected_status="handshake reject",
+                  rationale="Open the WebSocket with no credentials; a protected socket "
+                            "must reject the handshake.")
+        # 2) Injection in a WebSocket message.
+        for cls in _WS_VECTORS:
+            vec = _VECTORS.get(cls)
+            if not vec:
+                continue
+            for payload in vec["payloads"][:max_payloads]:
+                n += _add(bundle, ep, vclass=cls, technique=vec["technique"],
+                          protocol="ws", param="message", location="body", payload=payload,
+                          rationale=f"{cls} probe in a WebSocket message on {ep.get('path','')}.")
+    return n
+
+
+def _is_priv_grpc(ep: Dict[str, Any]) -> bool:
+    text = (ep.get("path", "") + " " + ep.get("handler", "")).lower()
+    return any(h in text for h in _PRIV_HINT)
+
+
+def _gen_grpc(bundle, grpc_eps, identities) -> int:
+    """Cases for gRPC methods: a no-metadata (unauthenticated) invocation and,
+    for privileged-looking methods, an unprivileged BFLA invocation. The engine
+    reads the returned grpc-status to judge whether the call was denied."""
+    from . import identities as idmod
+    privs = idmod.privileged(identities)
+    unprivs = idmod.unprivileged(identities)
+    n = 0
+    for ep in grpc_eps:
+        # 1) Missing authentication: invoke with no metadata credentials.
+        n += _add(bundle, ep, vclass="broken_auth", technique="no-auth",
+                  protocol="grpc", identity="anon",
+                  expected_status="UNAUTHENTICATED/PERMISSION_DENIED",
+                  rationale=f"Invoke {ep.get('path','')} with no metadata credentials; "
+                            "a protected method must deny.")
+        # 2) BFLA: a privileged method reached by a non-privileged identity.
+        if _is_priv_grpc(ep) and unprivs:
+            base = privs[0]["name"] if privs else ""
+            for other in unprivs:
+                n += _add(bundle, ep, vclass="bfla", technique="authz-diff",
+                          protocol="grpc", identity=other["name"], baseline_identity=base,
+                          expected_status="PERMISSION_DENIED",
+                          rationale=f"Privileged gRPC method invoked as non-privileged "
+                                    f"'{other['name']}'.")
+    return n
+
+
 def _add(bundle, ep, *, vclass, technique, param="", location="", payload="",
-         identity="", baseline_identity="", expected_status="", rationale="") -> int:
+         protocol="http", identity="", baseline_identity="", expected_status="",
+         rationale="") -> int:
     ob.add_test_case(bundle, ob.test_case(
         ep["id"], param=param, location=location, vclass=vclass, technique=technique,
-        payload=payload, origin="rule", identity=identity,
+        protocol=protocol, payload=payload, origin="rule", identity=identity,
         baseline_identity=baseline_identity, expected_status=expected_status,
         rationale=rationale, expected_signal=expected_status))
     return 1

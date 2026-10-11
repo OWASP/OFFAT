@@ -87,7 +87,7 @@ _SKIP_DIRS = {".git", "node_modules", "vendor", "dist", "build", "__pycache__",
               ".venv", "venv", ".idea", ".vscode", "target", ".offat-ai", "offat-report"}
 _TEXT_EXTS = {".py", ".js", ".ts", ".jsx", ".tsx", ".go", ".rb", ".php", ".java",
               ".cs", ".c", ".cpp", ".h", ".rs", ".kt", ".scala", ".swift",
-              ".yaml", ".yml", ".json", ".env", ".sh", ".html", ".sql", ".tf", ".xml"}
+              ".yaml", ".yml", ".json", ".env", ".sh", ".html", ".sql", ".tf", ".xml", ".proto"}
 _MAX_FILE = 1_500_000
 
 

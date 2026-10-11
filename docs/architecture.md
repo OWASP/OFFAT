@@ -39,14 +39,17 @@ map --> prg --> threat-model --> test-gen --> execute --> triage --> report
 | prg | `platform.prg` | link response-field producers to request-param consumers (dataflow across endpoints) |
 | threat-model | `platform.threat_model` | STRIDE threats, OWASP API Top 10 + CWE, risk, Mermaid DFD |
 | test-gen | `platform.testgen` | injection vectors, PRG chains, identity-aware BOLA/BFLA/RBAC/auth/business cases |
-| execute | `engine-rs` (`offat-engine`) | Rust async executor: multi-identity requests + differential baseline, response capture |
+| execute | `engine-rs` (`offat-engine`) | Rust async executor: HTTP/1.1+2, WebSocket and gRPC drivers (HTTP/3 opt-in), multi-identity requests + differential baseline, response capture |
 | triage | `platform.consolidate` + `triager` | detect findings, attach threat mapping, triage (AI/heuristic) |
 | report | `reporter` (`offat-report`) | SARIF / Markdown / HTML (with DFD) / compliance / PDF |
 
-**Why Rust for the engine:** the executor is an I/O-bound concurrent HTTP client
-where performance, memory safety and a single static binary matter; `tokio` +
-`reqwest` (rustls) provide HTTP/1.1 + HTTP/2 today, with gRPC / WebSocket /
-HTTP-3+QUIC as the next protocol increments.
+**Why Rust for the engine:** the executor is an I/O-bound concurrent client where
+performance, memory safety and a single static binary matter. `tokio` + `reqwest`
+(rustls) drive HTTP/1.1 + HTTP/2; `tokio-tungstenite` drives WebSocket (ws/wss);
+`tonic` drives gRPC with a schema-less bytes codec (no `.proto` compilation);
+HTTP/3 + QUIC is an opt-in build feature (reqwest http3 -> h3 + quinn). Each case
+carries a `protocol` and is dispatched to the matching driver; a protocol the
+binary was not built with is recorded as skipped so the Bundle stays complete.
 
 ## Source-only modes
 

@@ -268,3 +268,80 @@ class TestAccessControlDetect(unittest.TestCase):
         ba = [f for f in b["findings"] if f["class"] == "broken_auth"]
         self.assertTrue(ba)
         self.assertEqual(ba[0]["threat"]["owasp_api"], "API2:2023")
+
+
+class TestMultiProtocolMapping(unittest.TestCase):
+    """WebSocket + gRPC surfaces are mapped with the right protocol tag."""
+
+    def test_ws_and_grpc_endpoints(self):
+        from offat_gb import graph_map
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "ws_app.py"), "w") as fh:
+                fh.write("@app.websocket('/ws/chat')\n"
+                         "async def chat(ws):\n    pass\n"
+                         "@socketio.on('message')\n"
+                         "def on_msg(data):\n    pass\n")
+            with open(os.path.join(d, "svc.proto"), "w") as fh:
+                fh.write("syntax = \"proto3\";\npackage shop.v1;\n"
+                         "service AdminService {\n"
+                         "  rpc DeleteUser (Req) returns (Reply);\n"
+                         "  rpc GetStats (Req) returns (stream Reply);\n}\n")
+            eps = graph_map.native_map(d)
+        protos = {e["protocol"] for e in eps}
+        self.assertIn("ws", protos)
+        self.assertIn("grpc", protos)
+        ws_paths = {e["path"] for e in eps if e["protocol"] == "ws"}
+        self.assertIn("/ws/chat", ws_paths)
+        self.assertIn("/message", ws_paths)
+        grpc = {e["path"]: e for e in eps if e["protocol"] == "grpc"}
+        self.assertIn("/shop.v1.AdminService/DeleteUser", grpc)
+        self.assertEqual(grpc["/shop.v1.AdminService/GetStats"]["method"], "STREAM")
+
+
+class TestMultiProtocolTestGen(unittest.TestCase):
+    def test_ws_and_grpc_cases(self):
+        b = ob.new_bundle()
+        ob.add_endpoint(b, ob.endpoint("WS", "/ws/chat", protocol="ws"))
+        ob.add_endpoint(b, ob.endpoint("UNARY", "/shop.AdminService/DeleteUser", protocol="grpc"))
+        idents = [{"name": "admin", "role": "admin", "headers": {"authorization": "a"}},
+                  {"name": "user", "role": "user", "headers": {"authorization": "u"}}]
+        stats = testgen.build(b, use_ai=False, identities=idents)
+        self.assertGreater(stats["websocket"], 0)
+        self.assertGreater(stats["grpc"], 0)
+        cases = b["test_plan"]["cases"]
+        ws = [c for c in cases if c.get("protocol") == "ws"]
+        grpc = [c for c in cases if c.get("protocol") == "grpc"]
+        self.assertTrue(any(c["class"] == "broken_auth" for c in ws))
+        self.assertTrue(any(c["class"] == "xss" for c in ws))
+        self.assertTrue(any(c["class"] == "broken_auth" for c in grpc))
+        # AdminService + DeleteUser are privileged -> a BFLA case for the user.
+        self.assertTrue(any(c["class"] == "bfla" and c.get("identity") == "user" for c in grpc))
+
+
+class TestMultiProtocolDetect(unittest.TestCase):
+    def test_ws_handshake_without_auth(self):
+        case = {"id": "tc", "endpoint": "ep", "class": "broken_auth",
+                "technique": "no-auth", "protocol": "ws"}
+        ex = {"id": "ex", "protocol": "ws", "request": {"url": "wss://t/ws", "identity": "anon"},
+              "response": {"connected": True, "handshake_status": 101}}
+        f = consolidate._detect(case, ex)
+        self.assertIsNotNone(f)
+        self.assertEqual(f["protocol"], "ws")
+        # a rejected handshake is healthy -> no finding
+        ex2 = {"id": "ex", "protocol": "ws", "request": {}, "response": {"connected": False}}
+        self.assertIsNone(consolidate._detect(case, ex2))
+
+    def test_grpc_no_auth_and_denied(self):
+        case = {"id": "tc", "endpoint": "ep", "class": "broken_auth",
+                "technique": "no-auth", "protocol": "grpc"}
+        ok = {"id": "ex", "protocol": "grpc", "request": {"method": "/s/M", "identity": "anon"},
+              "response": {"connected": True, "grpc_status": "OK", "grpc_code": 0}}
+        f = consolidate._detect(case, ok)
+        self.assertIsNotNone(f)
+        self.assertEqual(f["protocol"], "grpc")
+        denied = {"id": "ex", "protocol": "grpc", "request": {},
+                  "response": {"connected": True, "grpc_status": "Unauthenticated", "grpc_code": 16}}
+        self.assertIsNone(consolidate._detect(case, denied))
+        unimpl = {"id": "ex", "protocol": "grpc", "request": {},
+                  "response": {"connected": True, "grpc_status": "Unimplemented", "grpc_code": 12}}
+        self.assertIsNone(consolidate._detect(case, unimpl))

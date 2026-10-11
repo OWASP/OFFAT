@@ -36,7 +36,106 @@ def _sev(cls: str) -> str:
     return _SEVERITY.get(cls, "medium")
 
 
+# gRPC status codes that mean the call was rejected for authentication /
+# authorization (a healthy outcome for an unauthenticated / unprivileged probe).
+_GRPC_DENIED = {7, 16}  # PERMISSION_DENIED, UNAUTHENTICATED
+# Codes that mean the method does not exist or the server was unreachable, so the
+# probe is inconclusive rather than a finding.
+_GRPC_INCONCLUSIVE = {4, 5, 12, 14}  # DEADLINE, NOT_FOUND, UNIMPLEMENTED, UNAVAILABLE
+
+
+def _mk_finding(case: Dict[str, Any], ex: Dict[str, Any], cls: str, technique: str,
+                signal: str, conf: float, sev_override: Optional[str],
+                payload: str, proto: str) -> Dict[str, Any]:
+    resp = ex.get("response") or {}
+    status = int(resp.get("status", 0) or 0)
+    req = ex.get("request") or {}
+    snippet = resp.get("body_snippet") or resp.get("first_text") or ""
+    if not snippet and resp.get("frames"):
+        snippet = " ".join(str(f) for f in resp.get("frames", []))
+    return {
+        "id": ob.make_id("f", case.get("id", ""), ex.get("id", "")),
+        "vector_id": f"{cls}-{technique}" if technique else cls,
+        "class": cls, "title": f"{cls} on {req.get('method', proto.upper())} "
+                                f"{req.get('url', '') or req.get('method', '')}".strip(),
+        "severity": sev_override or _sev(cls), "endpoint": case.get("endpoint", ""),
+        "test_case": case.get("id", ""), "param": case.get("param", ""),
+        "location": case.get("location", ""), "technique": technique, "payload": payload,
+        "protocol": proto, "confidence": conf, "source_mode": "dast",
+        "evidence": {"status_code": status, "matched_signature": signal,
+                     "protocol": proto,
+                     "grpc_status": resp.get("grpc_status"),
+                     "ws_connected": resp.get("connected"),
+                     "identity": req.get("identity", ""), "baseline_identity": req.get("baseline_identity", ""),
+                     "baseline_status": (ex.get("baseline") or {}).get("status"),
+                     "snippet": str(snippet)[:400],
+                     "request_url": req.get("url", "")},
+    }
+
+
+def _detect_ws(case: Dict[str, Any], ex: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    resp = ex.get("response") or {}
+    cls = case.get("class", "")
+    technique = case.get("technique", "")
+    payload = str(case.get("payload", ""))
+    connected = bool(resp.get("connected"))
+    frames = resp.get("frames") or []
+    body = (str(resp.get("first_text") or "") + " " + " ".join(str(f) for f in frames)).lower()
+    signal, conf = "", 0.0
+
+    if cls == "broken_auth" and technique == "no-auth":
+        if connected:
+            signal, conf = "WebSocket handshake accepted with no credentials", 0.6
+    elif not connected:
+        return None  # no injection signal without an open socket
+    elif cls in ("sqli", "nosqli"):
+        if any(s in body for s in _SQL_ERRORS):
+            signal, conf = "sql error signature in WebSocket frame", 0.8
+    elif cls == "ssti":
+        if "49" in body and "7*7" in payload:
+            signal, conf = "template arithmetic evaluated (49) in WebSocket frame", 0.8
+    elif cls == "xss":
+        if payload and payload.lower() in body:
+            signal, conf = "payload reflected in WebSocket frame", 0.55
+    elif cls == "command_injection":
+        if "uid=" in body or "gid=" in body:
+            signal, conf = "command output in WebSocket frame", 0.8
+
+    if not signal:
+        return None
+    return _mk_finding(case, ex, cls, technique, signal, conf, None, payload, "ws")
+
+
+def _detect_grpc(case: Dict[str, Any], ex: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    resp = ex.get("response") or {}
+    if not resp.get("connected"):
+        return None
+    cls = case.get("class", "")
+    technique = case.get("technique", "")
+    code = resp.get("grpc_code")
+    if code is None or int(code) in _GRPC_DENIED or int(code) in _GRPC_INCONCLUSIVE:
+        return None  # denied (healthy) or inconclusive
+    code = int(code)
+    reached = "OK" if code == 0 else f"grpc-status {resp.get('grpc_status', code)}"
+
+    if cls == "broken_auth" and technique == "no-auth":
+        conf = 0.7 if code == 0 else 0.55
+        signal = f"gRPC method processed with no metadata credentials ({reached})"
+        return _mk_finding(case, ex, cls, technique, signal, conf, None, "", "grpc")
+    if cls in ("bfla", "rbac"):
+        conf = 0.7 if code == 0 else 0.55
+        signal = f"privileged gRPC method processed as a non-privileged identity ({reached})"
+        return _mk_finding(case, ex, cls, technique, signal, conf, None, "", "grpc")
+    return None
+
+
 def _detect(case: Dict[str, Any], ex: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    proto = (case.get("protocol") or ex.get("protocol") or "http").lower()
+    if proto in ("ws", "wss", "websocket"):
+        return _detect_ws(case, ex)
+    if proto == "grpc":
+        return _detect_grpc(case, ex)
+
     resp = ex.get("response") or {}
     status = int(resp.get("status", 0) or 0)
     body = (resp.get("body_snippet") or "").lower()

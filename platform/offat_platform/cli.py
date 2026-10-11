@@ -75,7 +75,9 @@ def _cmd_test_gen(args) -> int:
         print(f"[test-gen] {len(ids)} identities loaded (access-control/auth tests enabled)")
     print("[test-gen] generating test cases ...")
     stats = testgen.build(bundle, use_ai=args.ai, provider=args.provider, identities=ids)
-    print(f"[test-gen] rule: {stats['rule']} (authz: {stats.get('authz',0)}, business: {stats.get('business',0)})  ai: {stats['ai']}  total: {stats['total']}")
+    print(f"[test-gen] rule: {stats['rule']} (authz: {stats.get('authz',0)}, "
+          f"business: {stats.get('business',0)}, ws: {stats.get('websocket',0)}, "
+          f"grpc: {stats.get('grpc',0)})  ai: {stats['ai']}  total: {stats['total']}")
     out = args.out or args.bundle
     ob.save(bundle, out)
     print(f"[bundle] written to {out}")

@@ -37,18 +37,39 @@ offat-engine --bundle app.offat.json --url https://api.your-authorized-target.ex
 
 ## Protocols
 
-Built on `tokio` + `reqwest` (`rustls`), async and rate-limited.
+Built on `tokio` + `reqwest` (`rustls`), async and rate-limited. Dispatch is keyed
+on each case's `protocol`; a case for a protocol the binary was not built with is
+recorded as skipped with a note, so the Bundle stays complete.
 
-| Protocol | Status |
-|---|---|
-| HTTP/1.1 | implemented |
-| HTTP/2 | implemented (negotiated over TLS) |
-| gRPC (tonic) | planned |
-| WebSocket (tungstenite) | planned |
-| HTTP/3 / QUIC (quinn + h3) | planned |
+| Protocol | Status | Driver |
+|---|---|---|
+| HTTP/1.1 | implemented | reqwest |
+| HTTP/2 | implemented (negotiated over TLS) | reqwest |
+| WebSocket (ws/wss) | implemented | tokio-tungstenite |
+| gRPC | implemented | tonic (schema-less bytes codec) |
+| HTTP/3 / QUIC | opt-in build feature | reqwest http3 (h3 + quinn) |
 
-Protocol dispatch is keyed on each case's `protocol`; cases for a protocol that is
-not yet wired are recorded as skipped with a note, so the Bundle stays complete.
+- **WebSocket:** opens the handshake as the case's identity, sends the payload as
+  a message (JSON when the case names a param), and captures the handshake status
+  plus the first response frames. A `no-auth` case records whether the handshake
+  succeeded with no credentials.
+- **gRPC:** invokes `/package.Service/Method` over HTTP/2 with a minimal message
+  and the identity's metadata, then reads the `grpc-status`. No `.proto`
+  compilation is needed - the codec ships raw bytes. A method that is not denied
+  (UNAUTHENTICATED / PERMISSION_DENIED) when called with no, or an unprivileged,
+  identity is the broken-auth / BFLA signal.
+
+### HTTP/3 build
+
+reqwest's HTTP/3 support is behind its own unstable cfg, so it is an opt-in cargo
+feature and the build must also pass `--cfg reqwest_unstable`:
+
+```bash
+RUSTFLAGS="--cfg reqwest_unstable" cargo build --release --features http3
+```
+
+Without the feature, `http/3` cases are recorded as skipped. `make engine-http3`
+runs the command above.
 
 ## Pipeline
 

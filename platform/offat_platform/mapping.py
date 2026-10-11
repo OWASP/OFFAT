@@ -28,7 +28,7 @@ def map_target(bundle: Dict[str, Any], target: str, *, use_graft: bool = False,
                            type=p.get("type", "string"), required=p.get("required", False))
                   for p in e.get("params", [])]
         ep = ob.endpoint(
-            e["method"], e["path"], protocol="http",
+            e["method"], e["path"], protocol=e.get("protocol", "http"),
             operation_id=e.get("handler", "") if e.get("framework") == "openapi" else "",
             handler=e.get("handler", ""), params=params,
             source={"file": e.get("file", ""), "line": e.get("line", 0),

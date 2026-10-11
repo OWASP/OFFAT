@@ -2,14 +2,16 @@
 //!
 //! Reads an OFFAT Bundle, executes its `test_plan` cases against an authorized
 //! target, captures each request/response, and writes the `results` section back
-//! into the Bundle. HTTP/1.1 and HTTP/2 are implemented; gRPC, WebSocket and
-//! HTTP/3/QUIC are the next protocol increments (recognized and recorded as
-//! skipped until then).
+//! into the Bundle. HTTP/1.1, HTTP/2, WebSocket (ws/wss) and gRPC are
+//! implemented; HTTP/3/QUIC is available in builds made with `--features http3`
+//! (and recorded as skipped otherwise).
 //!
 //! Authorized use only: this sends real attack traffic. Pass --yes to confirm you
 //! own or are permitted to test the target.
 
 mod exec;
+mod grpc;
+mod ws;
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -35,7 +37,7 @@ struct Opts {
 
 fn usage() -> ! {
     eprintln!(
-        "offat-engine - OFFAT-AI execution engine (HTTP/1.1 + HTTP/2)\n\n\
+        "offat-engine - OFFAT-AI execution engine (HTTP/1.1 + HTTP/2 + WebSocket + gRPC)\n\n\
 Usage:\n  offat-engine --bundle in.offat.json --url https://target [flags]\n\n\
 Flags:\n  --bundle <path>     input Bundle (required)\n  --url <base>        target base URL (required)\n  \
 --out <path>        output Bundle (default: overwrite input)\n  --concurrency <n>   concurrent requests (default 10)\n  \

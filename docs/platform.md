@@ -4,8 +4,8 @@ This document describes the staged platform OFFAT-AI is evolving into, and the
 single data contract that holds it together. It is the reference for the phased
 build; each phase ships independently and writes into one shared file.
 
-> Status: **all phases (0-7) landed** (P4 engine covers HTTP/1.1 + HTTP/2; more
-> protocols are the documented next increment). The Bundle contract
+> Status: **all phases (0-7) landed** (P4 engine covers HTTP/1.1 + HTTP/2,
+> WebSocket and gRPC; HTTP/3 + QUIC is an opt-in build feature). The Bundle contract
 > ([`bundle/`](../bundle)); the mapping, PRG, threat-modeling, test-generation and
 > consolidation+triage stages ([`platform/`](../platform)); the Rust execution
 > engine ([`engine-rs/`](../engine-rs)); the reporter ([`reporter/`](../reporter));
@@ -115,7 +115,7 @@ the authorized baseline. An implicit `anon` identity drives missing-auth tests.
 - [x] **P1 Mapping + PRG** - `offat-platform map` writes `asm`, `inventory` and `prg` into the Bundle (endpoints with params + response fields; sinks/sources; producer->consumer edges).
 - [x] **P2 Threat model** - `offat-platform threat-model` writes `threat_model` (assets, trust boundaries, data flows, STRIDE threats mapped to OWASP API + CWE with likelihood x impact risk, and a Mermaid DFD).
 - [x] **P3 Test-gen** - `offat-platform test-gen` writes `test_plan`: injection vectors matched to params by location + name hints, multi-step chains seeded from the PRG, and (with `--identities`) **access-control / auth / business-logic** cases - BOLA (API1), broken authentication (API2), BFLA and RBAC (API5), and business-logic value tampering + privilege-field escalation (API6). Optional `--ai` payload augmentation.
-- [~] **P4 Rust engine** - `offat-engine` ([`engine-rs/`](../engine-rs)) reads the `test_plan`, executes against an authorized target and writes `results`. **HTTP/1.1 + HTTP/2 implemented**; gRPC (tonic), WebSocket (tungstenite) and HTTP/3/QUIC (quinn + h3) are the next protocol increments (recognized and recorded as skipped until wired).
+- [x] **P4 Rust engine** - `offat-engine` ([`engine-rs/`](../engine-rs)) reads the `test_plan`, executes against an authorized target and writes `results`. **HTTP/1.1, HTTP/2, WebSocket (tokio-tungstenite) and gRPC (tonic, schema-less) implemented**; HTTP/3/QUIC (reqwest http3 -> h3 + quinn) is an opt-in build feature (`--features http3`), and a protocol the binary was not built with is recorded as skipped so the Bundle stays complete.
 - [x] **P5 Consolidate + triage** - `offat-platform triage` detects DAST findings from `results` (signature/reflection/status heuristics), folds in SAST sinks, attaches the OWASP/CWE threat mapping, triages with the shared tiered triager, and writes `findings` + `summary` (with `--fail-on`).
 - [x] **P6 Reporter** - `offat-report` ([`reporter/`](../reporter)) renders a Bundle into SARIF 2.1.0, Markdown, a self-contained HTML report (with the threat-model DFD), an OWASP API Top 10 / ASVS compliance report, and best-effort PDF.
 - [x] **P7 Visualizer** - [`viz/`](../viz): a dependency-free static web app that imports/exports the Bundle and renders the attack surface, the PRG (inline SVG), the threat model (DFD + ranked threats) and filterable findings.

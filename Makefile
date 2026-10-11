@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: all engine engine-test platform-install python-check viz-test smoke docker clean help
+.PHONY: all engine engine-http3 engine-test platform-install python-check viz-test smoke docker clean help
 
 all: engine ## Build the execution engine (default)
 
@@ -8,8 +8,11 @@ help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 	  awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
-engine: ## Build the Rust execution engine -> engine-rs/target/release/offat-engine
+engine: ## Build the Rust execution engine (HTTP/1.1+2, WebSocket, gRPC) -> engine-rs/target/release/offat-engine
 	cd engine-rs && cargo build --release
+
+engine-http3: ## Build the engine with the HTTP/3 + QUIC transport enabled
+	cd engine-rs && RUSTFLAGS="--cfg reqwest_unstable" cargo build --release --features http3
 
 engine-test: ## Run the engine's unit tests
 	cd engine-rs && cargo test

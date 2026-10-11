@@ -22,8 +22,9 @@ map  ->  parameter relation graph  ->  threat model  ->  test-gen  ->  execute  
 - **Test-gen** - injection vectors matched to params, multi-step chains from the
   PRG, and (with `--identities`) **BOLA / BFLA / RBAC / broken-auth /
   business-logic** cases. Optional AI augmentation.
-- **Execute** - a **Rust engine** sends the requests (HTTP/1.1 + HTTP/2),
-  multi-identity with a differential baseline, and captures every response.
+- **Execute** - a **Rust engine** sends the requests over HTTP/1.1 + HTTP/2,
+  **WebSocket** and **gRPC** (HTTP/3 + QUIC is an opt-in build), multi-identity
+  with a differential baseline, and captures every response.
 - **Triage** - detect findings, attach the threat mapping, and triage with a
   token-disciplined AI triager (cached, batched, model-tiered) or a deterministic
   offline heuristic - backed by an **Anthropic API key**, a local **Claude Code**
@@ -167,6 +168,11 @@ redirect, XXE - plus, with `--identities`, **BOLA** (API1), **broken
 authentication** (API2), **BFLA** and **RBAC** (API5), and **business-logic**
 value tampering + privilege-field escalation (API6).
 
+Across protocols: **WebSocket** endpoints get a no-credential handshake probe and
+message-content injection; **gRPC** methods get an unauthenticated-invocation probe
+and, for privileged methods, an unprivileged BFLA invocation judged by the returned
+`grpc-status`.
+
 **Source (white-box / gray-box):** hardcoded secrets, injection sinks, unsafe
 deserialization, weak crypto / TLS-off, DOM XSS sinks, SSRF sinks, misconfig, and
 vulnerable dependencies (SCA), plus anything `semgrep --config auto` finds. The
@@ -247,7 +253,8 @@ offat-graybox ./VAmPI --no-ai -o out/VAmPI           # gray-box, source only
 
 ```bash
 make help              # list targets
-make engine            # build the Rust execution engine
+make engine            # build the Rust execution engine (HTTP/1.1+2, WebSocket, gRPC)
+make engine-http3      # build with the HTTP/3 + QUIC transport enabled
 make engine-test       # cargo test
 make python-check      # byte-compile the Python packages
 make smoke             # offline platform end-to-end check

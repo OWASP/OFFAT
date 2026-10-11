@@ -58,6 +58,33 @@ _RAILS = re.compile(
     r"""^\s*(?P<verb>get|post|put|patch|delete)\s+['"](?P<path>[^'"]+)['"]""",
 )
 
+# --- WebSocket route declarations -------------------------------------------
+# FastAPI / Starlette: @app.websocket("/ws"); flask-sock: @sock.route("/ws").
+_WS_DECORATOR = re.compile(
+    r"""@\s*\w+\s*\.\s*websocket\s*\(\s*['"](?P<path>[^'"]+)['"]""",
+    re.IGNORECASE,
+)
+# express-ws: app.ws("/ws", ...) / router.ws("/ws", ...).
+_WS_EXPRESS = re.compile(
+    r"""(?:app|router|r|wss?)\s*\.\s*ws\s*\(\s*['"`](?P<path>/[^'"`]*)['"`]""",
+    re.IGNORECASE,
+)
+# socket.io message handlers (py + js): @socketio.on("event") / socket.on("event").
+_WS_SOCKETIO = re.compile(
+    r"""(?:@\s*\w+\s*\.\s*on|(?:socket|io|ws)\s*\.\s*on)\s*\(\s*['"](?P<event>[^'"]+)['"]""",
+    re.IGNORECASE,
+)
+# socket.io lifecycle events that are not application message handlers.
+_WS_SOCKETIO_SKIP = {"connect", "connection", "disconnect", "disconnecting", "error"}
+
+# --- gRPC (protobuf) service declarations -----------------------------------
+_PROTO_PACKAGE = re.compile(r"""^\s*package\s+([A-Za-z_][\w.]*)\s*;""", re.MULTILINE)
+_PROTO_SERVICE = re.compile(r"""\bservice\s+([A-Za-z_]\w*)\s*\{""")
+_PROTO_RPC = re.compile(
+    r"""\brpc\s+([A-Za-z_]\w*)\s*\(\s*(stream\s+)?[\w.]+\s*\)\s*"""
+    r"""returns\s*\(\s*(stream\s+)?[\w.]+\s*\)""",
+)
+
 _PY_EXTS = {".py"}
 _JS_EXTS = {".js", ".ts", ".jsx", ".tsx", ".mjs"}
 _JAVA_EXTS = {".java", ".kt"}
@@ -109,7 +136,8 @@ def _scan_file(path: str, rel: str, ext: str) -> List[Dict[str, Any]]:
         return []
     out: List[Dict[str, Any]] = []
 
-    def add(method: str, route: str, handler: str, lineno: int, fw: str) -> None:
+    def add(method: str, route: str, handler: str, lineno: int, fw: str,
+            protocol: str = "http") -> None:
         out.append({
             "method": method.upper(),
             "path": route,
@@ -117,11 +145,30 @@ def _scan_file(path: str, rel: str, ext: str) -> List[Dict[str, Any]]:
             "file": rel,
             "line": lineno,
             "framework": fw,
+            "protocol": protocol,
             "params": _path_params(route),
             "responses": [],
         })
 
     for i, line in enumerate(lines):
+        # WebSocket routes (FastAPI/Starlette, flask-sock, express-ws, socket.io).
+        if ext in _PY_EXTS or ext in _JS_EXTS:
+            mw = _WS_DECORATOR.search(line)
+            if mw:
+                handler = _next_handler(lines, i + 1) if ext in _PY_EXTS else ""
+                add("WS", mw.group("path"), handler, i + 1, "websocket", protocol="ws")
+                continue
+            if ext in _JS_EXTS:
+                mwe = _WS_EXPRESS.search(line)
+                if mwe:
+                    add("WS", mwe.group("path"), "", i + 1, "express-ws", protocol="ws")
+                    continue
+            mio = _WS_SOCKETIO.search(line)
+            if mio and mio.group("event").lower() not in _WS_SOCKETIO_SKIP:
+                handler = _next_handler(lines, i + 1) if ext in _PY_EXTS else ""
+                add("WS", "/" + mio.group("event").lstrip("/"), handler, i + 1,
+                    "socket.io", protocol="ws")
+                continue
         if ext in _PY_EXTS:
             m = _PY_DECORATOR.search(line)
             if m:
@@ -318,6 +365,52 @@ def _spec_endpoints_regex(text: str, rel: str) -> List[Dict[str, Any]]:
     return out
 
 
+def _proto_endpoints(path: str, rel: str) -> List[Dict[str, Any]]:
+    """gRPC methods declared in a .proto file.
+
+    Each ``rpc M (...) returns (...)`` under ``service S`` becomes an endpoint
+    whose path is the gRPC call path ``/package.Service/Method`` and whose
+    protocol is ``grpc``; the engine invokes it over HTTP/2.
+    """
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+            text = fh.read()
+    except OSError:
+        return []
+    pkg_m = _PROTO_PACKAGE.search(text)
+    package = pkg_m.group(1) if pkg_m else ""
+    out: List[Dict[str, Any]] = []
+    lines = text.splitlines()
+    # Walk services and the rpc methods nested in each service block.
+    for sm in _PROTO_SERVICE.finditer(text):
+        service = sm.group(1)
+        # Service body spans from the opening brace to its matching close.
+        start = sm.end()
+        depth = 1
+        j = start
+        while j < len(text) and depth > 0:
+            if text[j] == "{":
+                depth += 1
+            elif text[j] == "}":
+                depth -= 1
+            j += 1
+        body = text[start:j]
+        fq = f"{package}.{service}" if package else service
+        for rm in _PROTO_RPC.finditer(body):
+            method = rm.group(1)
+            streaming = bool(rm.group(2) or rm.group(3))
+            abs_off = start + rm.start()
+            line_no = text.count("\n", 0, abs_off) + 1
+            out.append({
+                "method": "STREAM" if streaming else "UNARY",
+                "path": f"/{fq}/{method}",
+                "handler": f"{service}.{method}",
+                "file": rel, "line": line_no, "framework": "grpc",
+                "protocol": "grpc", "params": [], "responses": [],
+            })
+    return out
+
+
 def _line_of(text: str, needle: str) -> int:
     for i, line in enumerate(text.splitlines(), 1):
         if needle in line:
@@ -332,6 +425,8 @@ def native_map(root: str) -> List[Dict[str, Any]]:
         rel = os.path.relpath(path, root)
         if ext in (".yaml", ".yml", ".json"):
             endpoints.extend(_spec_endpoints(path, rel))
+        elif ext == ".proto":
+            endpoints.extend(_proto_endpoints(path, rel))
         else:
             endpoints.extend(_scan_file(path, rel, ext))
     return _dedupe(endpoints)
@@ -340,7 +435,7 @@ def native_map(root: str) -> List[Dict[str, Any]]:
 def _dedupe(endpoints: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     seen, out = set(), []
     for e in endpoints:
-        key = (e["method"], e["path"], e["file"], e["line"])
+        key = (e["method"], e["path"], e["file"], e["line"], e.get("protocol", "http"))
         if key in seen:
             continue
         seen.add(key)

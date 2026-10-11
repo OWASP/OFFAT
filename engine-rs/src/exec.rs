@@ -1,6 +1,8 @@
-//! Request building and execution. HTTP/1.1 and HTTP/2 are implemented (reqwest
-//! negotiates H2 over TLS automatically); other protocols are recognized and
-//! recorded as skipped until their drivers land (gRPC, WebSocket, HTTP/3/QUIC).
+//! Request building and execution, and the per-protocol dispatch. HTTP/1.1 and
+//! HTTP/2 run here (reqwest negotiates H2 over TLS automatically); WebSocket and
+//! gRPC have their own drivers (`crate::ws`, `crate::grpc`); HTTP/3+QUIC is
+//! handled here behind the `http3` cargo feature and recorded as skipped when
+//! that feature is off.
 
 use std::collections::HashMap;
 use std::time::Instant;
@@ -147,20 +149,54 @@ pub async fn execute(
         .to_string();
     let proto = protocol_of(case);
 
-    // Only HTTP variants are wired today; others are recorded as skipped.
-    if !(proto == "http"
-        || proto == "https"
-        || proto == "http/1.1"
-        || proto == "http/2"
-        || proto.is_empty())
-    {
-        return json!({
+    // Dispatch to the protocol driver.
+    match proto.as_str() {
+        "http" | "https" | "http/1.1" | "http/2" | "" => {
+            execute_http(client, base_url, endpoints, case, extra_headers, identities).await
+        }
+        "ws" | "wss" | "websocket" => {
+            return crate::ws::execute(base_url, endpoints, case, extra_headers, identities).await;
+        }
+        "grpc" | "grpcs" | "grpc/2" => {
+            return crate::grpc::execute(base_url, endpoints, case, extra_headers, identities)
+                .await;
+        }
+        "http/3" | "h3" | "quic" | "http3" => {
+            #[cfg(feature = "http3")]
+            {
+                return http3_send(base_url, endpoints, case, extra_headers, identities).await;
+            }
+            #[cfg(not(feature = "http3"))]
+            {
+                return json!({
+                    "id": format!("ex-{}", short(&case_id)),
+                    "case_id": case_id, "protocol": proto,
+                    "response": {"skipped": "HTTP/3 needs a build with --features http3 (and RUSTFLAGS=\"--cfg reqwest_unstable\")"},
+                });
+            }
+        }
+        _ => json!({
             "id": format!("ex-{}", short(&case_id)),
             "case_id": case_id, "protocol": proto,
-            "response": {"skipped": format!("protocol '{}' not yet supported by the engine", proto)},
-        });
+            "response": {"skipped": format!("protocol '{}' not supported by the engine", proto)},
+        }),
     }
+}
 
+/// Execute an HTTP/1.1 or HTTP/2 case with the given client.
+pub(crate) async fn execute_http(
+    client: &Client,
+    base_url: &str,
+    endpoints: &HashMap<String, EndpointInfo>,
+    case: &Value,
+    extra_headers: &[(String, String)],
+    identities: &HashMap<String, Vec<(String, String)>>,
+) -> Value {
+    let case_id = case
+        .get("id")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .to_string();
     let ep_id = case.get("endpoint").and_then(Value::as_str).unwrap_or("");
     let ep = match endpoints.get(ep_id) {
         Some(e) => e.clone(),
@@ -305,9 +341,56 @@ async fn send_once(
     }
 }
 
-fn short(s: &str) -> String {
+pub fn short(s: &str) -> String {
     let n = s.chars().count();
     s.chars().skip(n.saturating_sub(12)).collect()
+}
+
+/// HTTP/3 send path. A dedicated client negotiates HTTP/3 (QUIC) to the target;
+/// the request shaping is identical to HTTP/1.1+2, so this reuses the same
+/// param placement. Only compiled with `--features http3`.
+#[cfg(feature = "http3")]
+async fn http3_send(
+    base_url: &str,
+    endpoints: &HashMap<String, EndpointInfo>,
+    case: &Value,
+    extra_headers: &[(String, String)],
+    identities: &HashMap<String, Vec<(String, String)>>,
+) -> Value {
+    let case_id = case
+        .get("id")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .to_string();
+    let client = match Client::builder()
+        .user_agent("offat-engine/0.1")
+        .http3_prior_knowledge()
+        .build()
+    {
+        Ok(c) => c,
+        Err(e) => {
+            return json!({
+                "id": format!("ex-{}", short(&case_id)),
+                "case_id": case_id, "protocol": "http/3",
+                "response": {"error": format!("building http/3 client: {}", e)},
+            });
+        }
+    };
+    // Reuse the standard HTTP execution with the HTTP/3 client; reqwest sends the
+    // request over QUIC because the client was built prior-knowledge HTTP/3.
+    let mut ex = execute_http(
+        &client,
+        base_url,
+        endpoints,
+        case,
+        extra_headers,
+        identities,
+    )
+    .await;
+    if let Some(obj) = ex.as_object_mut() {
+        obj.insert("protocol".to_string(), Value::String("http/3".to_string()));
+    }
+    ex
 }
 
 #[cfg(test)]

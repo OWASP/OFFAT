@@ -26,3 +26,6 @@ build/
 .DS_Store
 .idea/
 .vscode/
+
+# OFFAT runtime artifacts
+.offat-triage-cache.json
