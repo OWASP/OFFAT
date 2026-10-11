@@ -6,6 +6,10 @@ for the full design.
 
 Implemented now (Phases 1-6):
 
+- **`run`** - the whole pipeline in one command: `map -> prg -> threat-model ->
+  test-gen -> execute -> triage -> report`. Pass `--url` (plus `--yes`) for a live
+  run, or omit it for a source-only run. Auto-finds `offat-engine` and renders
+  reports. Every stage below can also be run on its own.
 - **`map`** - attack surface (endpoints with params + response fields), sink/
   source inventory, and the **parameter relation graph** (PRG), written into a
   Bundle. `--threat-model` also runs the next stage.
@@ -22,7 +26,13 @@ Implemented now (Phases 1-6):
 - **`validate`** - check a Bundle against the schema and its cross-references.
 
 ```bash
-pip install ./bundle ./triager ./whitebox ./graybox ./platform
+pip install ./bundle ./triager ./whitebox ./graybox ./platform ./reporter
+
+# one command, whole pipeline:
+offat-platform run /path/to/repo --url https://target --yes \
+  --identities examples/identities.example.json -o out/app.offat.json --fail-on high
+
+# or stage by stage:
 offat-platform map /path/to/repo --threat-model -o out/app.offat.json
 offat-platform test-gen out/app.offat.json --identities examples/identities.example.json
 offat-engine --bundle out/app.offat.json --url https://target --yes   # execute (Rust)

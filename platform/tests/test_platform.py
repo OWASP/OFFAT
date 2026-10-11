@@ -345,3 +345,39 @@ class TestMultiProtocolDetect(unittest.TestCase):
         unimpl = {"id": "ex", "protocol": "grpc", "request": {},
                   "response": {"connected": True, "grpc_status": "Unimplemented", "grpc_code": 12}}
         self.assertIsNone(consolidate._detect(case, unimpl))
+
+
+class TestRunPipeline(unittest.TestCase):
+    """The one-shot `run` subcommand chains the whole pipeline."""
+
+    FIX = os.path.join(ROOT, "graybox", "tests", "fixtures", "app")
+
+    def test_source_only_run_produces_findings(self):
+        from offat_platform import cli
+        with tempfile.TemporaryDirectory() as d:
+            out = os.path.join(d, "b.offat.json")
+            rc = cli.main(["run", self.FIX, "--no-graft", "--no-ai", "--no-report", "-o", out])
+            self.assertEqual(rc, 0)
+            self.assertTrue(os.path.exists(out))
+            b = json.load(open(out))
+            # map -> test-gen -> triage all ran into one bundle
+            self.assertGreaterEqual(b["summary"]["endpoints"], 2)
+            self.assertIn("test_plan", b)
+            self.assertIn("findings", b)
+
+    def test_live_url_requires_authorization(self):
+        from offat_platform import cli
+        with tempfile.TemporaryDirectory() as d:
+            out = os.path.join(d, "b.offat.json")
+            rc = cli.main(["run", self.FIX, "--no-graft", "--url", "http://localhost:9",
+                           "--no-report", "-o", out])
+            self.assertEqual(rc, 3)  # gated: no --yes
+
+    def test_fail_on_gate(self):
+        from offat_platform import cli
+        with tempfile.TemporaryDirectory() as d:
+            out = os.path.join(d, "b.offat.json")
+            rc = cli.main(["run", self.FIX, "--no-graft", "--no-ai", "--no-report",
+                           "--fail-on", "high", "-o", out])
+            # the fixture yields high-severity SAST findings -> non-zero
+            self.assertEqual(rc, 1)

@@ -83,7 +83,24 @@ pip install ./bundle ./triager ./whitebox ./graybox ./platform ./reporter
 make engine        # -> engine-rs/target/release/offat-engine
 ```
 
-### Full pipeline against a live API
+### The whole pipeline in one command
+
+`offat-platform run` chains every stage - map, PRG, threat model, test-gen,
+execute, triage, report - over one Bundle:
+
+```bash
+offat-platform run /path/to/your/repo \
+  --url https://api.your-authorized-target.example \
+  --identities examples/identities.example.json \
+  --yes -o app.offat.json --report-dir reports --fail-on high
+```
+
+That writes `app.offat.json` and a full `reports/` set. `--url` sends real attack
+traffic, so it requires `--yes`; **omit `--url` for a source-only run** (map ->
+test-gen -> triage -> report with SAST findings only). It auto-finds `offat-engine`
+on `PATH`, at `$OFFAT_ENGINE`, or in `engine-rs/target/{release,debug}/`.
+
+### Or run the stages individually
 
 ```bash
 # 1. map the attack surface + PRG + threat model (from source and/or a spec)

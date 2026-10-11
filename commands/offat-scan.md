@@ -11,7 +11,13 @@ You are running an **OFFAT-AI** security scan. Interpret the user's request
   AI-judged by what the exposed surface can reach, no live traffic) -> **gray-box**
   (invoke the `offat-graybox` skill).
 - A live API to test (source and/or an OpenAPI spec, plus a base URL) -> the
-  **platform pipeline** over one Bundle:
+  **platform pipeline** over one Bundle. Prefer the one-shot command:
+  ```
+  offat-platform run <source> --url <base-url> --yes \
+    [--identities identities.json] -o app.offat.json --report-dir reports [--fail-on high]
+  ```
+  It runs map -> prg -> threat-model -> test-gen -> execute -> triage -> report in
+  one go (omit `--url` for a source-only run). The equivalent stage-by-stage form:
   ```
   offat-platform map <source> --threat-model -o app.offat.json
   offat-platform test-gen app.offat.json [--identities identities.json]
