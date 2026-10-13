@@ -41,4 +41,3 @@ class TestReadmeConfig(unittest.TestCase):
                 })
                 self.assertEqual(populated['test_actor_name'], name)
                 self.assertEqual(tests[0]['query_params'][0]['value'], 0)
-
