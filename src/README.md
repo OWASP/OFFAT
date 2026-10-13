@@ -243,36 +243,36 @@ The disclaimer advises users to use the open-source project for ethical and legi
   ```yaml
   actors:
     - actor1:
-      request_headers:
-        - name: Authorization
-          value: Bearer [Token1]
-        - name: User-Agent
-          value: offat-actor1
+        request_headers:
+          - name: Authorization
+            value: Bearer [Token1]
+          - name: User-Agent
+            value: offat-actor1
 
-      query:
-        - name: id
-          value: 145
-          type: int
-        - name: country
-          value: uk
-          type: str
-        - name: city
-          value: london
-          type: str
+        query:
+          - name: id
+            value: 145
+            type: int
+          - name: country
+            value: uk
+            type: str
+          - name: city
+            value: london
+            type: str
 
-      body:
-        - name: name
-          value: actorone
-          type: str
-        - name: email
-          value: actorone@example.com
-          type: str
-        - name: phone
-          value: +11233211230
-          type: str
+        body:
+          - name: name
+            value: actorone
+            type: str
+          - name: email
+            value: actorone@example.com
+            type: str
+          - name: phone
+            value: +11233211230
+            type: str
 
-      unauthorized_endpoints: # For broken access control
-        - "/store/order/.*"
+        unauthorized_endpoints: # For broken access control
+          - "/store/order/.*"
 
     - actor2:
         request_headers:
