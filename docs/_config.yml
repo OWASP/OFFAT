@@ -4,6 +4,14 @@ description: >-
   or straight from source.
 theme: just-the-docs
 
+# Pages omit `layout` in their front matter, so apply the theme's layout to all
+# of them - without this, Jekyll renders bare HTML with no CSS or navigation.
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+
 # Published at https://owasp.github.io/OFFAT/ via GitHub Actions (see
 # .github/workflows/pages.yml). The workflow passes --baseurl, but set these
 # so local `bundle exec jekyll serve` matches production.
