@@ -103,7 +103,7 @@ The platform runs a staged pipeline over one canonical
 map -> parameter relation graph -> threat model -> test-gen -> execute -> triage -> report
 ```
 
-See [How it works](how-it-works) for what each stage does.
+See [How it works](how-it-works.html) for what each stage does.
 
 ### The whole pipeline in one command
 
@@ -155,7 +155,7 @@ offat-whitebox /path/to/your/repo --no-ai      # SAST; drop --no-ai for AI triag
 offat-graybox  /path/to/your/repo --fail-on high  # SAST + endpoint reachability
 ```
 
-See [Source modes](source-modes).
+See [Source modes](source-modes.html).
 
 ### Re-triage and visualize
 
@@ -181,4 +181,4 @@ Both the classic CLI and the platform support failing a build on findings:
 offat-platform triage app.offat.json --fail-on high   # exit non-zero on high+ findings
 ```
 
-For spec-driven scans in CI, see the [GitHub Action](github-action).
+For spec-driven scans in CI, see the [GitHub Action](github-action.html).

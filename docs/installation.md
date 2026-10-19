@@ -50,7 +50,7 @@ cd OFFAT/src
 poetry install
 ```
 
-See [Usage - Classic CLI](usage#classic-cli) next.
+See [Usage - Classic CLI](usage.html#classic-cli) next.
 
 ---
 
@@ -100,4 +100,4 @@ provide one of:
 | `claude-code` | the `claude` CLI, already signed in |
 | `codex` | the `codex` CLI, already signed in |
 
-See [Usage - OFFAT-AI platform](usage#offat-ai-platform).
+See [Usage - OFFAT-AI platform](usage.html#offat-ai-platform).

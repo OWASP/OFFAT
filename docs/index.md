@@ -12,7 +12,7 @@ OFFensive Api Tester. Automatically test your API for common vulnerabilities -
 from an OpenAPI/Swagger spec, or straight from your source code.
 {: .fs-6 .fw-300 }
 
-[Get started](installation){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[Get started](installation.html){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View on GitHub](https://github.com/OWASP/OFFAT){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
@@ -35,8 +35,8 @@ offat -f swagger_file.json
 
 Checks: restricted HTTP methods, SQLi, BOLA, data exposure, BOPLA / mass
 assignment, broken access control, basic command injection, and basic XSS /
-HTML injection. See [Usage](usage#classic-cli) and the
-[GitHub Action](github-action) for CI.
+HTML injection. See [Usage](usage.html#classic-cli) and the
+[GitHub Action](github-action.html) for CI.
 
 ## 2. OFFAT-AI platform - source-aware testing
 
@@ -51,8 +51,8 @@ make engine
 offat-platform run /path/to/repo --url https://api.example.test --yes -o app.offat.json
 ```
 
-See [Usage](usage#offat-ai-platform) and [How it works](how-it-works). Two
-source-only modes - [white-box and gray-box](source-modes) - need no live
+See [Usage](usage.html#offat-ai-platform) and [How it works](how-it-works.html). Two
+source-only modes - [white-box and gray-box](source-modes.html) - need no live
 traffic.
 
 ---

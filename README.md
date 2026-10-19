@@ -34,8 +34,8 @@ Security checks: restricted HTTP methods, SQLi, BOLA, data exposure, BOPLA /
 mass assignment, broken access control, basic command injection, and basic XSS /
 HTML injection - a subset of the OWASP API Top 10.
 
-- Full usage: [owasp.github.io/OFFAT/usage](https://owasp.github.io/OFFAT/usage/#classic-cli)
-- CI: [GitHub Action](https://owasp.github.io/OFFAT/github-action/)
+- Full usage: [owasp.github.io/OFFAT/usage](https://owasp.github.io/OFFAT/usage.html#classic-cli)
+- CI: [GitHub Action](https://owasp.github.io/OFFAT/github-action.html)
 - CLI details: [`src/README.md`](./src/README.md)
 
 ## 2. OFFAT-AI platform - source-aware testing
@@ -70,8 +70,8 @@ offat-graybox  /path/to/repo --fail-on high   # SAST + endpoint reachability
 ```
 
 - Overview: [OFFAT-AI.md](./OFFAT-AI.md)
-- How it works: [owasp.github.io/OFFAT/how-it-works](https://owasp.github.io/OFFAT/how-it-works/)
-- Source modes: [owasp.github.io/OFFAT/source-modes](https://owasp.github.io/OFFAT/source-modes/)
+- How it works: [owasp.github.io/OFFAT/how-it-works](https://owasp.github.io/OFFAT/how-it-works.html)
+- Source modes: [owasp.github.io/OFFAT/source-modes](https://owasp.github.io/OFFAT/source-modes.html)
 - Design docs: [docs/platform.md](./docs/platform.md), [docs/architecture.md](./docs/architecture.md)
 
 ## Features

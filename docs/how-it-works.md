@@ -99,7 +99,7 @@ returned `grpc-status`.
 **Source (white-box / gray-box):** hardcoded secrets, injection sinks, unsafe
 deserialization, weak crypto / TLS-off, DOM XSS sinks, SSRF sinks, misconfig, and
 vulnerable dependencies (SCA), plus anything `semgrep --config auto` finds. See
-[Source modes](source-modes).
+[Source modes](source-modes.html).
 
 ## Threat mapping
 
