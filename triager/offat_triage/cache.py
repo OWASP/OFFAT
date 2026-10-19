@@ -76,4 +76,5 @@ class VerdictCache:
             with open(self.path, "w", encoding="utf-8") as fh:
                 json.dump({"version": 1, "verdicts": self._data}, fh, indent=2)
         except OSError:
+            # The cache is best-effort: a write failure must not break triage.
             pass

@@ -13,7 +13,7 @@ import json
 import os
 import urllib.request
 import urllib.error
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, Optional
 
 DEFAULT_MODEL = "claude-sonnet-5"
 ANTHROPIC_VERSION = "2023-06-01"

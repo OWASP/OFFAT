@@ -213,6 +213,7 @@ def pdf_from_html(html_path: str, pdf_path: str) -> str:
             subprocess.run(["wkhtmltopdf", "-q", html_path, pdf_path], check=True, timeout=120)
             return "wkhtmltopdf"
         except Exception:
+            # PDF output is optional: on failure, fall through to the next engine.
             pass
     for chrome in ("chromium", "chromium-browser", "google-chrome", "chrome"):
         if shutil.which(chrome):
@@ -222,6 +223,7 @@ def pdf_from_html(html_path: str, pdf_path: str) -> str:
                 if os.path.exists(pdf_path):
                     return chrome
             except Exception:
+                # PDF output is optional: on failure, try the next engine.
                 pass
     return ""
 

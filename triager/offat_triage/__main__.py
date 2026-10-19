@@ -33,6 +33,7 @@ def _load(path: str) -> (List[Dict[str, Any]], Dict[str, Any]):
         if isinstance(obj, dict):
             return [obj], {}
     except json.JSONDecodeError:
+        # Not a single JSON document; fall back to JSONL parsing below.
         pass
     # Fall back to JSONL.
     findings = [json.loads(line) for line in text.splitlines() if line.strip()]
