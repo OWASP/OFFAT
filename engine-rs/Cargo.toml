@@ -1,0 +1,38 @@
+[package]
+name = "offat-engine"
+version = "0.1.0"
+edition = "2021"
+description = "OFFAT-AI execution engine: high-performance, multi-protocol request executor over the OFFAT Bundle"
+license = "MIT"
+repository = "https://github.com/dmdhrumilmistry/offat-ai"
+
+[[bin]]
+name = "offat-engine"
+path = "src/main.rs"
+
+[features]
+# HTTP/3 + QUIC transport. reqwest's HTTP/3 support is behind its own unstable
+# cfg, so a build with this feature must also pass `--cfg reqwest_unstable`:
+#   RUSTFLAGS="--cfg reqwest_unstable" cargo build --release --features http3
+# Without the feature, http/3 cases are recognized and recorded as skipped.
+http3 = ["reqwest/http3"]
+
+[dependencies]
+tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "sync", "time", "io-util"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "http2", "gzip"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+# WebSocket driver (ws:// and wss://), pure-rustls.
+tokio-tungstenite = { version = "0.24", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
+# Direct rustls handle, only for the WebSocket --insecure (accept-any-cert) connector.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+futures-util = { version = "0.3", default-features = false, features = ["std", "sink"] }
+# gRPC driver: tonic generic client + a schema-less bytes codec.
+tonic = { version = "0.12", default-features = false, features = ["transport", "codegen", "prost", "tls", "tls-webpki-roots"] }
+http = "1"
+bytes = "1"
+
+[profile.release]
+opt-level = 3
+lto = true

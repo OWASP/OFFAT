@@ -46,3 +46,14 @@ offat -f swagger_file.json
 ```
 
 -   For more usage options read [README.md](https://github.com/OWASP/OFFAT/blob/main/src/README.md)
+
+## OFFAT-AI (experimental platform)
+
+Alongside the classic `offat` CLI above, this repository now also hosts
+**OFFAT-AI**, a staged, source-aware API pentest platform (white-box SAST,
+gray-box reachability, and a Rust execution engine) built around a single
+canonical Bundle file. It is additive and does not change the existing tool.
+
+-   Overview: [OFFAT-AI.md](./OFFAT-AI.md)
+-   Platform docs: [docs/platform.md](./docs/platform.md) and [docs/architecture.md](./docs/architecture.md)
+-   Run the whole pipeline in one command: `offat-platform run <source> --url <target> --yes`

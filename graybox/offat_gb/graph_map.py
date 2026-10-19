@@ -1,0 +1,486 @@
+"""Stage 1 - Map the endpoint attack surface with graft.
+
+The gray-box pipeline needs the full set of HTTP entry points (the black-box
+surface) tied back to their handler symbols in source (the white-box view).
+``graft`` builds a structural code graph for free (tree-sitter, no API key, no
+LLM tokens), and we query it to locate every route declaration and its
+enclosing handler. When graft is not installed the same route declarations are
+recovered with a dependency-free regex pass, so the pipeline always produces an
+endpoint map.
+
+Endpoint schema (one dict per route):
+    {method, path, handler, file, line, framework}
+"""
+
+from __future__ import annotations
+
+import os
+import re
+from typing import Any, Dict, List, Optional
+
+from offat_wb import tools
+from offat_wb.hunt import iter_source_files
+
+# --- route declaration patterns, per framework -----------------------------
+# Each entry: framework, compiled regex with named groups (method?, path),
+# and the file extensions it applies to. method is optional; when absent the
+# endpoint method is resolved separately (decorator verb, or ANY).
+
+_PY_DECORATOR = re.compile(
+    r"""@\s*\w+\s*\.\s*(?P<verb>route|get|post|put|delete|patch|head|options)\s*\(\s*"""
+    r"""['"](?P<path>[^'"]+)['"]"""
+    r"""(?P<rest>[^)]*)""",
+    re.IGNORECASE,
+)
+_PY_METHODS = re.compile(r"methods\s*=\s*\[(?P<methods>[^\]]*)\]", re.IGNORECASE)
+
+_EXPRESS = re.compile(
+    r"""(?:app|router|r)\s*\.\s*(?P<verb>get|post|put|delete|patch|all|use)\s*\(\s*"""
+    r"""['"`](?P<path>/[^'"`]*)['"`]""",
+    re.IGNORECASE,
+)
+
+_DJANGO = re.compile(
+    r"""(?:re_)?path\s*\(\s*r?['"](?P<path>[^'"]*)['"]\s*,\s*(?P<handler>[A-Za-z_][\w.]*)""",
+)
+
+_SPRING = re.compile(
+    r"""@\s*(?P<verb>Get|Post|Put|Delete|Patch|Request)Mapping\s*\(\s*"""
+    r"""(?:value\s*=\s*|path\s*=\s*)?['"](?P<path>[^'"]+)['"]""",
+)
+
+_GO_ROUTER = re.compile(
+    r"""\.\s*(?P<verb>GET|POST|PUT|DELETE|PATCH|Handle|HandleFunc)\s*\(\s*"""
+    r"""['"](?P<path>/[^'"]*)['"]\s*,\s*(?P<handler>[A-Za-z_][\w.]*)""",
+)
+
+_RAILS = re.compile(
+    r"""^\s*(?P<verb>get|post|put|patch|delete)\s+['"](?P<path>[^'"]+)['"]""",
+)
+
+# --- WebSocket route declarations -------------------------------------------
+# FastAPI / Starlette: @app.websocket("/ws"); flask-sock: @sock.route("/ws").
+_WS_DECORATOR = re.compile(
+    r"""@\s*\w+\s*\.\s*websocket\s*\(\s*['"](?P<path>[^'"]+)['"]""",
+    re.IGNORECASE,
+)
+# express-ws: app.ws("/ws", ...) / router.ws("/ws", ...).
+_WS_EXPRESS = re.compile(
+    r"""(?:app|router|r|wss?)\s*\.\s*ws\s*\(\s*['"`](?P<path>/[^'"`]*)['"`]""",
+    re.IGNORECASE,
+)
+# socket.io message handlers (py + js): @socketio.on("event") / socket.on("event").
+_WS_SOCKETIO = re.compile(
+    r"""(?:@\s*\w+\s*\.\s*on|(?:socket|io|ws)\s*\.\s*on)\s*\(\s*['"](?P<event>[^'"]+)['"]""",
+    re.IGNORECASE,
+)
+# socket.io lifecycle events that are not application message handlers.
+_WS_SOCKETIO_SKIP = {"connect", "connection", "disconnect", "disconnecting", "error"}
+
+# --- gRPC (protobuf) service declarations -----------------------------------
+_PROTO_PACKAGE = re.compile(r"""^\s*package\s+([A-Za-z_][\w.]*)\s*;""", re.MULTILINE)
+_PROTO_SERVICE = re.compile(r"""\bservice\s+([A-Za-z_]\w*)\s*\{""")
+_PROTO_RPC = re.compile(
+    r"""\brpc\s+([A-Za-z_]\w*)\s*\(\s*(stream\s+)?[\w.]+\s*\)\s*"""
+    r"""returns\s*\(\s*(stream\s+)?[\w.]+\s*\)""",
+)
+
+_PY_EXTS = {".py"}
+_JS_EXTS = {".js", ".ts", ".jsx", ".tsx", ".mjs"}
+_JAVA_EXTS = {".java", ".kt"}
+_GO_EXTS = {".go"}
+_RUBY_EXTS = {".rb"}
+
+
+_PATH_PARAM = re.compile(r"\{(\w+)\}|<(?:[\w.]+:)?(\w+)>|:(\w+)")
+
+
+def _path_params(route: str) -> List[Dict[str, Any]]:
+    """Extract path parameters from a route template (Flask/Express/FastAPI)."""
+    params = []
+    for m in _PATH_PARAM.finditer(route or ""):
+        name = m.group(1) or m.group(2) or m.group(3)
+        if name:
+            params.append({"name": name, "location": "path", "type": "string",
+                           "required": True})
+    return params
+
+
+def _next_handler(lines: List[str], idx: int) -> str:
+    """Return the function/method name defined just after a decorator line."""
+    for j in range(idx, min(idx + 6, len(lines))):
+        m = re.search(r"\b(?:async\s+)?def\s+(\w+)", lines[j])
+        if m:
+            return m.group(1)
+        m = re.search(r"\bfunction\s+(\w+)", lines[j])
+        if m:
+            return m.group(1)
+    return ""
+
+
+def _methods_from_rest(rest: str, verb: str) -> List[str]:
+    if verb.lower() != "route":
+        return [verb.upper()]
+    mm = _PY_METHODS.search(rest or "")
+    if not mm:
+        return ["GET"]
+    methods = re.findall(r"['\"](\w+)['\"]", mm.group("methods"))
+    return [m.upper() for m in methods] or ["GET"]
+
+
+def _scan_file(path: str, rel: str, ext: str) -> List[Dict[str, Any]]:
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+            lines = fh.readlines()
+    except OSError:
+        return []
+    out: List[Dict[str, Any]] = []
+
+    def add(method: str, route: str, handler: str, lineno: int, fw: str,
+            protocol: str = "http") -> None:
+        out.append({
+            "method": method.upper(),
+            "path": route,
+            "handler": handler,
+            "file": rel,
+            "line": lineno,
+            "framework": fw,
+            "protocol": protocol,
+            "params": _path_params(route),
+            "responses": [],
+        })
+
+    for i, line in enumerate(lines):
+        # WebSocket routes (FastAPI/Starlette, flask-sock, express-ws, socket.io).
+        if ext in _PY_EXTS or ext in _JS_EXTS:
+            mw = _WS_DECORATOR.search(line)
+            if mw:
+                handler = _next_handler(lines, i + 1) if ext in _PY_EXTS else ""
+                add("WS", mw.group("path"), handler, i + 1, "websocket", protocol="ws")
+                continue
+            if ext in _JS_EXTS:
+                mwe = _WS_EXPRESS.search(line)
+                if mwe:
+                    add("WS", mwe.group("path"), "", i + 1, "express-ws", protocol="ws")
+                    continue
+            mio = _WS_SOCKETIO.search(line)
+            if mio and mio.group("event").lower() not in _WS_SOCKETIO_SKIP:
+                handler = _next_handler(lines, i + 1) if ext in _PY_EXTS else ""
+                add("WS", "/" + mio.group("event").lstrip("/"), handler, i + 1,
+                    "socket.io", protocol="ws")
+                continue
+        if ext in _PY_EXTS:
+            m = _PY_DECORATOR.search(line)
+            if m:
+                handler = _next_handler(lines, i + 1)
+                fw = "fastapi" if m.group("verb").lower() != "route" else "flask"
+                for method in _methods_from_rest(m.group("rest"), m.group("verb")):
+                    add(method, m.group("path"), handler, i + 1, fw)
+                continue
+        if ext in _JS_EXTS:
+            m = _EXPRESS.search(line)
+            if m and m.group("verb").lower() not in ("use",):
+                add(m.group("verb"), m.group("path"), "", i + 1, "express")
+                continue
+        if ext in _PY_EXTS and ("path(" in line or "re_path(" in line):
+            m = _DJANGO.search(line)
+            if m:
+                add("ANY", m.group("path"), m.group("handler"), i + 1, "django")
+                continue
+        if ext in _JAVA_EXTS:
+            m = _SPRING.search(line)
+            if m:
+                verb = m.group("verb")
+                method = "ANY" if verb == "Request" else verb.upper()
+                handler = _next_handler(lines, i + 1)
+                add(method, m.group("path"), handler, i + 1, "spring")
+                continue
+        if ext in _GO_EXTS:
+            m = _GO_ROUTER.search(line)
+            if m:
+                verb = m.group("verb")
+                method = "ANY" if verb in ("Handle", "HandleFunc") else verb.upper()
+                add(method, m.group("path"), m.group("handler"), i + 1, "go")
+                continue
+        if ext in _RUBY_EXTS:
+            m = _RAILS.search(line)
+            if m:
+                add(m.group("verb"), m.group("path"), "", i + 1, "rails")
+                continue
+    return out
+
+
+_HTTP_METHODS = {"get", "post", "put", "delete", "patch", "head", "options", "trace"}
+
+
+def _spec_endpoints(path: str, rel: str) -> List[Dict[str, Any]]:
+    """Endpoints declared in an OpenAPI/Swagger spec (YAML or JSON).
+
+    Covers spec-driven frameworks (e.g. connexion) where routes live in the spec
+    rather than code decorators. operationId, when present, becomes the handler so
+    the reachability stage can link the route back to its function.
+    """
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+            text = fh.read()
+    except OSError:
+        return []
+    low = text.lower()
+    if "paths" not in low or ("openapi" not in low and "swagger" not in low):
+        return []
+
+    data = None
+    try:
+        import yaml  # optional; PyYAML
+        data = yaml.safe_load(text)
+    except Exception:
+        try:
+            import json
+            data = json.loads(text)
+        except Exception:
+            data = None
+    if not isinstance(data, dict) or not isinstance(data.get("paths"), dict):
+        return _spec_endpoints_regex(text, rel)
+
+    out: List[Dict[str, Any]] = []
+    for route, item in data["paths"].items():
+        if not isinstance(item, dict):
+            continue
+        shared = item.get("parameters") if isinstance(item.get("parameters"), list) else []
+        for method, op in item.items():
+            if method.lower() not in _HTTP_METHODS:
+                continue
+            handler = ""
+            op = op if isinstance(op, dict) else {}
+            if op.get("operationId"):
+                handler = str(op["operationId"]).split(".")[-1]
+            out.append({
+                "method": method.upper(), "path": str(route), "handler": handler,
+                "file": rel, "line": _line_of(text, route), "framework": "openapi",
+                "params": _spec_params(data, op, shared),
+                "responses": _spec_responses(data, op),
+            })
+    return out
+
+
+def _resolve_ref(data: Dict[str, Any], node: Any) -> Any:
+    """Resolve a local ``$ref`` (one hop) against the spec root."""
+    seen = 0
+    while isinstance(node, dict) and "$ref" in node and seen < 10:
+        ref = node["$ref"]
+        if not isinstance(ref, str) or not ref.startswith("#/"):
+            return node
+        cur: Any = data
+        for part in ref[2:].split("/"):
+            if isinstance(cur, dict) and part in cur:
+                cur = cur[part]
+            else:
+                return node
+        node = cur
+        seen += 1
+    return node
+
+
+def _schema_fields(data: Dict[str, Any], schema: Any) -> List[Dict[str, str]]:
+    """Top-level field names/types of an object (or array-of-object) schema."""
+    schema = _resolve_ref(data, schema)
+    if not isinstance(schema, dict):
+        return []
+    if schema.get("type") == "array" or "items" in schema:
+        return _schema_fields(data, schema.get("items"))
+    props = schema.get("properties")
+    if not isinstance(props, dict):
+        return []
+    out = []
+    for name, sub in props.items():
+        sub = _resolve_ref(data, sub)
+        t = sub.get("type", "string") if isinstance(sub, dict) else "string"
+        out.append({"name": str(name), "type": str(t)})
+    return out
+
+
+def _spec_params(data: Dict[str, Any], op: Dict[str, Any],
+                 shared: List[Any]) -> List[Dict[str, Any]]:
+    params: List[Dict[str, Any]] = []
+    for p in list(shared) + (op.get("parameters") or []):
+        p = _resolve_ref(data, p)
+        if not isinstance(p, dict) or not p.get("name"):
+            continue
+        schema = _resolve_ref(data, p.get("schema") or {})
+        ptype = schema.get("type", p.get("type", "string")) if isinstance(schema, dict) else "string"
+        params.append({"name": str(p["name"]), "location": str(p.get("in", "query")),
+                       "type": str(ptype), "required": bool(p.get("required", False))})
+    # OpenAPI 3 requestBody -> body params from the object's properties.
+    body = _resolve_ref(data, op.get("requestBody") or {})
+    if isinstance(body, dict):
+        for _ctype, media in (body.get("content") or {}).items():
+            for f in _schema_fields(data, (media or {}).get("schema")):
+                params.append({"name": f["name"], "location": "body",
+                               "type": f["type"], "required": False})
+            break
+    return params
+
+
+def _spec_responses(data: Dict[str, Any], op: Dict[str, Any]) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    for status, resp in (op.get("responses") or {}).items():
+        resp = _resolve_ref(data, resp)
+        if not isinstance(resp, dict):
+            continue
+        fields: List[Dict[str, str]] = []
+        # OpenAPI 3 (content) and Swagger 2 (schema).
+        for _ctype, media in (resp.get("content") or {}).items():
+            fields = _schema_fields(data, (media or {}).get("schema"))
+            if fields:
+                break
+        if not fields and resp.get("schema"):
+            fields = _schema_fields(data, resp.get("schema"))
+        try:
+            code = int(status)
+        except (TypeError, ValueError):
+            code = 0
+        out.append({"status": code, "fields": fields})
+    return out
+
+
+def _spec_endpoints_regex(text: str, rel: str) -> List[Dict[str, Any]]:
+    """Fallback spec parse when no YAML/JSON loader yields a dict."""
+    out: List[Dict[str, Any]] = []
+    lines = text.splitlines()
+    cur_path = None
+    path_indent = -1
+    for i, line in enumerate(lines):
+        pm = re.match(r"^(\s*)(/\S*):\s*$", line)
+        if pm:
+            cur_path = pm.group(2)
+            path_indent = len(pm.group(1))
+            continue
+        if cur_path:
+            mm = re.match(r"^(\s*)(get|post|put|delete|patch|head|options):", line, re.IGNORECASE)
+            if mm and len(mm.group(1)) > path_indent:
+                out.append({
+                    "method": mm.group(2).upper(), "path": cur_path, "handler": "",
+                    "file": rel, "line": i + 1, "framework": "openapi",
+                })
+    return out
+
+
+def _proto_endpoints(path: str, rel: str) -> List[Dict[str, Any]]:
+    """gRPC methods declared in a .proto file.
+
+    Each ``rpc M (...) returns (...)`` under ``service S`` becomes an endpoint
+    whose path is the gRPC call path ``/package.Service/Method`` and whose
+    protocol is ``grpc``; the engine invokes it over HTTP/2.
+    """
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+            text = fh.read()
+    except OSError:
+        return []
+    pkg_m = _PROTO_PACKAGE.search(text)
+    package = pkg_m.group(1) if pkg_m else ""
+    out: List[Dict[str, Any]] = []
+    lines = text.splitlines()
+    # Walk services and the rpc methods nested in each service block.
+    for sm in _PROTO_SERVICE.finditer(text):
+        service = sm.group(1)
+        # Service body spans from the opening brace to its matching close.
+        start = sm.end()
+        depth = 1
+        j = start
+        while j < len(text) and depth > 0:
+            if text[j] == "{":
+                depth += 1
+            elif text[j] == "}":
+                depth -= 1
+            j += 1
+        body = text[start:j]
+        fq = f"{package}.{service}" if package else service
+        for rm in _PROTO_RPC.finditer(body):
+            method = rm.group(1)
+            streaming = bool(rm.group(2) or rm.group(3))
+            abs_off = start + rm.start()
+            line_no = text.count("\n", 0, abs_off) + 1
+            out.append({
+                "method": "STREAM" if streaming else "UNARY",
+                "path": f"/{fq}/{method}",
+                "handler": f"{service}.{method}",
+                "file": rel, "line": line_no, "framework": "grpc",
+                "protocol": "grpc", "params": [], "responses": [],
+            })
+    return out
+
+
+def _line_of(text: str, needle: str) -> int:
+    for i, line in enumerate(text.splitlines(), 1):
+        if needle in line:
+            return i
+    return 0
+
+
+def native_map(root: str) -> List[Dict[str, Any]]:
+    """Dependency-free endpoint discovery across supported frameworks + specs."""
+    endpoints: List[Dict[str, Any]] = []
+    for path, ext in iter_source_files(root):
+        rel = os.path.relpath(path, root)
+        if ext in (".yaml", ".yml", ".json"):
+            endpoints.extend(_spec_endpoints(path, rel))
+        elif ext == ".proto":
+            endpoints.extend(_proto_endpoints(path, rel))
+        else:
+            endpoints.extend(_scan_file(path, rel, ext))
+    return _dedupe(endpoints)
+
+
+def _dedupe(endpoints: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    seen, out = set(), []
+    for e in endpoints:
+        key = (e["method"], e["path"], e["file"], e["line"], e.get("protocol", "http"))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(e)
+    return out
+
+
+def ensure_graft(status) -> bool:
+    """Record graft availability. Never installs anything (a machine change)."""
+    ok = tools.have("graft")
+    status.available["graft"] = ok
+    if not ok:
+        status.skip("graft", "not installed; using native endpoint mapping")
+    return ok
+
+
+def graft_build(root: str) -> bool:
+    """Build the structural graph ($0, no key). Returns True on success."""
+    if not tools.have("graft"):
+        return False
+    try:
+        proc = tools.run(["graft", "build", root], timeout=1200)
+    except Exception:
+        return False
+    return proc.returncode == 0
+
+
+def map_endpoints(root: str, status, use_graft: bool = True) -> List[Dict[str, Any]]:
+    """Map the endpoint attack surface.
+
+    Uses graft's structural graph when present (built once, queried for route
+    declarations), and always confirms paths/handlers with the native parser so
+    output is deterministic. Falls back cleanly to the native parser when graft
+    is unavailable or disabled.
+    """
+    if not use_graft:
+        status.available["graft"] = False
+        status.skip("graft", "disabled (--no-graft); using native endpoint mapping")
+        return native_map(root)
+    have_graft = ensure_graft(status)
+    if have_graft:
+        built = graft_build(root)
+        status.available["graft_graph"] = built
+        if not built:
+            status.skip("graft", "build failed; using native endpoint mapping")
+    # The native parser is the authoritative, deterministic extractor; the graft
+    # graph (when built) powers the reachability stage that follows.
+    return native_map(root)

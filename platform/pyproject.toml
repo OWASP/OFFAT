@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "offat-platform"
+version = "1.0.0"
+description = "OFFAT-AI platform orchestrator: Bundle-based mapping, parameter relation graph, threat modeling and more"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Dhrumil Mistry" }]
+keywords = ["security", "offat", "attack-surface", "threat-modeling", "pipeline"]
+dependencies = [
+  "offat-bundle>=1.0.0",
+  "offat-triage>=1.0.0",
+  "offat-whitebox>=1.0.0",
+  "offat-graybox>=1.0.0",
+]
+
+[project.scripts]
+offat-platform = "offat_platform.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/dmdhrumilmistry/offat-ai"
+
+[tool.setuptools]
+packages = ["offat_platform"]

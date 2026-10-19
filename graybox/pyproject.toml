@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "offat-graybox"
+version = "1.0.0"
+description = "OFFAT-AI gray-box pipeline: graft endpoint mapping fused with SAST and AI reachability analysis"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Dhrumil Mistry" }]
+keywords = ["security", "graybox", "sast", "dast", "ai", "offat", "graft"]
+dependencies = ["offat-triage>=1.0.0", "offat-whitebox>=1.0.0"]
+
+[project.scripts]
+offat-graybox = "offat_gb.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/dmdhrumilmistry/offat-ai"
+
+[tool.setuptools]
+packages = ["offat_gb"]

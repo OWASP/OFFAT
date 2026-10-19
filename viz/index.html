@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OFFAT-AI Visualizer</title>
+<style>
+  :root{--bg:#0e1116;--panel:#171b22;--fg:#e6e6e6;--muted:#9aa4b2;--line:#2a3038;--accent:#539bf5}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
+  header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+  header h1{font-size:18px;margin:0}
+  .spacer{flex:1}
+  button,label.btn{background:#20262f;color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer}
+  button:hover,label.btn:hover{border-color:var(--accent)}
+  main{max-width:1100px;margin:0 auto;padding:20px}
+  #drop{border:2px dashed var(--line);border-radius:12px;padding:48px;text-align:center;color:var(--muted);margin:40px 0}
+  #drop.drag{border-color:var(--accent);color:var(--fg)}
+  .cards{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}
+  .card{flex:1;min-width:120px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;text-align:center}
+  .card .n{display:block;font-size:24px;font-weight:700}.card .l{color:var(--muted);font-size:12px;text-transform:uppercase}
+  nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 8px}
+  nav.tabs button{border-radius:20px}
+  nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  section.view{display:none}section.view.active{display:block}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.03em}
+  code{background:#0b0e13;border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+  .pill{border-radius:6px;padding:1px 7px;font-size:11px;color:#fff}
+  .sev-critical{background:#7b1e1e}.sev-high{background:#a3421c}.sev-medium{background:#8a6d1a}.sev-low{background:#3b5566}.sev-info{background:#3a3f47}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+  select{background:#20262f;color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+  pre{background:#0b0e13;border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;font-size:12px;white-space:pre-wrap}
+  svg{width:100%;height:520px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+  .n-prod{fill:#3fb950}.n-cons{fill:#539bf5}.edge{stroke:#6a737d;stroke-width:1}.edge:hover{stroke:#e5484d;stroke-width:2}
+  text{fill:var(--fg);font-size:10px}
+  .muted{color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>OFFAT-AI Visualizer</h1>
+  <span class="muted" id="target"></span>
+  <span class="spacer"></span>
+  <label class="btn">Import Bundle<input id="file" type="file" accept=".json,.offat.json,application/json" hidden></label>
+  <button id="export" disabled>Export</button>
+</header>
+<main>
+  <div id="drop">Drop an <code>*.offat.json</code> Bundle here, or use <b>Import Bundle</b>.</div>
+  <div id="app" hidden>
+    <div class="cards" id="cards"></div>
+    <nav class="tabs" id="tabs">
+      <button data-v="surface" class="active">Attack surface</button>
+      <button data-v="prg">Parameter graph</button>
+      <button data-v="threats">Threat model</button>
+      <button data-v="findings">Findings</button>
+    </nav>
+    <section class="view active" id="view-surface"></section>
+    <section class="view" id="view-prg"></section>
+    <section class="view" id="view-threats"></section>
+    <section class="view" id="view-findings"></section>
+  </div>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

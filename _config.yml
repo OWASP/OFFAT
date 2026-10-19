@@ -1,3 +1,33 @@
 remote_theme: "owasp/www--site-theme@main"
 plugins:
  - jekyll-include-cache-0.2.0
+
+# Keep GitHub Pages focused on the documentation site. The OFFAT-AI platform
+# code and its Markdown docs are not Jekyll pages, so they are excluded from
+# the site build (this also stops Liquid in code samples from breaking it).
+# Setting `exclude` replaces Jekyll's default list, so the defaults it would
+# normally drop (Gemfile, vendor, caches) are repeated here.
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+  - .sass-cache
+  - .jekyll-cache
+  - node_modules
+  - Makefile
+  - OFFAT-AI.md
+  - .claude-plugin
+  - agents
+  - bundle
+  - commands
+  - docker
+  - docs
+  - engine-rs
+  - examples
+  - graybox
+  - platform
+  - reporter
+  - skills
+  - triager
+  - viz
+  - whitebox

@@ -210,3 +210,20 @@ oas.yml
 ## local testing scripts
 test.py
 test-files
+### OFFAT-AI platform ###
+# Rust engine build output
+/bin/
+*.exe
+engine-rs/target/
+
+# Scan output / reports
+offat-report/
+*-report/
+*.sarif
+
+# Rust / node style env
+*.local
+.vscode/
+
+# OFFAT runtime artifacts
+.offat-triage-cache.json
