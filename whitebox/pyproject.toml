@@ -10,10 +10,14 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [{ name = "Dhrumil Mistry" }]
-keywords = ["security", "sast", "static-analysis", "ai", "offat", "semgrep"]
+keywords = ["security", "sast", "static-analysis", "taint-analysis", "code-graph", "ai", "offat"]
 dependencies = ["offat-triage>=1.0.0"]
 
 [project.optional-dependencies]
+# Code-graph taint engine: networkx for the graph, tree-sitter for JS/TS parsing.
+# Python sources are parsed with the stdlib ast, so `graph` without tree-sitter
+# still covers Python repos.
+graph = ["networkx>=3.0", "tree-sitter>=0.23", "tree-sitter-language-pack>=0.7"]
 # External scanners are invoked as CLIs when present; listed here for reference.
 tools = []
 
@@ -24,4 +28,4 @@ offat-whitebox = "offat_wb.cli:main"
 Homepage = "https://github.com/dmdhrumilmistry/offat-ai"
 
 [tool.setuptools]
-packages = ["offat_wb"]
+packages = ["offat_wb", "offat_wb.cpg"]

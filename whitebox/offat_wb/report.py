@@ -135,7 +135,7 @@ def _sarif(report: Dict[str, Any]) -> Dict[str, Any]:
         })
         level = "error" if f.get("severity") in ("critical", "high") else \
                 "warning" if f.get("severity") == "medium" else "note"
-        results.append({
+        result = {
             "ruleId": rid, "level": level,
             "message": {"text": f.get("title", "")},
             "locations": [{"physicalLocation": {
@@ -144,7 +144,17 @@ def _sarif(report: Dict[str, Any]) -> Dict[str, Any]:
             }}],
             "properties": {"verdict": (f.get("triage") or {}).get("verdict", ""),
                            "confidence": f.get("confidence", 0)},
-        })
+        }
+        path = (f.get("evidence") or {}).get("path") or []
+        if path:
+            # Proven source -> sink path from the code graph, rendered by SARIF viewers.
+            result["codeFlows"] = [{"threadFlows": [{"locations": [
+                {"location": {"physicalLocation": {
+                    "artifactLocation": {"uri": h.get("file", "")},
+                    "region": {"startLine": max(1, int(h.get("line", 1) or 1))}},
+                    "message": {"text": f"[{h.get('kind')}] {h.get('code', '')}"[:300]}}}
+                for h in path]}]}]
+        results.append(result)
     return {
         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
         "version": "2.1.0",
@@ -201,8 +211,20 @@ def _markdown(report: Dict[str, Any]) -> str:
             f"- **Threat:** {th.get('owasp_api','')} {th.get('owasp_api_name','')}  |  "
             f"OWASP Web {th.get('owasp_web','')} {th.get('owasp_web_name','')}  |  "
             f"{th.get('cwe','')} {th.get('cwe_name','')}")
+        if f.get("reachable_from"):
+            lines.append(f"- **Reachable from:** {', '.join(f['reachable_from'][:5])}")
         if f.get("code"):
             lines += ["", "```", f["code"][:800], "```"]
+        path = (f.get("evidence") or {}).get("path") or []
+        if path:
+            lines += ["", "**Data flow (source -> sink):**", ""]
+            lines += [f"{n}. `{h.get('file')}:{h.get('line')}` [{h.get('kind')}] `{h.get('code', '')[:160]}`"
+                      for n, h in enumerate(path, 1)]
+        if f.get("poc"):
+            p = f["poc"]
+            lines += ["", f"**PoC (authorized targets only):** `{p.get('method', '')} {p.get('path', '')}"
+                          f"{('?' + p['query']) if p.get('query') else ''}`"
+                      + (f" body `{p['body'][:200]}`" if p.get("body") else "")]
         if t.get("rationale"):
             lines += ["", f"**Triage:** {t['rationale']}"]
         if t.get("remediation"):

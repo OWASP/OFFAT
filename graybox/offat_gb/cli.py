@@ -18,7 +18,7 @@ import sys
 from typing import Any, Dict, List, Optional
 
 from offat_triage import enrich_threats
-from offat_wb import hunt, recon
+from offat_wb import cpg, hunt, recon
 from offat_wb.tools import ToolStatus, have
 
 from . import analyze, graph_map, reachability, report
@@ -37,7 +37,7 @@ def _dedupe(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 def run_pipeline(target: str, classes: Optional[List[str]], *, use_ai: bool, use_semgrep: bool,
                  use_graft: bool, use_cache: bool, out_dir: str,
-                 provider: Optional[str] = None) -> Dict[str, Any]:
+                 provider: Optional[str] = None, use_graph: bool = True) -> Dict[str, Any]:
     status = ToolStatus()
 
     print(f"[recon] scanning {target} ...")
@@ -49,25 +49,37 @@ def run_pipeline(target: str, classes: Optional[List[str]], *, use_ai: bool, use
     print(f"[map] {len(endpoints)} endpoint(s) discovered "
           f"({'graft' if status.available.get('graft_graph') else 'native'})")
 
+    graph = None
+    graph_findings: List[Dict[str, Any]] = []
+    if use_graph and cpg.AVAILABLE:
+        print("[graph] code graph + source-to-sink taint search ...")
+        res = cpg.analyze(target, classes=classes)
+        graph, graph_findings = res.graph, res.findings
+        status.available["code_graph"] = True
+        print(f"[graph] {len(graph_findings)} proven source-to-sink flow(s)")
+
     print("[hunt] built-in pattern hunter ...")
     findings = hunt.builtin_hunt(target, classes)
     if use_semgrep and have("semgrep"):
         status.available["semgrep"] = True
-        print("[hunt] semgrep ...")
+        print("[hunt] semgrep (opt-in) ...")
         findings += hunt.semgrep_hunt(target)
     else:
-        status.available["semgrep"] = have("semgrep")
-        if not have("semgrep"):
-            status.skip("semgrep", "not installed")
+        status.available["semgrep"] = False
     findings += recon_info.pop("dependency_findings", [])
     findings = _dedupe(findings)
+    if graph is not None:
+        findings = cpg.merge_with_patterns(graph, graph_findings, findings)
     print(f"[hunt] {len(findings)} candidate findings")
 
     # Threat mapping: OWASP API Top 10 (2023) + OWASP Top 10 (2021) + CWE.
     enrich_threats(findings)
 
-    print("[reach] linking findings to endpoints ...")
-    findings = reachability.link(target, findings, endpoints, status)
+    if graph is None:
+        print("[reach] linking findings to endpoints ...")
+        findings = reachability.link(target, findings, endpoints, status)
+    else:
+        print("[reach] reachability from the code graph (call graph -> route handlers)")
     reachable = sum(1 for f in findings if f.get("reachable"))
     print(f"[reach] {reachable}/{len(findings)} findings reachable from a mapped endpoint")
 
@@ -109,7 +121,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--no-ai", action="store_true", help="use heuristic triage only (no tokens)")
     ap.add_argument("--provider", default=None,
                     help="AI backend: auto (default), anthropic, claude-code, codex, heuristic")
-    ap.add_argument("--no-semgrep", action="store_true", help="skip semgrep even if installed")
+    ap.add_argument("--semgrep", action="store_true", help="also run semgrep (opt-in)")
+    ap.add_argument("--no-semgrep", action="store_true", help=argparse.SUPPRESS)
+    ap.add_argument("--no-graph", action="store_true",
+                    help="skip the code-graph engine (falls back to graft / same-file reachability)")
     ap.add_argument("--no-graft", action="store_true", help="skip graft; map endpoints natively")
     ap.add_argument("--no-cache", action="store_true", help="do not read/write the AI-verdict cache")
     ap.add_argument("--fail-on", default="",
@@ -124,9 +139,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     classes = [c.strip() for c in args.classes.split(",") if c.strip()] or None
 
     rep = run_pipeline(
-        target, classes, use_ai=not args.no_ai, use_semgrep=not args.no_semgrep,
+        target, classes, use_ai=not args.no_ai, use_semgrep=args.semgrep and not args.no_semgrep,
         use_graft=not args.no_graft, use_cache=not args.no_cache, out_dir=args.out,
-        provider=args.provider,
+        provider=args.provider, use_graph=not args.no_graph,
     )
 
     if args.fail_on:
