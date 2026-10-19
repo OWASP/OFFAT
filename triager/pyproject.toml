@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "offat-triage"
+version = "1.0.0"
+description = "OFFAT-AI shared AI/heuristic security-finding triager"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Dhrumil Mistry" }]
+keywords = ["security", "triage", "dast", "sast", "ai", "offat"]
+dependencies = []  # standard library only
+
+[project.scripts]
+offat-triage = "offat_triage.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/dmdhrumilmistry/offat-ai"
+
+[tool.setuptools]
+packages = ["offat_triage"]
