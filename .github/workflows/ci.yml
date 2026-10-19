@@ -5,6 +5,10 @@ on:
     branches: [main, dev, "claude/**"]
   pull_request:
 
+# Least-privilege default: these jobs only read the checkout.
+permissions:
+  contents: read
+
 jobs:
   engine-rust:
     name: Execution engine (Rust)

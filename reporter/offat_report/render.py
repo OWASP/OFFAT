@@ -8,7 +8,6 @@ Chrome/Chromium) when present; otherwise it is skipped with a note.
 from __future__ import annotations
 
 import html
-import json
 import os
 import shutil
 import subprocess

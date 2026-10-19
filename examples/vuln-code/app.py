@@ -1,4 +1,4 @@
-import os, sqlite3, hashlib, pickle, subprocess, requests
+import os, hashlib, pickle, subprocess, requests
 
 API_KEY = "AKIAIOSFODNN7EXAMPLE"
 password = "supersecretpassword123"
@@ -22,4 +22,4 @@ def fetch(url):
     return requests.get(url, verify=False)  # SSRF + TLS off
 
 if __name__ == "__main__":
-    app_debug = True
+    pass

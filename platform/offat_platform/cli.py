@@ -96,7 +96,6 @@ def _cmd_triage(args) -> int:
     ob.save(bundle, out)
     print(f"[bundle] written to {out}")
     if args.fail_on:
-        from offat_bundle import validate  # noqa: F401
         rank = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
         thr = rank.get(args.fail_on.lower())
         if thr is not None:

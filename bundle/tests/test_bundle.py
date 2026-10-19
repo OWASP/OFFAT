@@ -1,6 +1,5 @@
 """Tests for the OFFAT Bundle package (offline, stdlib)."""
 
-import json
 import os
 import sys
 import tempfile

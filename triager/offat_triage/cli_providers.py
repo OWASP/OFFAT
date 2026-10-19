@@ -23,7 +23,7 @@ import os
 import shlex
 import shutil
 import subprocess
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from .triager import _SYSTEM, _build_prompt, _parse_json_object, cvss_for, heuristic_triage
 

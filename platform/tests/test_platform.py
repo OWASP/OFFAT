@@ -359,7 +359,8 @@ class TestRunPipeline(unittest.TestCase):
             rc = cli.main(["run", self.FIX, "--no-graft", "--no-ai", "--no-report", "-o", out])
             self.assertEqual(rc, 0)
             self.assertTrue(os.path.exists(out))
-            b = json.load(open(out))
+            with open(out) as fh:
+                b = json.load(fh)
             # map -> test-gen -> triage all ran into one bundle
             self.assertGreaterEqual(b["summary"]["endpoints"], 2)
             self.assertIn("test_plan", b)

@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from offat_wb import tools
 from offat_wb.hunt import iter_source_files
@@ -380,7 +380,6 @@ def _proto_endpoints(path: str, rel: str) -> List[Dict[str, Any]]:
     pkg_m = _PROTO_PACKAGE.search(text)
     package = pkg_m.group(1) if pkg_m else ""
     out: List[Dict[str, Any]] = []
-    lines = text.splitlines()
     # Walk services and the rpc methods nested in each service block.
     for sm in _PROTO_SERVICE.finditer(text):
         service = sm.group(1)

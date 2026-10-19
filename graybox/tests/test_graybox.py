@@ -98,7 +98,6 @@ class TestReachability(unittest.TestCase):
         eps = graph_map.map_endpoints(FIXTURE, status, use_graft=False)
         findings = hunt.builtin_hunt(FIXTURE, None)
         findings = reachability.link(FIXTURE, findings, eps, status)
-        by_file = {f["file"]: f for f in findings}
         # api.py has routes -> its sink is reachable.
         api = next(f for f in findings if f["file"].endswith("api.py"))
         self.assertTrue(api["reachable"])
