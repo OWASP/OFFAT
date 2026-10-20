@@ -202,6 +202,8 @@ swagger.yaml
 swagger.json
 oas.yml
 *.json
+# ...but the benchmark answer key is source, not scan output.
+!whitebox/bench/answer_key.json
 
 ## unknown data
 .DS_Store

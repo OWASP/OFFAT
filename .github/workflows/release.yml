@@ -1,0 +1,105 @@
+name: Release
+
+# Push a tag like v1.2.0 (or run manually with a tag) to build the execution
+# engine for linux x86_64 + arm64 and the Python source distributions, then
+# publish a GitHub Release with those assets. Publishing the release fires
+# release-push.yml, which builds and pushes the Docker image.
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to release (e.g. v1.2.0)"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  engine:
+    name: Engine (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build release binary
+        working-directory: engine-rs
+        run: cargo build --release --locked
+      - name: Package binary
+        run: |
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
+          dir="offat-engine-${tag}-${{ matrix.target }}"
+          mkdir -p "$dir"
+          cp engine-rs/target/release/offat-engine "$dir/"
+          cp LICENSE.md "$dir/" 2>/dev/null || true
+          tar -czf "${dir}.tar.gz" "$dir"
+          sha256sum "${dir}.tar.gz" > "${dir}.tar.gz.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engine-${{ matrix.target }}
+          path: |
+            offat-engine-*.tar.gz
+            offat-engine-*.tar.gz.sha256
+          if-no-files-found: error
+
+  python:
+    name: Python source distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build sdists
+        run: |
+          python -m pip install --upgrade build
+          mkdir -p dist
+          for pkg in bundle triager whitebox graybox platform reporter; do
+            python -m build --sdist "$pkg" --outdir dist
+          done
+          (cd dist && sha256sum *.tar.gz > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-sdists
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: [engine, python]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Collect assets
+        run: |
+          mkdir -p assets
+          find artifacts -type f -exec cp {} assets/ \;
+          ls -la assets
+      - name: Create / update the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: assets/*
