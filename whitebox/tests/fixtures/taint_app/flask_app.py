@@ -119,4 +119,5 @@ def get_receipt(order_id):
 
 
 def unused_helper():
-    return pickle.loads(open("cache.bin", "rb").read())         # not a flow: no source
+    with open("cache.bin", "rb") as fh:
+        return pickle.loads(fh.read())                          # not a flow: no source

@@ -32,7 +32,6 @@ _ROUTER_OBJS = re.compile(r"^(app|router|r|api|server|routes|route|v\d|\w*[Rr]ou
 _CMP_OPS = {"==", "===", "!=", "!==", "<", ">", "<=", ">=", "instanceof", "in"}
 _LITERALS = {"string", "number", "true", "false", "null", "undefined", "regex", "this_type",
              "template_literal_type", "comment"}
-_WHOLE_BODY = {"req.body", "request.body", "ctx.request.body", "event.body"}
 _RESOLVE_EXTS = ("", ".js", ".ts", ".mjs", ".cjs", ".jsx", ".tsx", "/index.js", "/index.ts")
 
 

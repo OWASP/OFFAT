@@ -1,5 +1,6 @@
 """Code-graph taint engine: recall on planted vulns, silence on their safe twins."""
 
+import importlib.util
 import json
 import os
 import sys
@@ -15,11 +16,7 @@ from offat_wb import cpg  # noqa: E402
 
 FIXTURE = os.path.join(HERE, "fixtures", "taint_app")
 
-try:
-    import tree_sitter_language_pack  # noqa: F401
-    HAVE_TS = True
-except ImportError:
-    HAVE_TS = False
+HAVE_TS = importlib.util.find_spec("tree_sitter_language_pack") is not None
 
 
 @unittest.skipUnless(cpg.AVAILABLE, "networkx not installed")
@@ -105,8 +102,10 @@ class TestSpecsAndPatterns(unittest.TestCase):
         proven = next(f for f in res.findings if f["file"] == "pkg/db.py")
         dup = {"vector_id": "sink-sql-format", "class": "sqli", "file": "pkg/db.py",
                "line": proven["line"], "confidence": 0.5, "source_tool": "builtin", "evidence": {}}
+        with open(os.path.join(FIXTURE, "flask_app.py")) as fh:
+            dead_line = next(i for i, ln in enumerate(fh, 1) if "pickle.loads(fh.read())" in ln)
         orphan = {"vector_id": "deser-pickle", "class": "deserialization", "file": "flask_app.py",
-                  "line": 122, "confidence": 0.7, "source_tool": "builtin", "evidence": {}}
+                  "line": dead_line, "confidence": 0.7, "source_tool": "builtin", "evidence": {}}
         merged = cpg.merge_with_patterns(res.graph, res.findings, [dup, orphan])
         self.assertNotIn(dup, merged)
         self.assertIn(orphan, merged)

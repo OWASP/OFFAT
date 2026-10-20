@@ -19,7 +19,7 @@ from __future__ import annotations
 import ast
 import os
 import re
-from typing import Any, Dict, FrozenSet, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from . import specs
 from .graph import CodeGraph
