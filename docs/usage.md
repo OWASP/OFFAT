@@ -68,6 +68,8 @@ offat-whitebox /path/to/repo --graph-out       # export the code graph (JSON + G
 offat-graybox  /path/to/repo --fail-on high    # SAST prioritized by endpoint reachability
 ```
 
+`--agent` and `--infer-specs` use the same backends as triage, so they work **without an API key** through the `claude-code` or `codex` CLI (`--provider claude-code`).
+
 See [Code graph](code-graph.md) and [Source modes](source-modes.md).
 
 ## AI triage

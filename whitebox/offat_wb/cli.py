@@ -78,7 +78,7 @@ def run_pipeline(target: str, classes: List[str] | None, use_ai: bool,
             items = infer.frontier(res.graph)
             with open(os.path.join(out_dir, "taint-frontier.json"), "w", encoding="utf-8") as fh:
                 json.dump(items, fh, indent=2)
-            labels = infer.classify(items) if use_ai else []
+            labels = infer.classify(items, provider=provider) if use_ai else []
             if labels:
                 spec_file = os.path.join(out_dir, "inferred-specs.json")
                 spec = infer.to_spec_file(labels, spec_file)
@@ -139,10 +139,10 @@ def run_pipeline(target: str, classes: List[str] | None, use_ai: bool,
                                cache_enabled=use_cache, **tkw)
     print(f"[verify] triage source: {source}")
     if agent and use_ai and graph is not None:
-        from .cpg.agent import AgentVerifier, agent_verify
-        verifier = AgentVerifier.from_env(graph, target)
+        from .cpg.agent import make_agent_verifier, agent_verify
+        verifier = make_agent_verifier(graph, target, provider)
         if verifier is None:
-            status.skip("agent", "no OFFAT_AI_API_KEY / ANTHROPIC_API_KEY")
+            status.skip("agent", "no API key and no claude-code/codex CLI available")
         else:
             n = agent_verify(findings, verifier, limit=agent)
             source += f" + agent:{verifier.model}({n})"
@@ -187,7 +187,8 @@ def main(argv: List[str] | None = None) -> int:
                     help="also treat argv/env/stdin as sources (CLI tools, scripts)")
     ap.add_argument("--graph-out", action="store_true", help="export the code graph (JSON + GraphML)")
     ap.add_argument("--agent", type=int, default=0, metavar="N",
-                    help="re-verify the top N graph findings with a graph-tool AI agent (needs API key)")
+                    help="re-verify the top N graph findings with an AI agent (Anthropic API key, or the "
+                         "claude-code / codex CLI via --provider / OFFAT_AI_PROVIDER)")
     ap.add_argument("--infer-specs", action="store_true",
                     help="list the taint frontier and (with an API key) let AI infer missing sinks/sanitizers")
     ap.add_argument("--no-graft", action="store_true", help="skip graft tracing (used only with --no-graph)")
