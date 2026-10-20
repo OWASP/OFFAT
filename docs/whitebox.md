@@ -37,6 +37,7 @@ offat-whitebox /path/to/repo
 | `--infer-specs` | false | Write the taint frontier; with a provider, let AI label missing sinks / sanitizers |
 | `--semgrep` | false | Also run `semgrep --config auto` (opt-in) |
 | `--no-graft` | false | Skip graft tracing (only used with `--no-graph`) |
+| `--reachable-only` | false | Spend AI tokens only on endpoint-reachable findings; cap the rest (gray-box policy) |
 | `--no-cache` | false | Do not read/write the AI-verdict cache |
 | `--fail-on` | — | Exit non-zero if an actionable finding is at/above this severity (CI gate) |
 

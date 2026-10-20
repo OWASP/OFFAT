@@ -45,7 +45,7 @@ offat-graybox /path/to/your/repo --no-ai -o out/report
 recon -> map endpoints -> code graph + patterns -> reachability -> analyze (AI) -> report
 ```
 
-Gray-box judges every finding by **reachability**: which exposed endpoint
+White-box can adopt the same token-discipline policy with `--reachable-only`. Gray-box makes it the default and adds the full endpoint inventory. Gray-box judges every finding by **reachability**: which exposed endpoint
 reaches it through the call graph. Only reachable findings are sent to a model,
 batched, cached and model-tiered; unreachable ones are triaged offline at zero
 token cost.

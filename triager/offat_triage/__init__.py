@@ -18,7 +18,7 @@ from .triager import (
 )
 from .cli_providers import ClaudeCodeTriager, CodexTriager, cli_available
 from .cache import VerdictCache, finding_key
-from .batch import tiered_triage, default_block
+from .batch import tiered_triage, reachable_triage, default_block
 from .taxonomy import (
     enrich as enrich_threats,
     threat_for,
@@ -37,6 +37,7 @@ __all__ = [
     "heuristic_triage",
     "triage_findings",
     "tiered_triage",
+    "reachable_triage",
     "default_block",
     "make_triager",
     "cvss_for",

@@ -190,3 +190,33 @@ def _run_tiered_api(src: AnthropicTriager, to_ai: List[Dict[str, Any]],
 
     screened = f"screen:{screen_model}" if screened_ok else f"screen:{screen_model}(per-finding)"
     return f"{screened}+verify:{verify_model}({len(hot)})"
+
+
+def reachable_triage(findings: List[Dict[str, Any]], out_dir: str, *,
+                     provider: Optional[str] = None, use_ai: bool = True,
+                     cache_enabled: bool = True, cache_name: Optional[str] = None,
+                     system: Optional[str] = None,
+                     block_fn: Optional[Callable[[int, Dict[str, Any]], str]] = None,
+                     note: str = "No mapped endpoint reaches this sink.") -> str:
+    """Reachable-only triage: the shared gray-box / --reachable-only policy.
+
+    Findings carrying ``reachable=True`` (an exposed endpoint reaches the sink on
+    the code graph) go to the token-disciplined tiered triager. The rest are
+    triaged offline with the heuristic and capped at ``inconclusive`` - the attack
+    surface does not reach them, so they are not spent on. Returns a label of the
+    form ``<tiered-label> [reachable N/total]``.
+    """
+    reachable = [f for f in findings if f.get("reachable")]
+    unreachable = [f for f in findings if not f.get("reachable")]
+
+    for f in unreachable:
+        heuristic_triage(f)
+        if f["triage"]["verdict"] in ("confirmed", "likely"):
+            f["triage"]["verdict"] = "inconclusive"
+        f["triage"]["rationale"] = (f["triage"].get("rationale", "") + " " + note).strip()
+        f["triage"]["source"] = "heuristic:unreachable"
+
+    label = tiered_triage(reachable, out_dir, provider=provider, use_ai=use_ai,
+                          cache_enabled=cache_enabled, cache_name=cache_name,
+                          system=system, block_fn=block_fn)
+    return f"{label} [reachable {len(reachable)}/{len(findings)}]"
