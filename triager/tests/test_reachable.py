@@ -44,3 +44,26 @@ class TestReachableTriage(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestComplete(unittest.TestCase):
+    def test_no_backend_returns_none(self):
+        from offat_triage import complete
+        self.assertIsNone(complete("anything", use_ai=False))
+        self.assertIsNone(complete("anything", provider="heuristic"))
+
+    def test_cli_backend_returns_text(self):
+        import offat_triage.triager as T
+        from offat_triage import complete
+        import subprocess
+
+        class _CLI:
+            base_cmd = ["claude", "-p"]
+            timeout = 60
+        orig_make, orig_run = T.make_triager, subprocess.run
+        T.make_triager = lambda provider=None, use_ai=True: _CLI()
+        subprocess.run = lambda *a, **k: type("P", (), {"returncode": 0, "stdout": "OK-RESULT"})()
+        try:
+            self.assertEqual(complete("gen", provider="claude-code"), "OK-RESULT")
+        finally:
+            T.make_triager, subprocess.run = orig_make, orig_run
