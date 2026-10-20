@@ -34,6 +34,11 @@ BASE_PATH = os.environ.get("DOCS_BASE_PATH", "/OFFAT/")
 SECTIONS = ["Start", "Concepts", "Integrate", "Deep dives"]
 
 
+def read(path: str) -> str:
+    with open(path, encoding="utf-8") as fh:
+        return fh.read()
+
+
 def front_matter(text: str):
     if not text.startswith("---\n"):
         return {}, text
@@ -141,14 +146,14 @@ def build() -> int:
     if os.path.isdir(OUT):
         shutil.rmtree(OUT)
     os.makedirs(os.path.join(OUT, "assets"))
-    layout = open(os.path.join(THEME, "layout.html"), encoding="utf-8").read()
-    hero = open(os.path.join(THEME, "hero.html"), encoding="utf-8").read()
+    layout = read(os.path.join(THEME, "layout.html"))
+    hero = read(os.path.join(THEME, "hero.html"))
 
     pages: Dict[str, Dict] = {}
     for name in sorted(os.listdir(HERE)):
         if not name.endswith(".md"):
             continue
-        meta, body = front_matter(open(os.path.join(HERE, name), encoding="utf-8").read())
+        meta, body = front_matter(read(os.path.join(HERE, name)))
         if "title" not in meta:
             continue
         stem = name[:-3]
@@ -221,7 +226,8 @@ def build() -> int:
         for p in ordered:
             fh.write(f"  <url><loc>{SITE_URL}{'' if p['file'] == 'index.html' else p['file']}</loc></url>\n")
         fh.write("</urlset>\n")
-    open(os.path.join(OUT, ".nojekyll"), "w").close()
+    with open(os.path.join(OUT, ".nojekyll"), "w"):
+        pass
 
     for f in ("style.css", "app.js", "favicon.svg"):
         shutil.copy(os.path.join(THEME, f), os.path.join(OUT, "assets", f))

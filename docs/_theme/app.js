@@ -67,7 +67,13 @@
     wrap.className = "codeblock";
     var head = document.createElement("div");
     head.className = "code-head";
-    head.innerHTML = '<span><span class="dots"><i></i><i></i><i></i></span>' + (lang || "text") + "</span>";
+    var label = document.createElement("span");
+    var dots = document.createElement("span");
+    dots.className = "dots";
+    for (var d = 0; d < 3; d++) dots.appendChild(document.createElement("i"));
+    label.appendChild(dots);
+    label.appendChild(document.createTextNode(lang || "text"));
+    head.appendChild(label);
     var btn = document.createElement("button");
     btn.type = "button"; btn.className = "code-copy"; btn.textContent = "copy";
     btn.addEventListener("click", function () { copyText((code || pre).innerText.replace(/\n$/, ""), btn); });
