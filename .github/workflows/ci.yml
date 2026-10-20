@@ -95,5 +95,7 @@ jobs:
         run: PYTHONPATH=graybox:whitebox:triager python3 -m unittest discover -s graybox/tests -p 'test_*.py'
       - name: Platform unit tests
         run: PYTHONPATH=platform:graybox:whitebox:triager:bundle python3 -m unittest discover -s platform/tests -p 'test_*.py'
+      - name: Docs site builds
+        run: pip install -r docs/requirements.txt && python docs/build.py
       - name: Reporter unit tests
         run: PYTHONPATH=reporter:triager python3 -m unittest discover -s reporter/tests -p 'test_*.py'

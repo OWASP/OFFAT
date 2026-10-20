@@ -1,3 +1,10 @@
+---
+title: AI roadmap
+section: Deep dives
+nav_order: 5
+description: Where AI sits in OFFAT, what the code graph adds, and what comes next.
+---
+
 # OFFAT-AI: code-graph white-box and AI roadmap
 
 Status: proposal + first implementation (`whitebox/offat_wb/cpg/`), October 2026.

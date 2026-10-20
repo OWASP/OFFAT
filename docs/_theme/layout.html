@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+{{base}}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{page_title}}</title>
+<meta name="description" content="{{description}}">
+<link rel="canonical" href="{{canonical}}">
+<meta property="og:title" content="{{page_title}}">
+<meta property="og:description" content="{{description}}">
+<meta property="og:image" content="assets/offat.png">
+<meta name="theme-color" content="#07090c">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Unbounded:wght@500;700;800&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script>
+  // Apply a saved theme before first paint (storage may be unavailable).
+  try { var t = localStorage.getItem("offat-theme"); if (t) document.documentElement.setAttribute("data-theme", t); } catch (e) {}
+</script>
+</head>
+<body class="{{body_class}}">
+<a class="skip" href="#main">Skip to content</a>
+<div class="backdrop" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <button class="icon-btn menu-btn" type="button" aria-label="Open navigation" data-open-nav>
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>
+    </button>
+    <a class="brand" href="./" aria-label="OWASP OFFAT home">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="1" y="1" width="30" height="30" rx="8" class="bm-bg"/>
+        <path d="M8 22 L14 12 L19 18 L24 9" class="bm-path"/>
+        <circle cx="8" cy="22" r="2.6" class="bm-node"/>
+        <circle cx="14" cy="12" r="2.2" class="bm-node dim"/>
+        <circle cx="19" cy="18" r="2.2" class="bm-node dim"/>
+        <circle cx="24" cy="9" r="2.8" class="bm-sink"/>
+      </svg>
+      <span class="brand-name">OFFAT</span>
+      <span class="brand-tag">OWASP</span>
+    </a>
+    <nav class="top-links" aria-label="Primary">
+      <a href="installation.html">Install</a>
+      <a href="usage.html">Usage</a>
+      <a href="code-graph.html">Code graph</a>
+      <a href="github-action.html">Action</a>
+    </nav>
+    <div class="top-actions">
+      <button class="search-btn" type="button" data-open-search aria-label="Search the docs">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <span>Search</span><kbd>⌘K</kbd>
+      </button>
+      <button class="icon-btn" type="button" data-toggle-theme aria-label="Toggle color theme">
+        <svg class="i-sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" fill="currentColor"/></svg>
+      </button>
+      <a class="icon-btn" href="https://github.com/OWASP/OFFAT" target="_blank" rel="noopener" aria-label="OFFAT on GitHub">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5a3.9 3.9 0 0 1 1-2.7 3.6 3.6 0 0 1 .1-2.7s.8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7a3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>
+      </a>
+    </div>
+  </div>
+</header>
+
+{{hero}}
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar" aria-label="Documentation">
+    <div class="sidebar-head">
+      <span>Docs</span>
+      <button class="icon-btn" type="button" aria-label="Close navigation" data-close-nav>
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    {{nav}}
+    <div class="sidebar-foot">
+      <a href="https://github.com/OWASP/OFFAT/issues" target="_blank" rel="noopener">Report an issue ↗</a>
+    </div>
+  </aside>
+
+  <main id="main" class="content">
+    <article class="prose">
+{{content}}
+    </article>
+    <nav class="pager" aria-label="Pages">{{prev_next}}</nav>
+    <p class="edit"><a href="{{edit_url}}" target="_blank" rel="noopener">Edit this page on GitHub</a></p>
+  </main>
+
+  <aside class="toc" aria-label="On this page">{{toc}}</aside>
+</div>
+
+<footer class="site-foot">
+  <div class="foot-inner">
+    <div>
+      <p class="foot-brand">OWASP OFFAT</p>
+      <p class="foot-note">OFFensive Api Tester. Distributed under the MIT License. © {{year}} OWASP Foundation and contributors.</p>
+    </div>
+    <p class="foot-warn"><span class="dot"></span>Only test systems and code you own or are explicitly authorized to assess.</p>
+  </div>
+</footer>
+
+<div class="search-modal" id="search" role="dialog" aria-modal="true" aria-label="Search" hidden>
+  <div class="search-panel">
+    <div class="search-field">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <input id="search-input" type="search" placeholder="Search docs: taint, identities, SARIF…" autocomplete="off" spellcheck="false">
+      <kbd>Esc</kbd>
+    </div>
+    <ul class="search-results" id="search-results" role="listbox"></ul>
+  </div>
+</div>
+<div class="scrim" data-close-nav hidden></div>
+<script src="assets/app.js" defer></script>
+</body>
+</html>

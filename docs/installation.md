@@ -1,98 +1,63 @@
 ---
 title: Installation
+section: Start
 nav_order: 2
-description: "How to install the OFFAT CLI and the OFFAT-AI platform."
+description: Install the OFFAT platform, the code-graph extra and the Rust execution engine.
 ---
 
 # Installation
-{: .no_toc }
 
-## Table of contents
-{: .no_toc .text-delta }
+OFFAT is a set of Python packages that share one data contract (the Bundle),
+plus a Rust execution engine. The Python side runs anywhere; the engine is only
+needed when you send live traffic to a target.
 
-1. TOC
-{:toc}
+## Prerequisites
 
----
+| Need | For |
+|---|---|
+| Python 3.10+ | every stage |
+| Rust 1.88+ | building the execution engine (live runs only) |
+| `syft`, `grype`, `trivy` or `osv-scanner` | optional SBOM / dependency CVEs |
 
-## Classic CLI (`offat`)
-
-### Using pip
-
-```bash
-# from PyPI
-python3 -m pip install offat        # CLI only
-python3 -m pip install offat[api]   # CLI + REST API
-
-# or the latest from the default branch
-python3 -m pip install git+https://github.com/OWASP/OFFAT.git
-```
-
-> On Termux or Windows use `pip` instead of `pip3`. A few features are
-> Linux-only and may need administrator privileges.
-
-### Using Docker
-
-```bash
-# CLI
-docker run --rm dmdhrumilmistry/offat
-
-# API (POST an OpenAPI doc to /api/v1/scan/ with its type: json|yaml)
-docker compose up -d
-```
-
-### From source (Poetry)
-
-```bash
-sudo apt install git python3 -y          # prerequisites
-git clone https://github.com/OWASP/OFFAT.git
-cd OFFAT/src
-poetry install
-```
-
-See [Usage - Classic CLI](usage.html#classic-cli) next.
-
----
-
-## OFFAT-AI platform
-
-The platform is a set of Python packages plus a Rust execution engine. The
-Python side runs anywhere; the engine is only needed to send live traffic.
-
-### Prerequisites
-
-- Python 3.10+
-- Rust 1.88+ (only to build the execution engine)
-- Optional: `graft`, `semgrep`, and an SBOM/CVE tool (`syft`, `grype`, `trivy`,
-  or `osv-scanner`) for richer source analysis - each is used when present.
-
-### Install the Python packages
+## Install the packages
 
 ```bash
 git clone https://github.com/OWASP/OFFAT.git
 cd OFFAT
-pip install ./bundle ./triager ./whitebox ./graybox ./platform ./reporter
+pip install ./bundle ./triager './whitebox[graph]' ./graybox ./platform ./reporter
 ```
 
-This installs the CLIs: `offat-platform`, `offat-whitebox`, `offat-graybox`,
-`offat-triage`, and `offat-report`.
+This puts five CLIs on your `PATH`: `offat-platform`, `offat-whitebox`,
+`offat-graybox`, `offat-triage` and `offat-report`.
 
-### Build the execution engine (Rust)
+The `[graph]` extra installs the code-graph taint engine's dependencies
+(`networkx` for the graph, `tree-sitter` for JavaScript/TypeScript). Without it
+the white-box pipeline falls back to its pattern hunter and records why.
+
+## Build the execution engine
 
 ```bash
-make engine            # -> engine-rs/target/release/offat-engine
-# or with the opt-in HTTP/3 + QUIC transport:
-make engine-http3
+make engine          # -> engine-rs/target/release/offat-engine
+make engine-http3    # same, with the opt-in HTTP/3 + QUIC transport
 ```
 
-`offat-platform run` auto-finds the engine on `PATH`, at `$OFFAT_ENGINE`, or in
-`engine-rs/target/{release,debug}/`. You only need the engine for live runs
-(`--url`); source-only runs and the white-box / gray-box modes do not.
+`offat-platform run` finds the engine on `PATH`, at `$OFFAT_ENGINE`, or in
+`engine-rs/target/{release,debug}/`. Source-only runs never need it.
 
-### Optional: AI triage backend
+## Container
 
-Triage works fully offline with a deterministic heuristic. To enable AI triage,
-provide one of:
+```bash
+make docker                          # builds offat:latest from docker/Dockerfile
+docker run --rm -v "$PWD:/src" offat:latest run /src -o /src/app.offat.json
+```
+
+The image contains the engine and every Python package, and runs as a non-root
+user.
+
+## AI backends (optional)
+
+Everything works offline with a deterministic heuristic. To enable AI triage,
+the graph-tool agent and spec inference, provide one of:
 
 | Provider | Needs |
 |---|---|
@@ -100,4 +65,4 @@ provide one of:
 | `claude-code` | the `claude` CLI, already signed in |
 | `codex` | the `codex` CLI, already signed in |
 
-See [Usage - OFFAT-AI platform](usage.html#offat-ai-platform).
+Next: [Usage](usage.md).

@@ -1,3 +1,10 @@
+---
+title: Platform design
+section: Deep dives
+nav_order: 2
+description: The staged OFFAT platform and the Bundle contract that holds it together.
+---
+
 # OFFAT-AI Platform (v2) - design
 
 This document describes the staged platform OFFAT-AI is evolving into, and the
@@ -23,7 +30,7 @@ visualizer, and the "single file" handed between stages.
 
 ```
  source ─┐
- spec   ─┤ 1. MAP (graft + AI + spec)          -> ASM: endpoints, params, sinks, sources, auth, protocols
+ spec   ─┤ 1. MAP (code graph + spec)         -> ASM: endpoints, params, sinks, sources, auth, protocols
  traffic─┘
           2. PARAM RELATION GRAPH (PRG)         -> producer->consumer param edges (X output feeds Y input)
           3. THREAT MODEL (STRIDE + OWASP/ASVS) -> DFD, trust boundaries, ranked threats
@@ -100,7 +107,7 @@ the authorized baseline. An implicit `anon` identity drives missing-auth tests.
 
 | # | Component | Language | Reuses |
 |---|---|---|---|
-| 1 | Mapping | Python | `offat_gb.graph_map` + graft + spec parsing + AI classification |
+| 1 | Mapping | Python | `offat_gb.graph_map` + code graph (`offat_wb.cpg`) + spec parsing |
 | 2 | PRG builder | Python | producer->consumer name/resource/type heuristics |
 | 3 | Threat modeling | Python | `offat_triage.taxonomy` (OWASP API/Web + CWE) |
 | 4 | Test-case generation | Python | KB vectors + `offat_triage` batched/cached AI |

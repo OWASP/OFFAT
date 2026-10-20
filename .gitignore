@@ -227,3 +227,6 @@ offat-report/
 
 # OFFAT runtime artifacts
 .offat-triage-cache.json
+
+# docs site build output
+docs/_site/

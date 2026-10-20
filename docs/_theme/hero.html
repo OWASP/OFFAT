@@ -1,0 +1,84 @@
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <p class="eyebrow"><span class="pulse-dot"></span>OWASP · open source · MIT</p>
+      <h1 class="hero-title">API security testing that <em>reads your code</em> first.</h1>
+      <p class="hero-lead">OFFAT maps your API from source, follows every input across files on a code graph,
+        runs its test plan with a Rust engine and triages the results with AI — or fully offline.</p>
+      <div class="hero-cta">
+        <a class="btn primary" href="installation.html">Get started <span aria-hidden="true">→</span></a>
+        <a class="btn ghost" href="how-it-works.html">How it works</a>
+      </div>
+      <div class="cmd" data-copy="offat-platform run ./repo -o app.offat.json">
+        <span class="cmd-prompt">$</span><code>offat-platform run ./repo -o app.offat.json</code>
+        <button class="cmd-copy" type="button">copy</button>
+      </div>
+    </div>
+
+    <figure class="flow" aria-label="The OFFAT pipeline">
+      <figcaption class="flow-head">
+        <span class="flow-label">pipeline</span>
+        <span class="flow-file">app.offat.json</span>
+      </figcaption>
+      <ol class="flow-steps">
+        <li><span class="fs-idx">01</span><span class="fs-name">Map</span><span class="fs-out">routes, params, specs</span></li>
+        <li><span class="fs-idx">02</span><span class="fs-name">Graph</span><span class="fs-out">calls · data flow · guards</span></li>
+        <li><span class="fs-idx">03</span><span class="fs-name">Plan</span><span class="fs-out">threat model → test plan</span></li>
+        <li><span class="fs-idx">04</span><span class="fs-name">Execute</span><span class="fs-out">Rust · HTTP/2 · WS · gRPC</span></li>
+        <li><span class="fs-idx">05</span><span class="fs-name">Triage</span><span class="fs-out">AI or offline heuristic</span></li>
+        <li><span class="fs-idx">06</span><span class="fs-name">Report</span><span class="fs-out">SARIF · HTML · compliance</span></li>
+      </ol>
+      <span class="flow-pulse" aria-hidden="true"></span>
+    </figure>
+  </div>
+</section>
+
+<section class="stats" aria-label="Highlights">
+  <div class="stats-inner">
+    <div class="stat"><span class="stat-n">91</span><span class="stat-l">routes mapped in Juice Shop, 4,260 functions in 6.3&nbsp;s</span></div>
+    <div class="stat"><span class="stat-n">16/16</span><span class="stat-l">planted flows found, zero safe twins flagged</span></div>
+    <div class="stat"><span class="stat-n">4</span><span class="stat-l">protocols in one engine: HTTP/1.1, HTTP/2, WebSocket, gRPC</span></div>
+    <div class="stat"><span class="stat-n">0</span><span class="stat-l">tokens required — every AI path has an offline fallback</span></div>
+  </div>
+</section>
+
+<section class="features" aria-label="Features">
+  <div class="features-inner">
+    <header class="sec-head">
+      <p class="sec-kicker">What you get</p>
+      <h2 class="sec-title">One pipeline, one file, every stage inspectable.</h2>
+    </header>
+    <div class="cards">
+      <a class="card" href="code-graph.html">
+        <span class="card-idx">01</span>
+        <h3>Code graph, not grep</h3>
+        <p>Interprocedural data flow for Python and JS/TS. Findings carry the hop-by-hop path and the route that reaches them.</p>
+      </a>
+      <a class="card" href="how-it-works.html">
+        <span class="card-idx">02</span>
+        <h3>The Bundle contract</h3>
+        <p>Every stage reads and writes one versioned JSON document. Stop, inspect, edit and resume anywhere.</p>
+      </a>
+      <a class="card" href="usage.html#identities">
+        <span class="card-idx">03</span>
+        <h3>Identity-aware checks</h3>
+        <p>Give it a few identities and it plans object- and function-level authorization checks with differential baselines.</p>
+      </a>
+      <a class="card" href="code-graph.html#ai-on-top-of-the-graph">
+        <span class="card-idx">04</span>
+        <h3>AI where it pays off</h3>
+        <p>Cached, batched and model-tiered triage that sees the proven path, plus an agent that reads the code around it.</p>
+      </a>
+      <a class="card" href="installation.html#build-the-execution-engine">
+        <span class="card-idx">05</span>
+        <h3>A Rust engine</h3>
+        <p>A single static binary for the network-heavy part: HTTP/1.1 and HTTP/2, WebSocket, gRPC, HTTP/3 opt-in.</p>
+      </a>
+      <a class="card" href="github-action.html">
+        <span class="card-idx">06</span>
+        <h3>CI-native output</h3>
+        <p>SARIF with code flows for GitHub code scanning, JUnit, Markdown, HTML and a <code>--fail-on</code> gate.</p>
+      </a>
+    </div>
+  </div>
+</section>
