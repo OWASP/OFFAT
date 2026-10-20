@@ -18,10 +18,10 @@ from .tools import ToolStatus, have
 # Import the shared triager, falling back to the sibling repo package when the
 # distribution is not installed.
 try:  # pragma: no cover
-    from offat_triage import tiered_triage, enrich_threats
+    from offat_triage import tiered_triage, reachable_triage, enrich_threats
 except ImportError:  # pragma: no cover
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "triager")))
-    from offat_triage import tiered_triage, enrich_threats
+    from offat_triage import tiered_triage, reachable_triage, enrich_threats
 
 
 def _dedupe(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -58,7 +58,8 @@ def run_pipeline(target: str, classes: List[str] | None, use_ai: bool,
                  use_semgrep: bool, out_dir: str, provider: str | None = None,
                  use_graft: bool = True, use_cache: bool = True, use_graph: bool = True,
                  spec_file: str | None = None, local_sources: bool = False,
-                 graph_out: bool = False, agent: int = 0, infer_specs: bool = False) -> Dict[str, Any]:
+                 graph_out: bool = False, agent: int = 0, infer_specs: bool = False,
+                 reachable_only: bool = False) -> Dict[str, Any]:
     status = ToolStatus()
     print(f"[recon] scanning {target} ...")
     recon_info = recon.recon(target, status)
@@ -127,10 +128,15 @@ def run_pipeline(target: str, classes: List[str] | None, use_ai: bool,
     print("[chain] composing attack paths ...")
     findings = _chain(findings)
 
-    print("[verify] triaging (cached, batched, tiered) ...")
     tkw = {"system": cpg.GRAPH_SYSTEM, "block_fn": cpg.triage_block} if graph is not None else {}
-    source = tiered_triage(findings, out_dir, provider=provider, use_ai=use_ai,
-                           cache_enabled=use_cache, **tkw)
+    if reachable_only and graph is not None:
+        print("[verify] triaging reachable-only (cached, batched, tiered) ...")
+        source = reachable_triage(findings, out_dir, provider=provider, use_ai=use_ai,
+                                  cache_enabled=use_cache, **tkw)
+    else:
+        print("[verify] triaging (cached, batched, tiered) ...")
+        source = tiered_triage(findings, out_dir, provider=provider, use_ai=use_ai,
+                               cache_enabled=use_cache, **tkw)
     print(f"[verify] triage source: {source}")
     if agent and use_ai and graph is not None:
         from .cpg.agent import AgentVerifier, agent_verify
@@ -185,6 +191,9 @@ def main(argv: List[str] | None = None) -> int:
     ap.add_argument("--infer-specs", action="store_true",
                     help="list the taint frontier and (with an API key) let AI infer missing sinks/sanitizers")
     ap.add_argument("--no-graft", action="store_true", help="skip graft tracing (used only with --no-graph)")
+    ap.add_argument("--reachable-only", action="store_true",
+                    help="spend AI tokens only on findings reachable from an endpoint; triage the rest "
+                         "offline and cap them at inconclusive (the gray-box token-discipline policy)")
     ap.add_argument("--no-cache", action="store_true", help="do not read/write the AI-verdict cache")
     ap.add_argument("--fail-on", default="",
                     help="exit non-zero if an actionable finding is at/above this severity "
@@ -201,7 +210,8 @@ def main(argv: List[str] | None = None) -> int:
                        provider=args.provider, use_graft=not args.no_graft,
                        use_cache=not args.no_cache, use_graph=not args.no_graph,
                        spec_file=args.specs, local_sources=args.local_sources,
-                       graph_out=args.graph_out, agent=args.agent, infer_specs=args.infer_specs)
+                       graph_out=args.graph_out, agent=args.agent, infer_specs=args.infer_specs,
+                       reachable_only=args.reachable_only)
 
     if args.fail_on:
         n = report.count_at_or_above(rep, args.fail_on)
