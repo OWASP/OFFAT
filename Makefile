@@ -17,8 +17,8 @@ engine-http3: ## Build the engine with the HTTP/3 + QUIC transport enabled
 engine-test: ## Run the engine's unit tests
 	cd engine-rs && cargo test
 
-platform-install: ## Install the Python platform + its libraries
-	pip install ./bundle ./triager ./whitebox ./graybox ./platform ./reporter
+platform-install: ## Install the platform + its libraries (with the code-graph extra)
+	pip install ./bundle ./triager "./whitebox[graph]" ./graybox ./platform ./reporter
 
 python-check: ## Byte-compile the Python packages
 	python3 -m compileall -q bundle/offat_bundle triager/offat_triage whitebox/offat_wb \
@@ -37,7 +37,7 @@ smoke: ## Offline end-to-end check (map -> prg -> threat-model -> test-gen)
 	  python3 -m offat_platform validate /tmp/offat-smoke.offat.json && echo "platform smoke OK"
 
 docker: ## Build the platform image (Rust engine + Python platform)
-	docker build -t offat-ai:latest -f docker/Dockerfile .
+	docker build -t offat:latest -f docker/Dockerfile .
 
 clean: ## Remove build artifacts and reports
 	rm -rf engine-rs/target offat-report /tmp/offat-smoke*.json

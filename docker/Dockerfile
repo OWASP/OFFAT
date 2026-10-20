@@ -7,9 +7,9 @@ RUN cd engine-rs && cargo build --release && cp target/release/offat-engine /out
 
 # Stage 2 - runtime.
 FROM python:3.12-slim
-LABEL org.opencontainers.image.title="offat-ai" \
+LABEL org.opencontainers.image.title="offat" \
       org.opencontainers.image.description="AI-augmented API pentesting platform (map, threat-model, test-gen, execute, triage, report)" \
-      org.opencontainers.image.source="https://github.com/dmdhrumilmistry/offat-ai" \
+      org.opencontainers.image.source="https://github.com/OWASP/OFFAT" \
       org.opencontainers.image.licenses="MIT"
 
 WORKDIR /app
@@ -21,7 +21,7 @@ COPY graybox ./graybox
 COPY platform ./platform
 COPY reporter ./reporter
 COPY examples ./examples
-RUN pip install --no-cache-dir ./bundle ./triager ./whitebox ./graybox ./platform ./reporter
+RUN pip install --no-cache-dir ./bundle ./triager "./whitebox[graph]" ./graybox ./platform ./reporter
 
 # Non-root by default.
 RUN useradd -m offat

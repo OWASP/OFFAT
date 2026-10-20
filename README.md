@@ -1,88 +1,86 @@
-# OWASP OFFAT
+<p align="center">
+  <img src="./assets/images/logos/offat.png" alt="OWASP OFFAT" width="120">
+</p>
 
-OWASP OFFAT (OFFensive Api Tester) automatically tests your API for common
-vulnerabilities - generating tests from an OpenAPI/Swagger spec, fuzzing inputs,
-and now also mapping and testing an API straight from its source code.
+<h1 align="center">OWASP OFFAT</h1>
 
-**Documentation: [owasp.github.io/OFFAT](https://owasp.github.io/OFFAT/)**
+<p align="center">
+  <b>OFFensive Api Tester</b> &mdash; source-aware API security testing.<br>
+  Maps your API from code, proves source&rarr;sink paths on a code graph, executes tests with a Rust engine,
+  and triages the results with AI.
+</p>
 
-![UnDocumented petstore API endpoint HTTP method results](./assets/images/tests/offat-v0.5.0.png)
-
-## Demo
-
-[![asciicast](https://asciinema.org/a/9MSwl7UafIVT3iJn13OcvWXeF.svg)](https://asciinema.org/a/9MSwl7UafIVT3iJn13OcvWXeF)
-
-> Authorized use only. OFFAT sends real requests to the target you point it at.
-> The platform's execution engine sends active attack traffic and requires an
-> explicit `--yes`. Only test systems and code you own or are authorized to assess.
+<p align="center">
+  <a href="https://owasp.github.io/OFFAT/"><b>Documentation</b></a> &middot;
+  <a href="https://owasp.github.io/OFFAT/installation.html">Install</a> &middot;
+  <a href="https://owasp.github.io/OFFAT/usage.html">Usage</a> &middot;
+  <a href="https://owasp.github.io/OFFAT/github-action.html">GitHub Action</a>
+</p>
 
 ---
 
-OFFAT can be used in two ways.
+> **Authorized use only.** Live runs send real requests to the target you point
+> OFFAT at and require an explicit `--yes`. Only test systems and code you own or
+> are authorized to assess.
 
-## 1. Classic CLI - spec-driven black-box testing
+## What it does
 
-Generate and run tests from an OpenAPI/Swagger file or URL.
+```
+map -> code graph -> threat model -> test-gen -> execute (Rust) -> triage (AI) -> report
+```
+
+- **Map** the attack surface straight from source (decorator routes, routers,
+  OpenAPI/Swagger specs) into one canonical [Bundle](./bundle/README.md) file.
+- **Prove** source-to-sink data flows on a code property graph (Python, JS/TS) and
+  attach every finding to the HTTP route that reaches it.
+- **Execute** the test plan with a Rust engine over HTTP/1.1, HTTP/2, WebSocket and
+  gRPC (HTTP/3 + QUIC opt-in), with identity-aware differential checks for
+  BOLA / BFLA.
+- **Triage** with a token-disciplined AI triager (cached, batched, model-tiered)
+  or a deterministic offline heuristic.
+- **Report** as SARIF 2.1.0 (with code flows), Markdown, HTML, an OWASP API Top 10
+  compliance report, and JUnit.
+
+## Quick start
 
 ```bash
-python -m pip install offat        # CLI only  (offat[api] for CLI + REST API)
-offat -f swagger_file.json         # or: offat -f https://example.com/docs.json
-offat -h                           # all options
+git clone https://github.com/OWASP/OFFAT.git && cd OFFAT
+pip install ./bundle ./triager './whitebox[graph]' ./graybox ./platform ./reporter
+make engine                                   # Rust engine, only for live runs
+
+# source-only: no traffic is sent
+offat-platform run /path/to/repo -o app.offat.json --report-dir reports
+
+# live, against a target you are authorized to test
+offat-platform run /path/to/repo --url https://api.your-authorized-target.test \
+  --identities examples/identities.example.json --yes -o app.offat.json --fail-on high
 ```
 
-Security checks: restricted HTTP methods, SQLi, BOLA, data exposure, BOPLA /
-mass assignment, broken access control, basic command injection, and basic XSS /
-HTML injection - a subset of the OWASP API Top 10.
-
-- Full usage: [owasp.github.io/OFFAT/usage](https://owasp.github.io/OFFAT/usage.html#classic-cli)
-- CI: [GitHub Action](https://owasp.github.io/OFFAT/github-action.html)
-- CLI details: [`src/README.md`](./src/README.md)
-
-## 2. OFFAT-AI platform - source-aware testing
-
-A staged pipeline that maps the attack surface from source (decorator routes
-**and** OpenAPI specs), models threats, generates tests, executes them with a
-Rust engine (HTTP/1.1 + HTTP/2, WebSocket, gRPC; HTTP/3 + QUIC opt-in), and
-triages the findings - all over one canonical Bundle file.
-
-```
-map -> parameter relation graph -> threat model -> test-gen -> execute -> triage -> report
-```
+Source-only modes:
 
 ```bash
-# install the platform and its libraries
-pip install ./bundle ./triager ./whitebox ./graybox ./platform ./reporter
-# build the Rust execution engine (needed only for live runs)
-make engine
-
-# the whole pipeline in one command (omit --url for a source-only run)
-offat-platform run /path/to/repo \
-  --url https://api.your-authorized-target.test \
-  --identities examples/identities.example.json \
-  --yes -o app.offat.json --report-dir reports --fail-on high
+offat-whitebox /path/to/repo          # code-graph SAST + AI triage
+offat-graybox  /path/to/repo          # SAST prioritized by endpoint reachability
 ```
 
-Two source-only modes send no live traffic:
+Or use the container: `docker build -t offat -f docker/Dockerfile .`
 
-```bash
-offat-whitebox /path/to/repo --no-ai          # SAST
-offat-graybox  /path/to/repo --fail-on high   # SAST + endpoint reachability
-```
+## Repository layout
 
-- Overview: [OFFAT-AI.md](./OFFAT-AI.md)
-- How it works: [owasp.github.io/OFFAT/how-it-works](https://owasp.github.io/OFFAT/how-it-works.html)
-- Source modes: [owasp.github.io/OFFAT/source-modes](https://owasp.github.io/OFFAT/source-modes.html)
-- Design docs: [docs/platform.md](./docs/platform.md), [docs/architecture.md](./docs/architecture.md)
+| Path | What |
+|---|---|
+| [`bundle/`](./bundle) | the Bundle contract (schema, IO, validation) |
+| [`platform/`](./platform) | `offat-platform`: map, PRG, threat model, test-gen, triage |
+| [`engine-rs/`](./engine-rs) | `offat-engine`: Rust execution engine |
+| [`whitebox/`](./whitebox) | `offat-whitebox`: code-graph taint engine + SAST pipeline |
+| [`graybox/`](./graybox) | `offat-graybox`: SAST fused with endpoint reachability |
+| [`triager/`](./triager) | shared AI / heuristic triager |
+| [`reporter/`](./reporter) | SARIF, Markdown, HTML, compliance reports |
+| [`viz/`](./viz) | static Bundle visualizer |
+| [`docs/`](./docs) | documentation site sources |
 
-## Features
-
-- Security checks from the OWASP API Top 10
-- Automated, spec-driven and source-aware testing
-- User-config-based testing (YAML)
-- REST API for automation and integrations
-- CLI tools and a Dockerized project
-- GitHub Action for CI
-- Open source under the MIT License
+> The classic spec-only Python CLI (`pip install offat`, `src/`) has been retired
+> in favour of the platform. Its last release remains on PyPI.
 
 ## Contributing
 

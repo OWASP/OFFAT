@@ -1,3 +1,0 @@
-FROM dmdhrumilmistry/offat-base:latest
-
-ENTRYPOINT [ "offat" ]

@@ -1,4 +1,4 @@
-name: "Build and Push Dev/main OWASP OFFAT Docker Images to DockerHub"
+name: "Build and push dev/main OWASP OFFAT image to Docker Hub"
 
 on:
   push:
@@ -6,50 +6,26 @@ on:
       - "main"
       - "dev"
 
+permissions:
+  contents: read
+
 jobs:
-  build-and-push-dev-docker-images:
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
-      - name: Branch Checkout
-        uses: actions/checkout@v2
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and push offat-base docker image
-        uses: docker/build-push-action@v3
+      # One image: Rust execution engine + the Python platform (docker/Dockerfile).
+      - name: Build and push offat image
+        uses: docker/build-push-action@v6
         with:
-          context: ./src/
-          file: ./src/DockerFiles/wolfi-base-Dockerfile
+          context: .
+          file: ./docker/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat-base:${{ github.head_ref || github.ref_name }}
-          platforms: linux/amd64,linux/arm64
-      - name: Build and push offat docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: ./src/
-          file: ./src/DockerFiles/dev/cli-Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat:${{ github.head_ref || github.ref_name }}
-          platforms: linux/amd64,linux/arm64
-      - name: Build and push offat-api docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: ./src/
-          file: ./src/DockerFiles/dev/backend-api-Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat-api:${{ github.head_ref || github.ref_name }}
-          platforms: linux/amd64,linux/arm64
-      - name: Build and push offat-api-worker docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: ./src/
-          file: ./src/DockerFiles/dev/backend-api-worker-Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat-api-worker:${{ github.head_ref || github.ref_name }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/offat:${{ github.ref_name }}
           platforms: linux/amd64,linux/arm64

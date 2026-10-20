@@ -1,56 +1,97 @@
-name: 'OWASP OFFAT CICD Scanner'
-description: 'Autonomously assesses your API for prevalent vulnerabilities in CICD pipelines'
+name: 'OWASP OFFAT'
+description: 'Source-aware API security testing: map from code, prove source-to-sink flows, triage with AI, report as SARIF'
 branding:
   icon: shield
   color: blue
 
 inputs:
-  file:
-    description: 'path or url of openapi/swagger specification file'
-    required: true
-
-  rate_limit:
-    description: 'API requests rate limit per second. default: 60'
+  path:
+    description: 'path to the source tree (and/or OpenAPI spec) to analyze'
     required: false
-    default: '60'
-
+    default: '.'
+  url:
+    description: 'base URL of a target you are authorized to test. Empty = source-only run (no traffic sent)'
+    required: false
+    default: ''
+  authorized:
+    description: "must be 'true' for a live run against url - confirms you own or are authorized to test the target"
+    required: false
+    default: 'false'
+  identities:
+    description: 'optional identities JSON (enables BOLA / BFLA / RBAC / auth checks on live runs)'
+    required: false
+    default: ''
+  fail_on:
+    description: 'fail the job when an actionable finding is at or above this severity (critical|high|medium|low)'
+    required: false
+    default: ''
+  formats:
+    description: 'report formats (sarif,md,html,compliance,pdf or all)'
+    required: false
+    default: 'all'
+  upload_sarif:
+    description: "'true' to upload results.sarif to GitHub code scanning (needs security-events: write)"
+    required: false
+    default: 'false'
   artifact_retention_days:
-    description: 'artifact retention period in days. default: 2'
+    description: 'report artifact retention period in days'
     required: false
-    default: '2'
+    default: '7'
 
 runs:
   using: composite
   steps:
-      - name: Setup Python 3.12
-        uses: actions/setup-python@v5.1.0
-        with:
-          python-version: '3.12'
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
 
-      - name: Install OFFAT
-        run: pip install -U offat
-        shell: bash
+    - name: Install OFFAT
+      shell: bash
+      run: |
+        cd "$GITHUB_ACTION_PATH"
+        pip install ./bundle ./triager './whitebox[graph]' ./graybox ./platform ./reporter
 
-      - name: Run Scanner
-        env:
-          scanner_file: ${{ inputs.file }}
-          scanner_rate_limit: ${{ inputs.rate_limit }}
+    - name: Build the execution engine (live runs only)
+      if: inputs.url != '' && inputs.authorized == 'true'
+      shell: bash
+      run: |
+        cargo build --release --manifest-path "$GITHUB_ACTION_PATH/engine-rs/Cargo.toml"
+        echo "OFFAT_ENGINE=$GITHUB_ACTION_PATH/engine-rs/target/release/offat-engine" >> "$GITHUB_ENV"
 
-        run: |
-          mkdir -p ./offat-tmp/
-          offat --file $scanner_file --rate-limit $scanner_rate_limit -of json -o ./offat-tmp/results.json --capture-failed -H 'User-Agent: github-action-offat'
-        shell: bash
+    - name: Run OFFAT
+      shell: bash
+      env:
+        OFFAT_PATH: ${{ inputs.path }}
+        OFFAT_URL: ${{ inputs.url }}
+        OFFAT_AUTHORIZED: ${{ inputs.authorized }}
+        OFFAT_IDENTITIES: ${{ inputs.identities }}
+        OFFAT_FAIL_ON: ${{ inputs.fail_on }}
+        OFFAT_FORMATS: ${{ inputs.formats }}
+      run: |
+        args=(run "$OFFAT_PATH" -o offat-out/app.offat.json --report-dir offat-out/reports --formats "$OFFAT_FORMATS")
+        if [ -n "$OFFAT_URL" ]; then
+          if [ "$OFFAT_AUTHORIZED" != "true" ]; then
+            echo "::error::url is set but authorized is not 'true'. Live runs send real traffic; only test targets you are authorized to assess."
+            exit 2
+          fi
+          args+=(--url "$OFFAT_URL" --yes)
+          [ -n "$OFFAT_IDENTITIES" ] && args+=(--identities "$OFFAT_IDENTITIES")
+        fi
+        [ -n "$OFFAT_FAIL_ON" ] && args+=(--fail-on "$OFFAT_FAIL_ON")
+        offat-platform "${args[@]}"
 
-      - name: Upload Scan Results to Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: offat-results.json
-          path: ./offat-tmp/results.json
-          retention-days: ${{ inputs.artifact_retention_days }}
-          # retention period docs: https://docs.github.com/en/actions/learn-github-actions/usage-limits-billing-and-administration#artifact-and-log-retention-policy
+    - name: Upload reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: offat-reports
+        path: offat-out/
+        retention-days: ${{ inputs.artifact_retention_days }}
 
-      - name: CleanUp
-        run: rm -rf ./offat-tmp/
-        shell: bash
-
-
+    - name: Upload SARIF to code scanning
+      if: always() && inputs.upload_sarif == 'true' && hashFiles('offat-out/reports/results.sarif') != ''
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: offat-out/reports/results.sarif
+        category: offat
