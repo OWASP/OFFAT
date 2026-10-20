@@ -207,19 +207,19 @@ class TestCLIAgent(unittest.TestCase):
         self.assertIsNone(v.verify(finding))
 
     def test_factory_prefers_api_then_cli_then_none(self):
-        import offat_wb.cpg.agent as agent
+        from offat_wb.cpg.agent import AgentVerifier, make_agent_verifier
         res, _ = self._finding()
         # heuristic disables the agent regardless of environment.
-        self.assertIsNone(agent.make_agent_verifier(res.graph, FIXTURE, provider="heuristic"))
+        self.assertIsNone(make_agent_verifier(res.graph, FIXTURE, provider="heuristic"))
         # With no API key and no CLI available, auto yields nothing.
-        orig = agent.AgentVerifier.from_env
-        agent.AgentVerifier.from_env = classmethod(lambda cls, cg, root: None)
+        orig = AgentVerifier.from_env
+        AgentVerifier.from_env = classmethod(lambda cls, cg, root: None)
         try:
             # claude-code requested but (in CI) not installed -> None, no crash.
-            v = agent.make_agent_verifier(res.graph, FIXTURE, provider="claude-code")
+            v = make_agent_verifier(res.graph, FIXTURE, provider="claude-code")
             self.assertTrue(v is None or v.__class__.__name__ == "CLIAgentVerifier")
         finally:
-            agent.AgentVerifier.from_env = orig
+            AgentVerifier.from_env = orig
 
 
 @unittest.skipUnless(cpg.AVAILABLE, "networkx not installed")
