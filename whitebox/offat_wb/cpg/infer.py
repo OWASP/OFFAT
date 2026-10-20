@@ -96,10 +96,55 @@ def frontier(cg: CodeGraph, min_hits: int = 1, limit: int = 60) -> List[Dict[str
     return out[:limit]
 
 
+def _extract_labels(text: str) -> List[Dict[str, Any]]:
+    start, end = text.find("["), text.rfind("]")
+    if start < 0 or end <= start:
+        return []
+    try:
+        arr = json.loads(text[start:end + 1])
+    except json.JSONDecodeError:
+        return []
+    return [x for x in arr if isinstance(x, dict) and x.get("callee")]
+
+
+def _classify_cli(items: List[Dict[str, Any]], provider: str) -> List[Dict[str, Any]]:
+    """Infer specs through a local agent CLI (Claude Code / Codex); no API key."""
+    from offat_triage.cli_providers import ClaudeCodeTriager, CodexTriager
+
+    want = provider.lower().replace("_", "-")
+    triagers = {"claude-code": ClaudeCodeTriager, "codex": CodexTriager}
+    order = [want] if want in triagers else ["claude-code", "codex"]
+    user = json.dumps([{k: a[k] for k in ("callee", "lang", "examples", "arg_positions")} for a in items],
+                      indent=1)
+    prompt = _SYSTEM + "\n\nCallees:\n" + user + "\n\nOutput ONLY the JSON array."
+    import subprocess
+    for kind in order:
+        t = triagers[kind]()
+        if not t.available():
+            continue
+        try:
+            proc = subprocess.run(t.base_cmd + [prompt], capture_output=True, text=True,
+                                  timeout=600, check=False)
+        except Exception:  # noqa: BLE001
+            continue
+        if proc.returncode == 0:
+            labels = _extract_labels(proc.stdout or "")
+            if labels:
+                return labels
+    return []
+
+
 def classify(items: List[Dict[str, Any]], api_key: Optional[str] = None,
-             base_url: Optional[str] = None, timeout: int = 300) -> List[Dict[str, Any]]:
+             base_url: Optional[str] = None, timeout: int = 300,
+             provider: Optional[str] = None) -> List[Dict[str, Any]]:
+    if not items:
+        return []
     api_key = api_key or os.environ.get("OFFAT_AI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key or not items:
+    want = (provider or os.environ.get("OFFAT_AI_PROVIDER") or "auto").lower().replace("_", "-")
+    # No API key (or a CLI was explicitly requested) -> drive a local agent CLI.
+    if want in ("claude-code", "codex") or (not api_key and want != "anthropic"):
+        return _classify_cli(items, want if want in ("claude-code", "codex") else "auto")
+    if not api_key:
         return []
     base = (base_url or os.environ.get("OFFAT_AI_BASE_URL") or os.environ.get("ANTHROPIC_BASE_URL")
             or "https://api.anthropic.com").rstrip("/")
@@ -117,14 +162,7 @@ def classify(items: List[Dict[str, Any]], api_key: Optional[str] = None,
     if data.get("stop_reason") == "refusal":
         return []
     text = "".join(c.get("text", "") for c in data.get("content", []) if c.get("type") == "text")
-    start, end = text.find("["), text.rfind("]")
-    if start < 0 or end <= start:
-        return []
-    try:
-        arr = json.loads(text[start:end + 1])
-    except json.JSONDecodeError:
-        return []
-    return [x for x in arr if isinstance(x, dict) and x.get("callee")]
+    return _extract_labels(text)
 
 
 def to_spec_file(labels: List[Dict[str, Any]], path: str, min_conf: float = 0.6) -> Dict[str, Any]:

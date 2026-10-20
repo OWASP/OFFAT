@@ -76,7 +76,7 @@ offat-whitebox ./repo --specs specs.json
 - **Graph-tool agent** (`--agent N`). A verifier with read-only tools
   (`get_function`, `callers`, `callees`, `read_lines`, `flows_into`) walks the
   code around each path, tries to refute it, and submits a verdict with a proof
-  request. Repository content is treated as untrusted data.
+  request. Repository content is treated as untrusted data. It runs against an Anthropic API key, **or with no key through the Claude Code / Codex CLI** (`--provider claude-code|codex`), which investigates the repository with its own file tools.
 - **Spec inference** (`--infer-specs`). OFFAT lists the *taint frontier*, the
   unknown library calls that receive attacker data, and the model labels each
   one as a sink, sanitizer or plain propagator. The result is written to

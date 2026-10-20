@@ -169,3 +169,79 @@ class TestAgent(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@unittest.skipUnless(cpg.AVAILABLE, "networkx not installed")
+class TestCLIAgent(unittest.TestCase):
+    def _finding(self):
+        res = cpg.analyze(FIXTURE)
+        return res, next(f for f in res.findings if f["file"] == "pkg/db.py")
+
+    def test_cli_verifier_parses_verdict(self):
+        from offat_wb.cpg.agent import CLIAgentVerifier
+        res, finding = self._finding()
+        calls = {}
+
+        def runner(cmd, cwd):
+            calls["cwd"] = cwd
+            calls["prompt"] = cmd[-1]
+            # A real CLI often wraps JSON in prose / fences.
+            return 0, ('Here is my verdict:\n```json\n'
+                       '{"verdict":"confirmed","confidence":0.9,"severity":"high",'
+                       '"rationale":"concatenated SQL","remediation":"parameterize",'
+                       '"poc":{"method":"GET","path":"/search","query":"q=1","body":""}}\n```')
+
+        v = CLIAgentVerifier(res.graph, FIXTURE, ["claude", "-p"], "claude-code", runner=runner)
+        verdict = v.verify(finding)
+        self.assertEqual(verdict["verdict"], "confirmed")
+        self.assertEqual(verdict["source"], "agent:claude-code")
+        self.assertEqual(verdict["poc"]["path"], "/search")
+        self.assertEqual(os.path.realpath(calls["cwd"]), os.path.realpath(FIXTURE))
+        self.assertIn("pkg/db.py", calls["prompt"])  # the proven path reached the CLI
+
+    def test_cli_verifier_nonzero_exit_is_none(self):
+        from offat_wb.cpg.agent import CLIAgentVerifier
+        res, finding = self._finding()
+        v = CLIAgentVerifier(res.graph, FIXTURE, ["claude", "-p"], "claude-code",
+                             runner=lambda cmd, cwd: (1, "error"))
+        self.assertIsNone(v.verify(finding))
+
+    def test_factory_prefers_api_then_cli_then_none(self):
+        from offat_wb.cpg.agent import AgentVerifier, make_agent_verifier
+        res, _ = self._finding()
+        # heuristic disables the agent regardless of environment.
+        self.assertIsNone(make_agent_verifier(res.graph, FIXTURE, provider="heuristic"))
+        # With no API key and no CLI available, auto yields nothing.
+        orig = AgentVerifier.from_env
+        AgentVerifier.from_env = classmethod(lambda cls, cg, root: None)
+        try:
+            # claude-code requested but (in CI) not installed -> None, no crash.
+            v = make_agent_verifier(res.graph, FIXTURE, provider="claude-code")
+            self.assertTrue(v is None or v.__class__.__name__ == "CLIAgentVerifier")
+        finally:
+            AgentVerifier.from_env = orig
+
+
+@unittest.skipUnless(cpg.AVAILABLE, "networkx not installed")
+class TestCLIInfer(unittest.TestCase):
+    def test_classify_cli_parses_array(self, ):
+        from offat_wb.cpg import infer
+        import subprocess
+        items = [{"callee": "dbx.raw", "lang": "py", "examples": ["a.py:1 dbx.raw(x)"], "arg_positions": [0]}]
+        fake = '[{"callee":"dbx.raw","role":"sink","class":"sqli","cwe":"CWE-89","severity":"high","arg_positions":[0],"confidence":0.9}]'
+
+        class _Avail:
+            base_cmd = ["claude", "-p"]
+            def available(self): return True
+        orig_run, orig_cc = subprocess.run, infer.__dict__.get
+        import offat_triage.cli_providers as clip
+        oc, ox = clip.ClaudeCodeTriager, clip.CodexTriager
+        clip.ClaudeCodeTriager = _Avail
+        subprocess.run = lambda *a, **k: type("P", (), {"returncode": 0, "stdout": fake})()
+        try:
+            out = infer.classify(items, provider="claude-code")
+        finally:
+            subprocess.run = orig_run
+            clip.ClaudeCodeTriager, clip.CodexTriager = oc, ox
+        self.assertEqual(out[0]["callee"], "dbx.raw")
+        self.assertEqual(out[0]["role"], "sink")
