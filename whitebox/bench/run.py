@@ -36,13 +36,11 @@ TRIAGER = os.path.abspath(os.path.join(WB, "..", "triager"))
 if os.path.isdir(TRIAGER) and TRIAGER not in sys.path:
     sys.path.insert(0, TRIAGER)
 
+import importlib.util  # noqa: E402
+
 from offat_wb import cpg  # noqa: E402
 
-try:
-    import tree_sitter_language_pack  # noqa: F401
-    HAVE_TS = True
-except ImportError:
-    HAVE_TS = False
+HAVE_TS = importlib.util.find_spec("tree_sitter_language_pack") is not None
 
 
 def _routes(finding: Dict[str, Any]) -> List[str]:
