@@ -1,45 +1,69 @@
 ---
 title: GitHub Action
-nav_order: 6
-description: "Run the classic OFFAT scanner in CI with the OWASP/OFFAT action."
+section: Integrate
+nav_order: 1
+description: Run OFFAT in CI with the OWASP/OFFAT action and publish results to code scanning.
 ---
 
 # GitHub Action
 
-Run the spec-driven scanner in your CI pipeline with the `OWASP/OFFAT` action.
+The `OWASP/OFFAT` action installs the platform, runs the pipeline over your
+repository and uploads the reports. By default it is **source-only**: nothing is
+sent over the network.
 
-1. Add a repository secret `url` pointing at your OpenAPI/Swagger document.
-2. Add a workflow at `.github/workflows/offat.yml`:
+## Source-only scan
 
-{% raw %}
 ```yaml
-name: OWASP OFFAT Sample Workflow
+name: offat
+on: [push, pull_request]
 
-on:
-  push:
-    branches:
-      - dev
-      - main
+permissions:
+  contents: read
+  security-events: write   # only for upload_sarif
 
 jobs:
-  test:
+  offat:
     runs-on: ubuntu-latest
     steps:
-      - name: Download swagger/OAS file
-        run: curl ${url} -o /tmp/swagger.json
-        env:
-          url: ${{ secrets.url }}
-
-      - name: OWASP OFFAT CICD Scanner
-        uses: OWASP/OFFAT@main        # or pin a version, e.g. OWASP/OFFAT@v0.17.3
+      - uses: actions/checkout@v4
+      - uses: OWASP/OFFAT@dev
         with:
-          file: /tmp/swagger.json     # or ${{ secrets.url }}
-          rate_limit: 120
-          artifact_retention_days: 1
+          path: .
+          fail_on: high
+          upload_sarif: 'true'
+        env:
+          OFFAT_AI_API_KEY: ${{ secrets.OFFAT_AI_API_KEY }}   # optional: AI triage
 ```
-{% endraw %}
 
-> Prefer pinning the action to a specific version (`OWASP/OFFAT@v0.17.3`) rather
-> than `@main`, and bump it after testing.
+Findings appear in **Security → Code scanning**, with each proven source-to-sink
+path rendered as a code flow.
 
-Only run this against an API you own or are explicitly authorized to test.
+## Live scan of a staging deployment
+
+A live run needs both `url` and `authorized: 'true'`. The action refuses a URL
+without the explicit confirmation, mirroring the CLI's `--yes` gate.
+
+```yaml
+      - uses: OWASP/OFFAT@dev
+        with:
+          path: .
+          url: https://staging.api.example.test
+          authorized: 'true'
+          identities: .github/offat-identities.json
+          fail_on: high
+```
+
+Only point it at environments you own or are explicitly authorized to test.
+
+## Inputs
+
+| Input | Default | Description |
+|---|---|---|
+| `path` | `.` | source tree and/or OpenAPI spec to analyze |
+| `url` | empty | base URL of an authorized target; empty = source-only |
+| `authorized` | `false` | must be `'true'` for live runs |
+| `identities` | empty | identities JSON for access-control checks |
+| `fail_on` | empty | fail on findings at or above `critical`, `high`, `medium` or `low` |
+| `formats` | `all` | `sarif,md,html,compliance,pdf` or `all` |
+| `upload_sarif` | `false` | upload `results.sarif` to code scanning |
+| `artifact_retention_days` | `7` | retention for the `offat-reports` artifact |

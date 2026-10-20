@@ -1,6 +1,0 @@
-include README.md
-include LICENSE
-include SECURITY.md
-include DISCLAIMER.md
-
-include offat/report/templates/report.html

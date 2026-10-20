@@ -1,6 +1,6 @@
 name: docs
 
-# Build the documentation site (docs/, just-the-docs) and deploy it to
+# Build the documentation site (docs/build.py -> docs/_site) and deploy it to
 # GitHub Pages. Requires Pages "Build and deployment" source = GitHub Actions.
 on:
   push:
@@ -23,22 +23,20 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: docs
     steps:
       - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
+      - uses: actions/setup-python@v5
         with:
-          ruby-version: "3.3"
-          bundler-cache: true
-          working-directory: docs
+          python-version: "3.12"
       - id: pages
         uses: actions/configure-pages@v5
-      - name: Build with Jekyll
-        run: bundle exec jekyll build --baseurl "${{ steps.pages.outputs.base_path }}"
+      - name: Build the docs site
+        run: |
+          pip install -r docs/requirements.txt
+          python docs/build.py
         env:
-          JEKYLL_ENV: production
+          DOCS_BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+          DOCS_SITE_URL: ${{ steps.pages.outputs.base_url }}/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs/_site

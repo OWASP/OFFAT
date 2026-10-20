@@ -1,19 +1,11 @@
 ---
 title: How it works
-nav_order: 4
-description: "The OFFAT-AI platform pipeline, the Bundle contract, and the Rust engine."
+section: Concepts
+nav_order: 1
+description: The pipeline, the Bundle contract and the Rust execution engine.
 ---
 
 # How it works
-{: .no_toc }
-
-## Table of contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
----
 
 OFFAT-AI is a staged platform. Every stage reads and writes one canonical
 document - the **OFFAT Bundle** (`*.offat.json`) - so the pipeline composes
@@ -34,8 +26,8 @@ cleanly and each stage is a pure transform over the file.
 ## The stages
 
 1. **Map** - parse source and any OpenAPI/Swagger spec into endpoints (with
-   params and response fields) and a sink/source inventory; build the structural
-   graph with `graft` when present.
+   params and response fields) and a sink/source inventory, backed by the
+   [code graph](code-graph.md).
 2. **Parameter relation graph (PRG)** - link producers (an endpoint's response
    fields) to consumers (another endpoint's request params) by name, resource, or
    type, so cases can chain across endpoints and replay a foreign id for BOLA.
@@ -96,10 +88,11 @@ handshake probe and message-content injection; gRPC methods get an
 unauthenticated-invocation probe and an unprivileged BFLA invocation judged by the
 returned `grpc-status`.
 
-**Source (white-box / gray-box):** hardcoded secrets, injection sinks, unsafe
-deserialization, weak crypto / TLS-off, DOM XSS sinks, SSRF sinks, misconfig, and
-vulnerable dependencies (SCA), plus anything `semgrep --config auto` finds. See
-[Source modes](source-modes.html).
+**Source (white-box / gray-box):** proven source-to-sink flows for injection,
+SSRF, path traversal, deserialization, SSTI, XSS, open redirect, ReDoS, mass
+assignment and BOLA candidates (see [Code graph](code-graph.md)), plus hardcoded
+secrets, weak crypto / TLS-off, misconfiguration and vulnerable dependencies
+(SCA). See [Source modes](source-modes.md).
 
 ## Threat mapping
 
@@ -110,7 +103,4 @@ OWASP API Top 10 with ASVS notes.
 
 ## Design docs
 
-For contributors, the full design and the shared finding schema live in the repo:
-
-- [Platform design](https://github.com/OWASP/OFFAT/blob/dev/docs/platform.md)
-- [Architecture](https://github.com/OWASP/OFFAT/blob/dev/docs/architecture.md)
+For contributors: [Platform design](platform.md) and [Architecture](architecture.md).

@@ -1,77 +1,64 @@
 ---
 title: Source modes
-nav_order: 5
-description: "White-box (SAST) and gray-box (SAST + reachability) - no live traffic."
+section: Concepts
+nav_order: 3
+description: White-box and gray-box analysis of code you own, with no live traffic.
 ---
 
 # Source modes
-{: .no_toc }
 
-## Table of contents
-{: .no_toc .text-delta }
+Two modes analyze code you own without sending any traffic. Both share the
+platform's code graph, triager and report writers.
 
-1. TOC
-{:toc}
-
----
-
-Two modes analyze code you own without sending any live traffic. Both reuse the
-same libraries, triager, and reporters as the live platform.
-
-## White-box (SAST)
+## White-box
 
 ```bash
-offat-whitebox /path/to/your/repo --no-ai      # heuristic; drop --no-ai for AI triage
-offat-whitebox /path/to/your/repo --fail-on high
+offat-whitebox /path/to/your/repo                 # AI triage when a provider is available
+offat-whitebox /path/to/your/repo --no-ai         # offline heuristic only
+offat-whitebox /path/to/your/repo --fail-on high  # CI gate
 ```
 
-Pipeline:
-
 ```
-recon -> hunt -> trace -> chain -> verify (triage) -> report
+recon -> code graph + patterns -> chain -> verify (triage / agent) -> report
 ```
 
-- **recon / hunt** - find sinks and sources with a dependency-free,
-  multi-language pattern hunter, plus `semgrep --config auto` when installed.
-- **trace** - use `graft` (when installed) to raise confidence on sinks reachable
-  from an entry point.
-- **verify** - the shared token-disciplined triager assigns a verdict, CVSS, and
-  remediation.
-- **report** - findings plus JUnit and a `--fail-on` CI gate.
+- **recon** - detect the stack, inventory manifests, generate an SBOM and
+  dependency CVEs when `syft` / `grype` / `trivy` / `osv-scanner` are installed.
+- **code graph** - prove source-to-sink flows and attach routes
+  ([details](code-graph.md)).
+- **patterns** - secrets, weak crypto, TLS-off and misconfiguration. Injection
+  hits the graph cannot connect to a source are kept, but demoted.
+- **verify** - the shared triager assigns verdict, CVSS and remediation;
+  `--agent N` re-verifies the top findings with graph tools.
+- **report** - JSON, JSONL, SARIF (with code flows), Markdown, HTML and JUnit.
 
-Catches: hardcoded secrets, injection sinks, unsafe deserialization, weak crypto
-/ TLS-off, DOM XSS sinks, SSRF sinks, misconfiguration, and vulnerable
-dependencies (SCA).
+semgrep is no longer part of the default pipeline; pass `--semgrep` to add it.
 
-## Gray-box (SAST + reachability)
+## Gray-box
 
 ```bash
 offat-graybox /path/to/your/repo --fail-on high
-offat-graybox /path/to/your/repo --no-ai -o out/report   # offline
+offat-graybox /path/to/your/repo --no-ai -o out/report
 ```
 
-Pipeline:
-
 ```
-recon -> map endpoints (graft) -> hunt -> reachability -> analyze (AI) -> report
+recon -> map endpoints -> code graph + patterns -> reachability -> analyze (AI) -> report
 ```
 
-Gray-box fuses the source view with a `graft`-mapped endpoint surface and judges
-each finding by **reachability** - which exposed endpoint reaches the sink. AI
-runs only on reachable findings, batched, cached, and model-tiered, so it stays
-token-disciplined. No live traffic is sent.
+Gray-box judges every finding by **reachability**: which exposed endpoint
+reaches it through the call graph. Only reachable findings are sent to a model,
+batched, cached and model-tiered; unreachable ones are triaged offline at zero
+token cost.
 
-## When to use which
+## Which mode
 
 | Mode | Live traffic | Best for |
 |---|:--:|---|
-| Classic CLI | yes | A running API with an OpenAPI/Swagger spec |
-| Platform `run --url` | yes | Deep, source-aware testing of an API you can reach |
-| Platform `run` (no `--url`) | no | Source-only pass, SAST findings only |
-| White-box | no | Fast SAST over any codebase |
-| Gray-box | no | SAST prioritized by endpoint reachability |
+| `offat-platform run --url` | yes | deep, source-aware testing of an API you are authorized to test |
+| `offat-platform run` | no | the full pipeline as a planning and SAST pass |
+| `offat-whitebox` | no | fast SAST over any codebase |
+| `offat-graybox` | no | SAST prioritized by endpoint reachability |
 
 ## Deep dives
 
-- [White-box design](https://github.com/OWASP/OFFAT/blob/dev/docs/whitebox.md)
-- [Gray-box design](https://github.com/OWASP/OFFAT/blob/dev/docs/graybox.md)
+[White-box design](whitebox.md) · [Gray-box design](graybox.md)

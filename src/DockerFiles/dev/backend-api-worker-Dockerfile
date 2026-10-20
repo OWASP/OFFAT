@@ -1,5 +1,0 @@
-FROM dmdhrumilmistry/offat-base:dev
-
-WORKDIR /offat
-
-ENTRYPOINT [ "rq", "worker", "offat_task_queue" ]

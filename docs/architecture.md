@@ -1,3 +1,10 @@
+---
+title: Architecture
+section: Deep dives
+nav_order: 1
+description: Shared finding schema, the pipelines, the triager and extension points.
+---
+
 # Architecture
 
 OFFAT-AI is a staged platform whose tools share one finding schema, one triager,
@@ -56,22 +63,22 @@ binary was not built with is recorded as skipped so the Bundle stays complete.
 ### White-box pipeline (`whitebox/`, Python)
 
 ```
-recon --> hunt --> trace --> chain --> verify (triage) --> report
+recon --> code graph + patterns --> chain --> verify (triage / agent) --> report
 ```
 
-External tools (`semgrep`, `syft`, `grype`/`trivy`/`osv-scanner`, `graft`) are used
-when present; a dependency-free multi-language pattern hunter guarantees output
-otherwise. The **trace** stage uses graft (when installed) to bump confidence on
-sinks reachable from an entry point; **verify** uses the shared token-disciplined
-triager and the reporter emits JUnit plus a `--fail-on` CI gate.
+The [code graph](code-graph.md) proves source-to-sink flows and attaches routes;
+a dependency-free pattern hunter covers secrets, crypto and misconfiguration.
+External tools (`syft`, `grype`/`trivy`/`osv-scanner`, and opt-in `semgrep`) are
+used when present. **verify** uses the shared token-disciplined triager and the
+reporter emits SARIF code flows, JUnit and a `--fail-on` CI gate.
 
 ### Gray-box pipeline (`graybox/`, Python)
 
 ```
-recon --> map endpoints (graft) --> hunt --> reachability --> analyze (AI) --> report
+recon --> map endpoints --> code graph + patterns --> reachability --> analyze (AI) --> report
 ```
 
-Fuses the source view with a graft-mapped endpoint surface and judges each finding
+Fuses the source view with the mapped endpoint surface and judges each finding
 by reachability (which exposed endpoint reaches the sink). No live traffic. AI runs
 only on reachable findings - reachable-only, batched, cached and model-tiered.
 
@@ -94,8 +101,9 @@ verdict cache plus a cheap-model screen before a strong-model verify.
 
 - **New attack vector / test case:** extend `platform.testgen` (vectors matched to
   params, or a new generator).
-- **New SAST rule:** add a pattern to `whitebox/offat_wb/hunt.py`, or install
-  semgrep for its full ruleset.
+- **New source / sink / sanitizer:** pass a `--specs` JSON file, or extend
+  `whitebox/offat_wb/cpg/specs.py`; pattern-only rules live in
+  `whitebox/offat_wb/hunt.py`.
 - **New report format:** add a writer in `reporter/offat_report/render.py`.
 - **New threat mapping:** extend `triager/offat_triage/taxonomy.py`.
 - **Different AI backend:** point `OFFAT_AI_BASE_URL` at an Anthropic-compatible
