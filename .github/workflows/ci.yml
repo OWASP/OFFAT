@@ -91,6 +91,11 @@ jobs:
         run: PYTHONPATH=triager python3 -m unittest discover -s triager/tests -p 'test_*.py'
       - name: White-box unit tests
         run: PYTHONPATH=whitebox:triager python3 -m unittest discover -s whitebox/tests -p 'test_*.py'
+      - name: Code-graph benchmark (precision/recall gate)
+        run: python3 whitebox/bench/run.py --fail-under-recall 1.0 --fail-under-precision 1.0 --markdown bench.md
+      - name: Benchmark summary
+        if: always()
+        run: cat bench.md >> "$GITHUB_STEP_SUMMARY" || true
       - name: Gray-box unit tests
         run: PYTHONPATH=graybox:whitebox:triager python3 -m unittest discover -s graybox/tests -p 'test_*.py'
       - name: Platform unit tests

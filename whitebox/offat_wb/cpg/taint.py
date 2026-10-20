@@ -159,7 +159,14 @@ def to_findings(cg: CodeGraph, flows: List[Dict[str, Any]]) -> List[Dict[str, An
         src = cg.g.nodes[fl["source"]]
         file, line = snode.get("file", ""), int(snode.get("line", 0) or 0)
         hops = render_hops(cg, fl["path"])
-        entry_fns = sorted({e for s in fl["sources"] for e in cg.entries_reaching(cg.g.nodes[s].get("fn", ""))})
+        # Entry points that taint this flow's source(s)...
+        src_entries = {e for s in fl["sources"] for e in cg.entries_reaching(cg.g.nodes[s].get("fn", ""))}
+        # ...intersected with the entry points whose call graph actually reaches the
+        # sink's function. A shared field (or other merged node) can carry taint from a
+        # route that never calls the sink's function (e.g. a "safe" sibling method); such
+        # a route cannot trigger the sink, so it must not be attributed to the flow.
+        sink_entries = set(cg.entries_reaching(snode.get("fn", "")))
+        entry_fns = sorted(src_entries & sink_entries) or sorted(src_entries)
         routes = []
         for fn in entry_fns:
             r = cg.g.nodes[fn].get("route") or {}
