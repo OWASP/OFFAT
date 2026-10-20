@@ -1,16 +1,18 @@
 """White-box pipeline orchestrator and CLI.
 
-Stages: recon -> hunt (builtin + semgrep) -> chain -> verify (triage) -> report.
+Stages: recon -> graph (code-graph taint) + hunt (patterns) -> chain -> verify (triage,
+optional graph-tool agent) -> report. semgrep is opt-in (``--semgrep``).
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from typing import Any, Dict, List
 
-from . import hunt, recon, report, trace
+from . import cpg, hunt, recon, report, trace
 from .tools import ToolStatus, have
 
 # Import the shared triager, falling back to the sibling repo package when the
@@ -54,32 +56,68 @@ def _chain(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 def run_pipeline(target: str, classes: List[str] | None, use_ai: bool,
                  use_semgrep: bool, out_dir: str, provider: str | None = None,
-                 use_graft: bool = True, use_cache: bool = True) -> Dict[str, Any]:
+                 use_graft: bool = True, use_cache: bool = True, use_graph: bool = True,
+                 spec_file: str | None = None, local_sources: bool = False,
+                 graph_out: bool = False, agent: int = 0, infer_specs: bool = False) -> Dict[str, Any]:
     status = ToolStatus()
     print(f"[recon] scanning {target} ...")
     recon_info = recon.recon(target, status)
     print(f"[recon] languages: {recon_info['languages']}  manifests: {len(recon_info['manifests'])}  "
           f"sbom: {recon_info['sbom_components']}  dep-cves: {len(recon_info['dependency_findings'])}")
 
+    os.makedirs(out_dir, exist_ok=True)
+    graph = None
+    graph_findings: List[Dict[str, Any]] = []
+    status.available["code_graph"] = use_graph and cpg.AVAILABLE
+    if use_graph and cpg.AVAILABLE:
+        print("[graph] building code graph + source-to-sink taint search ...")
+        res = cpg.analyze(target, classes=classes, local_sources=local_sources, spec_file=spec_file)
+        if infer_specs:
+            from .cpg import infer
+            items = infer.frontier(res.graph)
+            with open(os.path.join(out_dir, "taint-frontier.json"), "w", encoding="utf-8") as fh:
+                json.dump(items, fh, indent=2)
+            labels = infer.classify(items) if use_ai else []
+            if labels:
+                spec_file = os.path.join(out_dir, "inferred-specs.json")
+                spec = infer.to_spec_file(labels, spec_file)
+                print(f"[graph] AI-inferred {len(spec['sinks'])} sink(s) / {len(spec['sanitizers'])} "
+                      f"sanitizer(s) from {len(items)} frontier callee(s); re-running")
+                res = cpg.analyze(target, classes=classes, local_sources=local_sources, spec_file=spec_file)
+            else:
+                print(f"[graph] taint frontier: {len(items)} unknown callee(s) receive attacker data "
+                      "(taint-frontier.json)")
+        graph, graph_findings = res.graph, res.findings
+        for note in res.notes:
+            status.notes.append(f"graph: {note}")
+        print(f"[graph] {res.stats.get('nodes.function', 0)} functions, {res.stats.get('entrypoints', 0)} "
+              f"entry points, {len(graph_findings)} proven source-to-sink flow(s)")
+        if graph_out:
+            graph.to_json(os.path.join(out_dir, "cpg.json"))
+            graph.to_graphml(os.path.join(out_dir, "cpg.graphml"))
+            print(f"[graph] exported {out_dir}/cpg.json and cpg.graphml")
+    elif use_graph:
+        status.skip("code_graph", "networkx not installed (pip install 'offat-whitebox[graph]')")
+
     print("[hunt] built-in pattern hunter ...")
     findings = hunt.builtin_hunt(target, classes)
     if use_semgrep and have("semgrep"):
         status.available["semgrep"] = True
-        print("[hunt] semgrep ...")
+        print("[hunt] semgrep (opt-in) ...")
         findings += hunt.semgrep_hunt(target)
     else:
-        status.available["semgrep"] = have("semgrep")
-        if not have("semgrep"):
-            status.skip("semgrep", "not installed")
+        status.available["semgrep"] = False
 
     findings += recon_info.pop("dependency_findings", [])
     findings = _dedupe(findings)
+    if graph is not None:
+        findings = cpg.merge_with_patterns(graph, graph_findings, findings)
     print(f"[hunt] {len(findings)} candidate findings")
 
     # Threat mapping: OWASP API Top 10 (2023) + OWASP Top 10 (2021) + CWE.
     enrich_threats(findings)
 
-    if use_graft:
+    if use_graft and graph is None:
         print("[trace] source-to-sink tracing (graft) ...")
         findings = trace.trace(target, findings, status)
         traced = sum(1 for f in findings if f.get("traced"))
@@ -90,9 +128,19 @@ def run_pipeline(target: str, classes: List[str] | None, use_ai: bool,
     findings = _chain(findings)
 
     print("[verify] triaging (cached, batched, tiered) ...")
+    tkw = {"system": cpg.GRAPH_SYSTEM, "block_fn": cpg.triage_block} if graph is not None else {}
     source = tiered_triage(findings, out_dir, provider=provider, use_ai=use_ai,
-                           cache_enabled=use_cache)
+                           cache_enabled=use_cache, **tkw)
     print(f"[verify] triage source: {source}")
+    if agent and use_ai and graph is not None:
+        from .cpg.agent import AgentVerifier, agent_verify
+        verifier = AgentVerifier.from_env(graph, target)
+        if verifier is None:
+            status.skip("agent", "no OFFAT_AI_API_KEY / ANTHROPIC_API_KEY")
+        else:
+            n = agent_verify(findings, verifier, limit=agent)
+            source += f" + agent:{verifier.model}({n})"
+            print(f"[verify] graph-tool agent re-verified {n} finding(s)")
 
     rep = report.build_report(target, findings, recon_info, source, status)
     report.write_all(out_dir, rep)
@@ -124,8 +172,19 @@ def main(argv: List[str] | None = None) -> int:
     ap.add_argument("--no-ai", action="store_true", help="use heuristic triage only")
     ap.add_argument("--provider", default=None,
                     help="AI backend: auto (default), anthropic, claude-code, codex, heuristic")
-    ap.add_argument("--no-semgrep", action="store_true", help="skip semgrep even if installed")
-    ap.add_argument("--no-graft", action="store_true", help="skip graft source-to-sink tracing")
+    ap.add_argument("--semgrep", action="store_true",
+                    help="also run semgrep --config auto (opt-in; the code graph is the default engine)")
+    ap.add_argument("--no-semgrep", action="store_true", help=argparse.SUPPRESS)
+    ap.add_argument("--no-graph", action="store_true", help="skip the code-graph taint engine")
+    ap.add_argument("--specs", default=None, help="extra source/sink/sanitizer specs (JSON)")
+    ap.add_argument("--local-sources", action="store_true",
+                    help="also treat argv/env/stdin as sources (CLI tools, scripts)")
+    ap.add_argument("--graph-out", action="store_true", help="export the code graph (JSON + GraphML)")
+    ap.add_argument("--agent", type=int, default=0, metavar="N",
+                    help="re-verify the top N graph findings with a graph-tool AI agent (needs API key)")
+    ap.add_argument("--infer-specs", action="store_true",
+                    help="list the taint frontier and (with an API key) let AI infer missing sinks/sanitizers")
+    ap.add_argument("--no-graft", action="store_true", help="skip graft tracing (used only with --no-graph)")
     ap.add_argument("--no-cache", action="store_true", help="do not read/write the AI-verdict cache")
     ap.add_argument("--fail-on", default="",
                     help="exit non-zero if an actionable finding is at/above this severity "
@@ -138,9 +197,11 @@ def main(argv: List[str] | None = None) -> int:
         return 2
     classes = [c.strip() for c in args.classes.split(",") if c.strip()] or None
     rep = run_pipeline(target, classes, use_ai=not args.no_ai,
-                       use_semgrep=not args.no_semgrep, out_dir=args.out,
+                       use_semgrep=args.semgrep and not args.no_semgrep, out_dir=args.out,
                        provider=args.provider, use_graft=not args.no_graft,
-                       use_cache=not args.no_cache)
+                       use_cache=not args.no_cache, use_graph=not args.no_graph,
+                       spec_file=args.specs, local_sources=args.local_sources,
+                       graph_out=args.graph_out, agent=args.agent, infer_specs=args.infer_specs)
 
     if args.fail_on:
         n = report.count_at_or_above(rep, args.fail_on)

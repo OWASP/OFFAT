@@ -11,7 +11,8 @@ description: >
 # OFFAT-AI — White-box (SAST)
 
 Drive the Python pipeline that reviews source code: detects the stack, hunts
-vulnerabilities (built-in multi-language pattern hunter + semgrep when present),
+vulnerabilities (a code-graph taint engine that proves source -> sink paths, plus a
+pattern hunter for secrets/crypto/misconfig; semgrep only with `--semgrep`),
 chains co-located issues, triages them (AI or heuristic) and writes reports.
 
 Scope is **owned or authorized code only** (no live testing of third parties).
@@ -19,7 +20,8 @@ Scope is **owned or authorized code only** (no live testing of third parties).
 ## Steps
 
 1. **Point at the codebase** (a local path). Deepen results by installing the
-   optional scanners when available: `semgrep`, `syft`, `grype` (all optional —
+   graph extra (`pip install './whitebox[graph]'`) and the optional scanners `syft`,
+   `grype` (all optional —
    the pipeline runs without them and notes what was skipped).
 
 2. **Run the pipeline:**

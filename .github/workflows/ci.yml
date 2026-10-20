@@ -84,7 +84,7 @@ jobs:
       - name: Byte-compile
         run: python3 -m compileall -q bundle/offat_bundle triager/offat_triage whitebox/offat_wb graybox/offat_gb platform/offat_platform reporter/offat_report
       - name: Install packages
-        run: pip install ./bundle ./triager ./whitebox ./graybox ./platform ./reporter jsonschema pyyaml
+        run: pip install ./bundle ./triager './whitebox[graph]' ./graybox ./platform ./reporter jsonschema pyyaml
       - name: Bundle unit tests
         run: PYTHONPATH=bundle python3 -m unittest discover -s bundle/tests -p 'test_*.py'
       - name: Triager unit tests

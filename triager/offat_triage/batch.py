@@ -30,7 +30,7 @@ from .triager import (
     make_triager,
 )
 
-SCREEN_MODEL = os.environ.get("OFFAT_SCREEN_MODEL", "claude-haiku-5")
+SCREEN_MODEL = os.environ.get("OFFAT_SCREEN_MODEL", "claude-haiku-5-5")
 VERIFY_MODEL = os.environ.get("OFFAT_VERIFY_MODEL", "claude-sonnet-5")
 BATCH_SIZE = int(os.environ.get("OFFAT_BATCH_SIZE", "8") or "8")
 

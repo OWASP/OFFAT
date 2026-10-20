@@ -196,6 +196,11 @@ def _build_prompt(f: Dict[str, Any]) -> str:
     if ev:
         lines.append("Evidence:")
         for k, v in ev.items():
+            if k == "path" and isinstance(v, list):
+                lines.append("- data flow (source -> sink, proven on the code graph):")
+                lines += [f"    {h.get('file')}:{h.get('line')} [{h.get('kind')}] {str(h.get('code', ''))[:160]}"
+                          for h in v[:25]]
+                continue
             if v not in (None, "", 0):
                 lines.append(f"- {k}: {str(v)[:800]}")
     if f.get("code"):

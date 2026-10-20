@@ -41,6 +41,11 @@ def _gb_block(idx: int, f: Dict[str, Any]) -> str:
     parts.append("reachable_from=" + (", ".join(rf) if rf else "none"))
     parts.append(f"detector_confidence={f.get('confidence', 0)}")
     head = " ".join(parts)
+    path = (f.get("evidence") or {}).get("path") or []
+    if path:   # proven on the code graph: the hops are better evidence than a snippet
+        return head + "\npath:\n" + "\n".join(
+            f"  {h.get('file')}:{h.get('line')} [{h.get('kind')}] {str(h.get('code', ''))[:160]}"
+            for h in path[:20])
     code = str(f.get("code", "") or "")[:800]
     return head + (f"\ncode:\n{code}" if code else "")
 

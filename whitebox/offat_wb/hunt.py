@@ -40,7 +40,7 @@ _RAW_RULES = [
      [], 0.55),
     # Injection sinks
     ("sink-eval", "command_injection", "Dangerous dynamic evaluation (eval/exec)", "high", "CWE-95", "A03",
-     r"(?<![\w.])(eval|exec)\s*\(", [".py", ".js", ".ts", ".rb", ".php"], 0.6),
+     r"(?<![\w.])(?<!def )(?<!function )(eval|exec)\s*\(", [".py", ".js", ".ts", ".rb", ".php"], 0.6),
     ("sink-os-system", "command_injection", "Shell command execution", "high", "CWE-78", "A03",
      r"(os\.system|subprocess\.(call|run|Popen)\([^)]*shell\s*=\s*True|child_process\.exec\(|Runtime\.getRuntime\(\)\.exec\()",
      [], 0.65),
