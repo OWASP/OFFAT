@@ -131,15 +131,11 @@ def build(bundle: Dict[str, Any], *, use_ai: bool = False,
 
 
 def _augment_with_ai(bundle, endpoints, provider) -> int:
-    """Best-effort AI payloads per endpoint. No-op unless an API provider works."""
+    """Best-effort AI payloads per endpoint. Works through an Anthropic API key or
+    the claude-code / codex CLI (shared backend selection); no-op without any."""
     try:
-        from offat_triage.triager import AnthropicTriager
-        import urllib.request
-        from offat_triage.triager import ANTHROPIC_VERSION
+        from offat_triage import complete
     except Exception:
-        return 0
-    t = AnthropicTriager.from_env()
-    if t is None:
         return 0
     added = 0
     for ep in endpoints:
@@ -149,16 +145,10 @@ def _augment_with_ai(bundle, endpoints, provider) -> int:
         prompt = (f"Endpoint {ep['method']} {ep['path']} with params {params}. "
                   "Propose up to 4 meaningful security test payloads. Respond ONLY as a JSON "
                   'array of {"param":"","class":"","technique":"","payload":"","rationale":""}.')
-        payload = {"model": t.model, "max_tokens": 700,
-                   "messages": [{"role": "user", "content": prompt}]}
-        req = urllib.request.Request(
-            t.base_url + "/v1/messages", data=json.dumps(payload).encode(),
-            headers={"content-type": "application/json", "x-api-key": t.api_key or "",
-                     "anthropic-version": ANTHROPIC_VERSION}, method="POST")
+        text = complete(prompt, provider=provider, max_tokens=700)
+        if not text:
+            continue
         try:
-            with urllib.request.urlopen(req, timeout=t.timeout) as resp:
-                data = json.loads(resp.read().decode())
-            text = "".join(c.get("text", "") for c in data.get("content", []) if c.get("type") == "text")
             arr = json.loads(text[text.find("["):text.rfind("]") + 1])
         except Exception:
             continue

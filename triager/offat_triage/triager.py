@@ -251,6 +251,47 @@ def make_triager(provider: Optional[str] = None, use_ai: bool = True):
     return None
 
 
+def complete(prompt: str, *, system: Optional[str] = None, provider: Optional[str] = None,
+             use_ai: bool = True, max_tokens: int = 1024, timeout: int = 120) -> Optional[str]:
+    """One-shot text completion through the configured backend.
+
+    The shared entry point for every AI use that is not finding-triage (e.g.
+    payload generation). Uses an Anthropic API key, or the claude-code / codex
+    CLI (same selection as :func:`make_triager`), so no site needs an API key of
+    its own. Returns the model's text, or ``None`` when no backend is available
+    or the call fails - callers degrade to their non-AI path.
+    """
+    triager = make_triager(provider, use_ai)
+    if triager is None:
+        return None
+    if isinstance(triager, AnthropicTriager):
+        payload = {"model": triager.model, "max_tokens": max_tokens,
+                   "messages": [{"role": "user", "content": prompt}]}
+        if system:
+            payload["system"] = system
+        req = urllib.request.Request(
+            triager.base_url + "/v1/messages", data=json.dumps(payload).encode(),
+            headers={"content-type": "application/json", "x-api-key": triager.api_key or "",
+                     "anthropic-version": ANTHROPIC_VERSION}, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                data = json.loads(resp.read().decode())
+        except Exception:  # noqa: BLE001 - degrade to no-AI
+            return None
+        if data.get("stop_reason") == "refusal":
+            return None
+        return "".join(c.get("text", "") for c in data.get("content", []) if c.get("type") == "text")
+    # CLI backend (claude-code / codex): one-shot, system folded into the prompt.
+    full = (system + "\n\n" + prompt) if system else prompt
+    try:
+        import subprocess
+        proc = subprocess.run(triager.base_cmd + [full], capture_output=True, text=True,
+                              timeout=max(timeout, getattr(triager, "timeout", timeout)), check=False)
+    except Exception:  # noqa: BLE001
+        return None
+    return proc.stdout if proc.returncode == 0 else None
+
+
 def triage_findings(
     findings: Iterable[Dict[str, Any]],
     use_ai: bool = True,
