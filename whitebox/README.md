@@ -33,7 +33,7 @@ recon  ->  graph (code-graph taint)  +  hunt (patterns)  ->  chain  ->  verify (
 | Graph | networkx `MultiDiGraph`: functions, params, versioned locals, fields, call sites, args, returns, sources |
 | Edges | `flow` (with per-class `sanitizes`), `call` / `ret` labelled by call site, `calls` (call graph) |
 | Python | Flask, FastAPI/Starlette, Django/DRF, Tornado, aiohttp, AWS Lambda; `src/` layouts; nested functions; RQ/Celery/threads/executors (`enqueue(fn, x)`, `fn.delay(x)`, `Thread(target=fn)`) |
-| Ruby/PHP/+ | profile-driven generic frontend: Rails/Sinatra `params`, PHP superglobals, and a best-effort catch-all for Java/Kotlin/C#/Rust/Scala |
+| Ruby/PHP/Java | profile-driven frontend: Rails/Sinatra `params`, PHP superglobals, Spring `@*Mapping` routes + annotated sources; best-effort catch-all for Kotlin/C#/Rust/Scala |
 | Go | net/http, gin, echo, chi, gorilla/mux routes; request accessors as sources; interprocedural call/return; `strconv`/`filepath.Base` sanitizers |
 | JS/TS | Express-style routers incl. handler factories and wrappers (`app.get(p, asyncHandler(login()))`), `require`/`import`/`export`, callbacks |
 | Classes | sqli, nosqli, command/code injection, SSTI, path traversal, SSRF, deserialization, XXE, XSS, open redirect, LDAP, ReDoS, mass assignment (API3), BOLA candidates (API1, with ownership-check detection) |

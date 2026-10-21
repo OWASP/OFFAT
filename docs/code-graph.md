@@ -43,7 +43,10 @@ Edges are `flow` (optionally carrying the classes a sanitizer neutralizes),
   `eval` / `Marshal.load` sinks.
 - **PHP** (tree-sitter): superglobal sources (`$_GET`, `$_POST`, ...), `mysqli_query` /
   `system` / `echo` / `unserialize` sinks.
-- **Generic** (tree-sitter): a best-effort profile for Java, Kotlin, C#, Rust and
+- **Java** (tree-sitter): Spring `@*Mapping` routes and `@RequestParam` / `@PathVariable`
+  / `@RequestBody` annotated sources (plus servlet `getParameter`); JDBC/JPA,
+  `Runtime.exec`/`ProcessBuilder`, file I/O, `ObjectInputStream`, response-writer sinks.
+- **Generic** (tree-sitter): a best-effort profile for Kotlin, C#, Rust and
   Scala - structural taint (declarations, calls, string concatenation) against a
   conservative cross-language sink catalog; findings are marked lower confidence.
 

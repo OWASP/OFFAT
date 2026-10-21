@@ -388,3 +388,22 @@ class TestGenericFrontend(unittest.TestCase):
                          "    stmt.executeQuery(\"SELECT * FROM u WHERE n = '\" + q + \"'\");\n  }\n}\n")
             classes = {f["class"] for f in cpg.analyze(d).findings}
             self.assertIn("sqli", classes)
+
+
+@unittest.skipUnless(cpg.AVAILABLE and HAVE_TS, "needs networkx + tree-sitter")
+class TestJavaFrontend(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.res = cpg.analyze(os.path.join(HERE, "fixtures", "java_app"))
+        cls.by_route = {}
+        for f in cls.res.findings:
+            for r in f.get("reachable_from", []):
+                cls.by_route.setdefault(r, set()).add(f["class"])
+
+    def test_spring_routes_and_annotated_sources(self):
+        self.assertIn("sqli", self.by_route.get("GET /u/{id}", set()))          # @RequestParam -> JDBC
+        self.assertIn("command_injection", self.by_route.get("POST /run", set()))
+        self.assertIn("path_traversal", self.by_route.get("GET /file", set()))  # new FileInputStream
+
+    def test_parseint_safe_route_silent(self):
+        self.assertNotIn("GET /safe", self.by_route)
