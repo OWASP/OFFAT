@@ -245,3 +245,41 @@ class TestCLIInfer(unittest.TestCase):
             clip.ClaudeCodeTriager, clip.CodexTriager = oc, ox
         self.assertEqual(out[0]["callee"], "dbx.raw")
         self.assertEqual(out[0]["role"], "sink")
+
+
+@unittest.skipUnless(cpg.AVAILABLE, "networkx not installed")
+class TestClassLevelAuth(unittest.TestCase):
+    def _graph(self, perm_line):
+        from offat_wb.cpg.graph import CodeGraph
+        cg = CodeGraph()
+        cg.lines["v.py"] = [
+            "class OrderViewSet(GenericViewSet):\n",
+            f"    {perm_line}\n",
+            "    def retrieve(self, request, pk=None):\n",
+            "        return Order.objects.get(id=pk)\n",
+        ]
+        cg.node("fn:v:OrderViewSet.retrieve", "function", name="retrieve",
+                qualname="OrderViewSet.retrieve", file="v.py", line=3, end_line=4,
+                cls="OrderViewSet", fn="fn:v:OrderViewSet.retrieve", decorators=[])
+        cg.node("a:x", "arg", file="v.py", line=4, fn="fn:v:OrderViewSet.retrieve")
+        return cg
+
+    def test_permission_classes_counts_as_auth(self):
+        from offat_wb.cpg import taint
+        cg = self._graph("permission_classes = [HasAPIKey]")
+        self.assertIn("permission_classes", taint._class_auth_text(cg, "fn:v:OrderViewSet.retrieve"))
+        ctx = taint._authz_context(cg, {"sink_node": "a:x", "sources": []}, ["fn:v:OrderViewSet.retrieve"])
+        self.assertTrue(ctx["class_guarded"])
+        self.assertTrue(ctx["auth"])
+
+    def test_allow_any_is_not_a_guard(self):
+        from offat_wb.cpg import taint
+        cg = self._graph("permission_classes = [AllowAny]")
+        ctx = taint._authz_context(cg, {"sink_node": "a:x", "sources": []}, ["fn:v:OrderViewSet.retrieve"])
+        self.assertFalse(ctx["class_guarded"])
+
+    def test_custom_permission_class(self):
+        from offat_wb.cpg import taint
+        cg = self._graph("permission_classes = [IsAuthenticated, IsOrgMember]")
+        ctx = taint._authz_context(cg, {"sink_node": "a:x", "sources": []}, ["fn:v:OrderViewSet.retrieve"])
+        self.assertTrue(ctx["class_guarded"])
