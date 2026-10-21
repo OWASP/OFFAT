@@ -13,7 +13,8 @@ map -> code graph -> threat model -> test-gen -> execute (Rust) -> triage (AI) -
 ```
 
 The white-box core is a **code property graph + interprocedural taint engine**
-(`whitebox/offat_wb/cpg/`), not a pattern matcher. Findings carry a proven
+(`whitebox/offat_wb/cpg/`), not a pattern matcher. Frontends: Python (stdlib
+`ast`), JavaScript/TypeScript and Go (tree-sitter). Findings carry a proven
 source -> sink path and the route that reaches them.
 
 ## Layout

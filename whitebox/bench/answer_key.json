@@ -6,28 +6,153 @@
       "path": "tests/fixtures/taint_app",
       "needs_tree_sitter": true,
       "expect": [
-        {"file": "pkg/db.py", "class": "sqli", "route": "GET /search"},
-        {"file": "pkg/shell.py", "class": "command_injection", "route": "POST /ping"},
-        {"file": "flask_app.py", "class": "path_traversal", "route": "GET /files/<name>"},
-        {"file": "flask_app.py", "class": "ssrf", "route": "GET /fetch"},
-        {"file": "flask_app.py", "class": "open_redirect", "route": "GET /next"},
-        {"file": "flask_app.py", "class": "ssti", "route": "GET /hello"},
-        {"file": "flask_app.py", "class": "deserialization", "route": "POST /import"},
-        {"file": "flask_app.py", "class": "mass_assignment", "route": "POST /users"},
-        {"file": "flask_app.py", "class": "bola", "route": "GET /orders/<order_id>"},
-        {"file": "fastapi_app.py", "class": "sqli", "route": "GET /lookup"},
-        {"file": "fastapi_app.py", "class": "deserialization", "route": "POST /config"},
-        {"file": "express_app.js", "class": "command_injection", "route": "GET /ping", "needs_tree_sitter": true},
-        {"file": "express_app.js", "class": "path_traversal", "route": "GET /file", "needs_tree_sitter": true},
-        {"file": "express_app.js", "class": "ssrf", "route": "GET /proxy", "needs_tree_sitter": true},
-        {"file": "express_app.js", "class": "xss", "route": "GET /greet", "needs_tree_sitter": true},
-        {"file": "jsdb.js", "class": "sqli", "route": "GET /user", "needs_tree_sitter": true}
+        {
+          "file": "pkg/db.py",
+          "class": "sqli",
+          "route": "GET /search"
+        },
+        {
+          "file": "pkg/shell.py",
+          "class": "command_injection",
+          "route": "POST /ping"
+        },
+        {
+          "file": "flask_app.py",
+          "class": "path_traversal",
+          "route": "GET /files/<name>"
+        },
+        {
+          "file": "flask_app.py",
+          "class": "ssrf",
+          "route": "GET /fetch"
+        },
+        {
+          "file": "flask_app.py",
+          "class": "open_redirect",
+          "route": "GET /next"
+        },
+        {
+          "file": "flask_app.py",
+          "class": "ssti",
+          "route": "GET /hello"
+        },
+        {
+          "file": "flask_app.py",
+          "class": "deserialization",
+          "route": "POST /import"
+        },
+        {
+          "file": "flask_app.py",
+          "class": "mass_assignment",
+          "route": "POST /users"
+        },
+        {
+          "file": "flask_app.py",
+          "class": "bola",
+          "route": "GET /orders/<order_id>"
+        },
+        {
+          "file": "fastapi_app.py",
+          "class": "sqli",
+          "route": "GET /lookup"
+        },
+        {
+          "file": "fastapi_app.py",
+          "class": "deserialization",
+          "route": "POST /config"
+        },
+        {
+          "file": "express_app.js",
+          "class": "command_injection",
+          "route": "GET /ping",
+          "needs_tree_sitter": true
+        },
+        {
+          "file": "express_app.js",
+          "class": "path_traversal",
+          "route": "GET /file",
+          "needs_tree_sitter": true
+        },
+        {
+          "file": "express_app.js",
+          "class": "ssrf",
+          "route": "GET /proxy",
+          "needs_tree_sitter": true
+        },
+        {
+          "file": "express_app.js",
+          "class": "xss",
+          "route": "GET /greet",
+          "needs_tree_sitter": true
+        },
+        {
+          "file": "jsdb.js",
+          "class": "sqli",
+          "route": "GET /user",
+          "needs_tree_sitter": true
+        }
       ],
       "silent": [
-        "GET /search-safe", "POST /ping-quoted", "GET /files-safe/<name>", "GET /count/<int:n>",
-        "GET /calc", "GET /strip", "GET /my-orders/<order_id>", "GET /receipts/<order_id>",
-        "GET /items/{item_id}", "POST /config-safe", "POST /convert",
-        "GET /file-safe", "GET /greet-num"
+        "GET /search-safe",
+        "POST /ping-quoted",
+        "GET /files-safe/<name>",
+        "GET /count/<int:n>",
+        "GET /calc",
+        "GET /strip",
+        "GET /my-orders/<order_id>",
+        "GET /receipts/<order_id>",
+        "GET /items/{item_id}",
+        "POST /config-safe",
+        "POST /convert",
+        "GET /file-safe",
+        "GET /greet-num"
+      ]
+    },
+    {
+      "name": "go_app",
+      "path": "tests/fixtures/go_app",
+      "needs_tree_sitter": true,
+      "expect": [
+        {
+          "file": "main.go",
+          "class": "sqli",
+          "route": "ANY /search",
+          "needs_tree_sitter": true
+        },
+        {
+          "file": "main.go",
+          "class": "command_injection",
+          "route": "ANY /run",
+          "needs_tree_sitter": true
+        },
+        {
+          "file": "net.go",
+          "class": "ssrf",
+          "route": "ANY /fetch",
+          "needs_tree_sitter": true
+        },
+        {
+          "file": "net.go",
+          "class": "open_redirect",
+          "route": "ANY /next",
+          "needs_tree_sitter": true
+        },
+        {
+          "file": "files.go",
+          "class": "path_traversal",
+          "route": "ANY /read",
+          "needs_tree_sitter": true
+        },
+        {
+          "file": "db.go",
+          "class": "sqli",
+          "route": "GET /gin-search",
+          "needs_tree_sitter": true
+        }
+      ],
+      "silent": [
+        "ANY /count",
+        "ANY /read-safe"
       ]
     }
   ]

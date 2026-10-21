@@ -37,6 +37,8 @@ Edges are `flow` (optionally carrying the classes a sanitizer neutralizes),
 - **JavaScript / TypeScript** (tree-sitter): Express-style routers including
   handler factories and wrappers, `require` / `import` / `export`, callbacks,
   destructured `req`.
+- **Go** (tree-sitter): `net/http` and router frameworks (gin, echo, chi,
+  gorilla/mux) routes, request accessors as sources, interprocedural call/return.
 
 ## Precision
 
