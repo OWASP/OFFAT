@@ -233,6 +233,12 @@ def build() -> int:
         shutil.copy(os.path.join(THEME, f), os.path.join(OUT, "assets", f))
     for f in os.listdir(os.path.join(HERE, "assets")):
         shutil.copy(os.path.join(HERE, "assets", f), os.path.join(OUT, "assets", f))
+
+    # Ship the static Bundle visualizer at /viz/ (self-contained; runs in the browser).
+    viz_src = os.path.abspath(os.path.join(HERE, "..", "viz"))
+    if os.path.isdir(viz_src):
+        shutil.copytree(viz_src, os.path.join(OUT, "viz"),
+                        ignore=shutil.ignore_patterns("tests", "*.test.js", "README.md"))
     print(f"built {len(ordered)} pages -> {os.path.relpath(OUT)}")
     return 0
 

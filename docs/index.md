@@ -27,6 +27,7 @@ live execution against targets you are authorized to test.
 - [How it works](how-it-works.md) - the Bundle contract and the engine
 - [Code graph](code-graph.md) - taint analysis and the AI built on it
 - [GitHub Action](github-action.md) - scan every push, publish to code scanning
+- [Visualizer](viz/) - open a `*.offat.json` Bundle in the browser (no upload; runs locally)
 
 > **Authorized use only.** Live runs send real requests and require an explicit
 > `--yes`. Only test systems and code you own or are authorized to assess.

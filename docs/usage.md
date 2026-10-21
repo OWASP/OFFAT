@@ -86,8 +86,10 @@ offat-triage findings.json --provider claude-code
 
 ## Visualize
 
+Hosted: **[owasp.github.io/OFFAT/viz](https://owasp.github.io/OFFAT/viz/)** - import a `*.offat.json` Bundle; it is parsed in your browser and never uploaded. Or run it locally:
+
 ```bash
-python -m http.server -d viz 8080   # open http://localhost:8080 and import a *.offat.json
+python -m http.server -d viz 8080   # local: open http://localhost:8080 and import a *.offat.json
 ```
 
 ## CI gate
