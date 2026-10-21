@@ -154,6 +154,47 @@
         "ANY /count",
         "ANY /read-safe"
       ]
+    },
+    {
+      "name": "ruby_app",
+      "path": "tests/fixtures/ruby_app",
+      "needs_tree_sitter": true,
+      "expect": [
+        {
+          "file": "app.rb",
+          "class": "sqli",
+          "needs_tree_sitter": true
+        },
+        {
+          "file": "app.rb",
+          "class": "command_injection",
+          "needs_tree_sitter": true
+        }
+      ],
+      "silent": []
+    },
+    {
+      "name": "php_app",
+      "path": "tests/fixtures/php_app",
+      "needs_tree_sitter": true,
+      "expect": [
+        {
+          "file": "app.php",
+          "class": "sqli",
+          "needs_tree_sitter": true
+        },
+        {
+          "file": "app.php",
+          "class": "command_injection",
+          "needs_tree_sitter": true
+        },
+        {
+          "file": "app.php",
+          "class": "xss",
+          "needs_tree_sitter": true
+        }
+      ],
+      "silent": []
     }
   ]
 }

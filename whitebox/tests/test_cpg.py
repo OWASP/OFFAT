@@ -359,3 +359,32 @@ class TestGoFrontend(unittest.TestCase):
     def test_safe_twins_silent(self):
         self.assertNotIn("ANY /count", self.by_route)       # strconv.Atoi coercion
         self.assertNotIn("ANY /read-safe", self.by_route)   # filepath.Base
+
+
+@unittest.skipUnless(cpg.AVAILABLE and HAVE_TS, "needs networkx + tree-sitter")
+class TestGenericFrontend(unittest.TestCase):
+    def _hits(self, fixture):
+        res = cpg.analyze(os.path.join(HERE, "fixtures", fixture))
+        return {(f["file"], f["class"]) for f in res.findings}
+
+    def test_ruby(self):
+        hits = self._hits("ruby_app")
+        self.assertIn(("app.rb", "sqli"), hits)
+        self.assertIn(("app.rb", "command_injection"), hits)
+        self.assertNotIn(("safe.rb", "sqli"), hits)   # to_i coercion
+
+    def test_php(self):
+        hits = self._hits("php_app")
+        self.assertIn(("app.php", "sqli"), hits)
+        self.assertIn(("app.php", "command_injection"), hits)
+        self.assertIn(("app.php", "xss"), hits)        # echo of $_GET
+        self.assertFalse(any(f == "safe.php" for f, _ in hits))   # intval / htmlspecialchars
+
+    def test_generic_java_best_effort(self):
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "A.java"), "w") as fh:
+                fh.write("public class A {\n  void h(HttpServletRequest req) {\n"
+                         "    String q = req.getParameter(\"q\");\n"
+                         "    stmt.executeQuery(\"SELECT * FROM u WHERE n = '\" + q + \"'\");\n  }\n}\n")
+            classes = {f["class"] for f in cpg.analyze(d).findings}
+            self.assertIn("sqli", classes)
