@@ -30,6 +30,7 @@ except ImportError:  # pragma: no cover - networkx is a declared dependency
 _PY_EXTS = {".py"}
 _JS_EXTS = {".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx"}
 _GO_EXTS = {".go"}
+_GENERIC_EXTS = {".rb", ".php", ".java", ".kt", ".cs", ".rs", ".scala"}
 _SKIP_DIRS = {".git", "node_modules", "vendor", "dist", "build", "__pycache__", ".venv", "venv",
               "site-packages", ".tox", ".mypy_cache", "target", ".offat-ai", "offat-report",
               "coverage", ".next", "bower_components"}
@@ -83,6 +84,7 @@ def build_graph(root: str, *, local_sources: bool = False, include_tests: bool =
     js_files: List[str] = []
     go = None
     go_files: List[str] = []
+    generic_files: Dict[str, List[str]] = {}
     for path, ext in _iter_files(root, include_tests):
         if ext in _PY_EXTS:
             py.add_file(path)
@@ -90,6 +92,8 @@ def build_graph(root: str, *, local_sources: bool = False, include_tests: bool =
             js_files.append(path)
         elif ext in _GO_EXTS:
             go_files.append(path)
+        elif ext in _GENERIC_EXTS:
+            generic_files.setdefault(ext, []).append(path)
     if js_files:
         try:
             from .js_frontend import JSFrontend
@@ -112,11 +116,34 @@ def build_graph(root: str, *, local_sources: bool = False, include_tests: bool =
     if go is not None:
         for path in go_files:
             go.add_file(path)
+    generic_fes = []
+    if generic_files:
+        try:
+            from .generic_frontend import PROFILES, GENERIC_LANGS, generic_profile, GenericFrontend
+            for ext, files in generic_files.items():
+                prof = PROFILES.get(ext)
+                if prof is None and ext in GENERIC_LANGS:
+                    name, ts = GENERIC_LANGS[ext]
+                    prof = generic_profile(ts, name, (ext,))
+                if prof is None:
+                    continue
+                try:
+                    fe = GenericFrontend(prof, root, cg)
+                except Exception:  # noqa: BLE001 - grammar unavailable
+                    notes.append(f"grammar for {prof.name} unavailable: {len(files)} file(s) not graphed")
+                    continue
+                for path in files:
+                    fe.add_file(path)
+                generic_fes.append(fe)
+        except ImportError:
+            notes.append("tree-sitter not installed: Ruby/PHP/other files not graphed")
     py.build()
     if js is not None:
         js.build()
     if go is not None:
         go.build()
+    for fe in generic_fes:
+        fe.build()
     for err in py.parse_errors[:20]:
         notes.append(f"parse error: {err}")
     return cg, notes

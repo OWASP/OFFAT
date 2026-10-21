@@ -439,3 +439,101 @@ GO_SANITIZERS: List[SanitizerSpec] = [
 
 # Go object-lookup-by-id (BOLA): ORM / store fetches keyed by a client value.
 GO_OBJECT_LOOKUPS = ("*.First", "*.Find", "*.Where", "*.FindByID", "*.Get", "*.GetByID")
+
+
+# --- Ruby ------------------------------------------------------------------
+
+RUBY_SOURCE_ROOTS = ("params", "request.params", "request.query_parameters", "request.GET",
+                     "request.POST", "cookies", "request.headers", "request.body")
+_RBS = SinkSpec
+RUBY_SINKS: List[SinkSpec] = [
+    _RBS("sqli", "CWE-89", "high", "SQL injection", "A03",
+         ("*.execute", "*.exec_query", "*.find_by_sql", "*.where", "*.select_all", "*.select_rows",
+          "*.select_values", "ActiveRecord::Base.connection.execute"), args=(0,), lang="ruby"),
+    _RBS("command_injection", "CWE-78", "critical", "OS command injection", "A03",
+         ("system", "exec", "Kernel.system", "Kernel.exec", "Open3.capture2", "Open3.capture3",
+          "Open3.popen3", "IO.popen", "spawn", "`"), any_arg=True, lang="ruby"),
+    _RBS("code_injection", "CWE-95", "critical", "Code injection (eval)", "A03",
+         ("eval", "instance_eval", "class_eval", "module_eval", "Kernel.eval"), args=(0,), lang="ruby"),
+    _RBS("ssrf", "CWE-918", "high", "Server-side request forgery", "A10",
+         ("Net::HTTP.get", "Net::HTTP.post", "Net::HTTP.get_response", "open", "URI.open",
+          "HTTParty.get", "HTTParty.post", "RestClient.get", "Faraday.get"), args=(0,), lang="ruby"),
+    _RBS("path_traversal", "CWE-22", "high", "Path traversal (file access)", "A01",
+         ("File.open", "File.read", "File.write", "IO.read", "File.delete", "FileUtils.rm",
+          "send_file", "File.new"), args=(0,), lang="ruby"),
+    _RBS("open_redirect", "CWE-601", "medium", "Open redirect", "A01",
+         ("redirect_to",), args=(0,), lang="ruby"),
+    _RBS("deserialization", "CWE-502", "critical", "Unsafe deserialization", "A08",
+         ("Marshal.load", "YAML.load", "Oj.load", "Psych.load"), args=(0,), lang="ruby"),
+]
+RUBY_SANITIZERS: List[SanitizerSpec] = [
+    SanitizerSpec(("to_i", "to_f", "Integer", "Float", "*.to_i", "*.to_f"), frozenset({ALL}), lang="ruby"),
+    SanitizerSpec(("File.basename", "*.to_json"), frozenset({"path_traversal"}), lang="ruby"),
+    SanitizerSpec(("CGI.escapeHTML", "ERB::Util.html_escape", "ERB::Util.h", "h", "sanitize"),
+                  frozenset({"xss"}), lang="ruby"),
+    SanitizerSpec(("ActiveRecord::Base.sanitize_sql", "*.sanitize_sql"), frozenset({"sqli"}), lang="ruby"),
+]
+
+# --- PHP -------------------------------------------------------------------
+
+PHP_SOURCE_GLOBALS = ("$_GET", "$_POST", "$_REQUEST", "$_COOKIE", "$_FILES", "$_SERVER",
+                      "$HTTP_RAW_POST_DATA")
+_PPS = SinkSpec
+PHP_SINKS: List[SinkSpec] = [
+    _PPS("sqli", "CWE-89", "high", "SQL injection", "A03",
+         ("mysqli_query", "mysql_query", "*.query", "*.exec", "pg_query", "*.prepare().execute",
+          "*.rawQuery", "DB.select", "DB.statement"), args=(0, 1), lang="php"),
+    _PPS("command_injection", "CWE-78", "critical", "OS command injection", "A03",
+         ("system", "exec", "shell_exec", "passthru", "popen", "proc_open", "pcntl_exec"),
+         any_arg=True, lang="php"),
+    _PPS("code_injection", "CWE-95", "critical", "Code injection (eval)", "A03",
+         ("eval", "assert", "create_function"), args=(0,), lang="php"),
+    _PPS("ssrf", "CWE-918", "high", "Server-side request forgery", "A10",
+         ("file_get_contents", "fopen", "curl_init", "curl_setopt", "fsockopen", "get_headers"),
+         args=(0, 1), lang="php"),
+    _PPS("path_traversal", "CWE-22", "high", "Path traversal (file access)", "A01",
+         ("include", "include_once", "require", "require_once", "readfile", "unlink", "file_put_contents",
+          "fopen", "file"), args=(0,), lang="php"),
+    _PPS("xss", "CWE-79", "medium", "Reflected XSS (echo of input)", "A03",
+         ("echo", "print", "printf", "print_r"), any_arg=True, lang="php"),
+    _PPS("deserialization", "CWE-502", "critical", "Unsafe deserialization (unserialize)", "A08",
+         ("unserialize",), args=(0,), lang="php"),
+    _PPS("open_redirect", "CWE-601", "medium", "Open redirect (Location header)", "A01",
+         ("header",), args=(0,), lang="php"),
+]
+PHP_SANITIZERS: List[SanitizerSpec] = [
+    SanitizerSpec(("intval", "floatval", "intdiv", "settype", "filter_var"), frozenset({ALL}), lang="php"),
+    SanitizerSpec(("basename", "realpath"), frozenset({"path_traversal"}), lang="php"),
+    SanitizerSpec(("htmlspecialchars", "htmlentities", "strip_tags"), frozenset({"xss"}), lang="php"),
+    SanitizerSpec(("mysqli_real_escape_string", "addslashes", "*.quote", "pg_escape_string"),
+                  frozenset({"sqli"}), lang="php"),
+    SanitizerSpec(("escapeshellarg", "escapeshellcmd"), frozenset({"command_injection"}), lang="php"),
+]
+
+# --- Generic (any other tree-sitter language): a conservative cross-language catalog ---
+GENERIC_SINKS: List[SinkSpec] = [
+    _PPS("sqli", "CWE-89", "high", "SQL injection (generic)", "A03",
+         ("*.executeQuery", "*.executeUpdate", "*.rawQuery", "*.createQuery", "*.prepareStatement",
+          "*.nativeQuery", "*.createNativeQuery"), args=(0,), lang="*"),
+    _PPS("command_injection", "CWE-78", "critical", "OS command injection (generic)", "A03",
+         ("system", "exec", "popen", "*.exec", "Runtime.exec", "*.Command", "ProcessBuilder",
+          "shell_exec", "Process.Start", "*.system"), any_arg=True, lang="*"),
+    _PPS("code_injection", "CWE-95", "critical", "Code injection (generic)", "A03",
+         ("eval", "*.eval", "Function", "compile"), args=(0,), lang="*"),
+    _PPS("ssrf", "CWE-918", "high", "Server-side request forgery (generic)", "A10",
+         ("*.get", "*.post", "fetch", "file_get_contents", "*.openStream", "*.Get", "HttpGet"),
+         args=(0,), lang="*"),
+    _PPS("path_traversal", "CWE-22", "high", "Path traversal (generic)", "A01",
+         ("*.readFile", "*.ReadFile", "fopen", "readfile", "*.OpenFile", "File", "*.createReadStream"),
+         args=(0,), lang="*"),
+    _PPS("deserialization", "CWE-502", "critical", "Unsafe deserialization (generic)", "A08",
+         ("unserialize", "*.readObject", "Marshal.load", "*.deserialize", "pickle.loads"),
+         args=(0,), lang="*"),
+]
+GENERIC_SANITIZERS: List[SanitizerSpec] = [
+    SanitizerSpec(("int", "Integer", "intval", "parseInt", "to_i", "Number", "strconv.Atoi"),
+                  frozenset({ALL}), lang="*"),
+    SanitizerSpec(("basename", "File.basename", "filepath.Base", "path.basename"),
+                  frozenset({"path_traversal"}), lang="*"),
+    SanitizerSpec(("escape", "htmlspecialchars", "sanitize", "escapeHtml"), frozenset({"xss"}), lang="*"),
+]

@@ -94,6 +94,7 @@ CLASS_MAP: Dict[str, Dict[str, str]] = {
     "sqli":                {"api": "API8:2023", "web": "A03:2021", "cwe": "CWE-89"},
     "nosqli":              {"api": "API8:2023", "web": "A03:2021", "cwe": "CWE-943"},
     "command_injection":   {"api": "API8:2023", "web": "A03:2021", "cwe": "CWE-78"},
+    "code_injection":      {"api": "API8:2023", "web": "A03:2021", "cwe": "CWE-95"},
     "ssti":                {"api": "API8:2023", "web": "A03:2021", "cwe": "CWE-1336"},
     "ldap_injection":      {"api": "API8:2023", "web": "A03:2021", "cwe": "CWE-90"},
     "injection":           {"api": "API8:2023", "web": "A03:2021", "cwe": "CWE-74"},
