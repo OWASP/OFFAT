@@ -15,8 +15,8 @@ generic-profile findings are marked lower confidence.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from dataclasses import dataclass
+from typing import Any, Dict, List, Set, Tuple
 
 import tree_sitter_language_pack as tslp
 
