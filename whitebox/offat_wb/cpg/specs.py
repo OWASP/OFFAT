@@ -84,7 +84,7 @@ COERCED_TYPES = {"int", "float", "bool", "UUID", "uuid.UUID", "datetime", "date"
 INJECTION_CLASSES = frozenset({
     "sqli", "nosqli", "command_injection", "code_injection", "path_traversal", "ssrf",
     "xss", "ssti", "open_redirect", "deserialization", "xxe", "ldap_injection",
-    "header_injection", "mass_assignment",
+    "header_injection", "mass_assignment", "xpath_injection", "prototype_pollution",
 })
 
 _S = SinkSpec
@@ -164,6 +164,9 @@ PY_SINKS: List[SinkSpec] = [
        ("re.compile", "re.search", "re.match", "re.fullmatch", "re.findall", "re.finditer", "re.sub",
         "re.subn", "re.split", "regex.compile", "regex.search", "regex.match"), args=(0,),
        kwargs=("pattern",)),
+    _S("xpath_injection", "CWE-643", "high", "XPath injection", "A03",
+       ("*.xpath", "lxml.etree.XPath", "etree.XPath", "lxml.etree.ETXPath", "etree.ETXPath"),
+       args=(0,), kwargs=("path",)),
 ]
 
 # Calls that run a function *later* with the given arguments (job queues, threads,
@@ -298,6 +301,13 @@ JS_SINKS: List[SinkSpec] = [
 ]
 JS_SINKS.append(_S("redos", "CWE-1333", "medium", "Attacker-controlled regular expression (ReDoS)",
                    "API4", ("RegExp",), args=(0,), lang="js"))
+JS_SINKS.append(_S("xpath_injection", "CWE-643", "high", "XPath injection", "A03",
+                   ("document.evaluate", "xpath.select", "xpath.select1", "xpath.parse", "select1"),
+                   args=(0,), lang="js"))
+JS_SINKS.append(_S("prototype_pollution", "CWE-1321", "high", "Prototype pollution (user-controlled key)",
+                   "A08", ("_.set", "lodash.set", "_.setWith", "lodash.setWith", "_.mergeWith",
+                           "lodash.mergeWith", "_.defaultsDeep", "lodash.defaultsDeep", "dotProp.set",
+                           "setValue"), args=(1,), lang="js"))
 JS_OBJECT_LOOKUPS = ("*.findById", "*.findByPk", "*.findOne", "*.findUnique", "*.findFirst",
                      "*.findOneBy", "*.getById")
 JS_AUTH_TOKENS = ("req.user", "req.auth", "res.locals.user", "ctx.state.user", "request.user",

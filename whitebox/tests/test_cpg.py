@@ -283,3 +283,49 @@ class TestClassLevelAuth(unittest.TestCase):
         cg = self._graph("permission_classes = [IsAuthenticated, IsOrgMember]")
         ctx = taint._authz_context(cg, {"sink_node": "a:x", "sources": []}, ["fn:v:OrderViewSet.retrieve"])
         self.assertTrue(ctx["class_guarded"])
+
+
+@unittest.skipUnless(cpg.AVAILABLE, "networkx not installed")
+class TestNewDetectionRules(unittest.TestCase):
+    def test_xpath_injection_python(self):
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "a.py"), "w") as fh:
+                fh.write("from flask import Flask, request\nfrom lxml import etree\napp = Flask(__name__)\n\n"
+                         "@app.get('/s')\ndef s():\n    q = request.args['q']\n"
+                         "    return str(etree.parse('x.xml').xpath(\"//u[@n='\" + q + \"']\"))\n")
+            classes = {f["class"] for f in cpg.analyze(d).findings}
+            self.assertIn("xpath_injection", classes)
+
+    def test_xpath_safe_constant_is_silent(self):
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "a.py"), "w") as fh:
+                fh.write("from flask import Flask\nfrom lxml import etree\napp = Flask(__name__)\n\n"
+                         "@app.get('/s')\ndef s():\n    return str(etree.parse('x.xml').xpath('//user'))\n")
+            self.assertNotIn("xpath_injection", {f["class"] for f in cpg.analyze(d).findings})
+
+    @unittest.skipUnless(HAVE_TS, "tree-sitter not installed")
+    def test_prototype_pollution_js(self):
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "a.js"), "w") as fh:
+                fh.write("const express = require('express');\nconst _ = require('lodash');\n"
+                         "const app = express();\napp.post('/p', (req, res) => {\n"
+                         "  const o = {};\n  _.set(o, req.body.key, req.body.val);\n  res.json(o);\n});\n"
+                         "module.exports = app;\n")
+            self.assertIn("prototype_pollution", {f["class"] for f in cpg.analyze(d).findings})
+
+
+class TestPatternRules(unittest.TestCase):
+    def _hunt(self, name, body):
+        from offat_wb import hunt
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, name), "w") as fh:
+                fh.write(body)
+            return {f["vector_id"] for f in hunt.builtin_hunt(d)}
+
+    def test_jwt_verify_off(self):
+        self.assertIn("jwt-verify-off", self._hunt("a.py", "import jwt\nx = jwt.decode(t, verify=False)\n"))
+        self.assertIn("jwt-verify-off", self._hunt("a.py", 'o = {"verify_signature": False}\n'))
+
+    def test_weak_random_only_for_security_values(self):
+        self.assertIn("weak-random-token", self._hunt("a.py", "import random\nreset_token = random.randint(0, 9)\n"))
+        self.assertNotIn("weak-random-token", self._hunt("a.py", "import random\ndice = random.randint(1, 6)\n"))

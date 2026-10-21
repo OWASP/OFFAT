@@ -44,6 +44,7 @@ OWASP_WEB_2021: Dict[str, str] = {
 
 CWE_NAMES: Dict[str, str] = {
     "CWE-16": "Configuration",
+    "CWE-330": "Insufficiently Random Values",
     "CWE-22": "Path Traversal",
     "CWE-74": "Injection",
     "CWE-78": "OS Command Injection",
@@ -107,6 +108,9 @@ CLASS_MAP: Dict[str, Dict[str, str]] = {
     "csrf":                {"api": "API8:2023", "web": "A01:2021", "cwe": "CWE-352"},
     "file_upload":         {"api": "API8:2023", "web": "A08:2021", "cwe": "CWE-434"},
     "vulnerable_dependency": {"api": "API8:2023", "web": "A06:2021", "cwe": "CWE-1035"},
+    "xpath_injection":     {"api": "API8:2023", "web": "A03:2021", "cwe": "CWE-643"},
+    "prototype_pollution": {"api": "API8:2023", "web": "A08:2021", "cwe": "CWE-1321"},
+    "redos":               {"api": "API4:2023", "web": "A05:2021", "cwe": "CWE-1333"},
 }
 
 _DEFAULT = {"api": "API8:2023", "web": "A05:2021", "cwe": "CWE-16"}
