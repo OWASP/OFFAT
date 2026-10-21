@@ -29,6 +29,7 @@ except ImportError:  # pragma: no cover - networkx is a declared dependency
 
 _PY_EXTS = {".py"}
 _JS_EXTS = {".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx"}
+_GO_EXTS = {".go"}
 _SKIP_DIRS = {".git", "node_modules", "vendor", "dist", "build", "__pycache__", ".venv", "venv",
               "site-packages", ".tox", ".mypy_cache", "target", ".offat-ai", "offat-report",
               "coverage", ".next", "bower_components"}
@@ -79,12 +80,16 @@ def build_graph(root: str, *, local_sources: bool = False, include_tests: bool =
     py = PythonFrontend(root, cg, local_sources=local_sources, extra_sinks=extra["sinks"],
                         extra_sanitizers=extra["sanitizers"], extra_sources=extra["sources"].get("py"))
     js = None
-    js_files = []
+    js_files: List[str] = []
+    go = None
+    go_files: List[str] = []
     for path, ext in _iter_files(root, include_tests):
         if ext in _PY_EXTS:
             py.add_file(path)
         elif ext in _JS_EXTS:
             js_files.append(path)
+        elif ext in _GO_EXTS:
+            go_files.append(path)
     if js_files:
         try:
             from .js_frontend import JSFrontend
@@ -93,12 +98,25 @@ def build_graph(root: str, *, local_sources: bool = False, include_tests: bool =
         except ImportError:
             notes.append(f"tree-sitter not installed: {len(js_files)} JS/TS file(s) not graphed "
                          "(pip install 'offat-whitebox[graph]')")
+    if go_files:
+        try:
+            from .go_frontend import GoFrontend
+            go = GoFrontend(root, cg, extra_sinks=extra["sinks"], extra_sanitizers=extra["sanitizers"],
+                            extra_sources=extra["sources"].get("go"))
+        except ImportError:
+            notes.append(f"tree-sitter not installed: {len(go_files)} Go file(s) not graphed "
+                         "(pip install 'offat-whitebox[graph]')")
     if js is not None:
         for path in js_files:
             js.add_file(path)
+    if go is not None:
+        for path in go_files:
+            go.add_file(path)
     py.build()
     if js is not None:
         js.build()
+    if go is not None:
+        go.build()
     for err in py.parse_errors[:20]:
         notes.append(f"parse error: {err}")
     return cg, notes

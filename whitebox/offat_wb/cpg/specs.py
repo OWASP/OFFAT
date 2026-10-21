@@ -391,3 +391,51 @@ def load_extra_specs(path: str) -> Dict[str, List[Any]]:
     sans = [SanitizerSpec(tuple(s["names"]), frozenset(s.get("classes", [ALL])), s.get("lang", "*"))
             for s in data.get("sanitizers", [])]
     return {"sinks": sinks, "sanitizers": sans, "sources": data.get("sources", {})}
+
+
+# --- Go --------------------------------------------------------------------
+
+# Request accessors (net/http, gorilla/mux, gin, echo, chi, fiber). Matched
+# against the flattened selector chain of the call, e.g. "r.URL.Query().Get".
+GO_SOURCES = (
+    "*.URL.Query().Get", "*.URL.Query", "*.FormValue", "*.PostFormValue", "*.PostForm.Get",
+    "*.Form.Get", "*.Header.Get", "*.Cookie", "*.URL.Query().Encode", "mux.Vars",
+    "*.Query", "*.DefaultQuery", "*.Param", "*.Params.ByName", "*.PostForm", "*.QueryParam",
+    "*.QueryParams", "*.FormFile", "chi.URLParam", "*.URLParam", "*.GetHeader",
+)
+
+_GOS = SinkSpec
+GO_SINKS: List[SinkSpec] = [
+    _GOS("sqli", "CWE-89", "high", "SQL injection", "A03",
+         ("*.Query", "*.QueryRow", "*.QueryContext", "*.QueryRowContext", "*.Exec", "*.ExecContext",
+          "*.Queryx", "*.QueryRowx", "*.MustExec", "*.NamedExec", "*.NamedQuery"),
+         args=(0,), lang="go"),
+    _GOS("command_injection", "CWE-78", "critical", "OS command injection", "A03",
+         ("exec.Command", "exec.CommandContext", "os.StartProcess", "syscall.Exec"),
+         any_arg=True, lang="go"),
+    _GOS("ssrf", "CWE-918", "high", "Server-side request forgery", "A10",
+         ("http.Get", "http.Post", "http.Head", "http.PostForm", "http.NewRequest",
+          "http.NewRequestWithContext", "*.client.Get", "*.Client.Get", "*.Client.Do"),
+         args=(0, 1), kwargs=("url",), lang="go"),
+    _GOS("path_traversal", "CWE-22", "high", "Path traversal (file access)", "A01",
+         ("os.Open", "os.OpenFile", "os.ReadFile", "os.Create", "os.Remove", "os.RemoveAll",
+          "ioutil.ReadFile", "ioutil.WriteFile", "http.ServeFile", "os.Mkdir", "os.MkdirAll"),
+         args=(0, 1, 2), lang="go"),
+    _GOS("open_redirect", "CWE-601", "medium", "Open redirect", "A01",
+         ("http.Redirect", "*.Redirect"), args=(2, 0), kwargs=("url", "location"), lang="go"),
+    _GOS("ssti", "CWE-1336", "high", "Server-side template injection", "A03",
+         ("template.New().Parse", "*.Parse", "template.Must", "*.Parse().Execute"),
+         args=(0,), lang="go"),
+]
+
+GO_SANITIZERS: List[SanitizerSpec] = [
+    SanitizerSpec(("strconv.Atoi", "strconv.ParseInt", "strconv.ParseFloat", "strconv.ParseBool",
+                   "strconv.ParseUint", "uuid.Parse", "uuid.FromString"), frozenset({ALL}), lang="go"),
+    SanitizerSpec(("filepath.Base", "path.Base", "filepath.Clean"), frozenset({"path_traversal"}), lang="go"),
+    SanitizerSpec(("html.EscapeString", "template.HTMLEscapeString", "template.JSEscapeString",
+                   "bluemonday.Sanitize"), frozenset({"xss", "ssti"}), lang="go"),
+    SanitizerSpec(("url.QueryEscape", "url.PathEscape"), frozenset({"open_redirect", "ssrf"}), lang="go"),
+]
+
+# Go object-lookup-by-id (BOLA): ORM / store fetches keyed by a client value.
+GO_OBJECT_LOOKUPS = ("*.First", "*.Find", "*.Where", "*.FindByID", "*.Get", "*.GetByID")

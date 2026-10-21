@@ -329,3 +329,33 @@ class TestPatternRules(unittest.TestCase):
     def test_weak_random_only_for_security_values(self):
         self.assertIn("weak-random-token", self._hunt("a.py", "import random\nreset_token = random.randint(0, 9)\n"))
         self.assertNotIn("weak-random-token", self._hunt("a.py", "import random\ndice = random.randint(1, 6)\n"))
+
+
+GO_FIXTURE = os.path.join(HERE, "fixtures", "go_app")
+
+
+@unittest.skipUnless(cpg.AVAILABLE and HAVE_TS, "needs networkx + tree-sitter")
+class TestGoFrontend(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.res = cpg.analyze(GO_FIXTURE)
+        cls.by_route = {}
+        for f in cls.res.findings:
+            for r in f.get("reachable_from", []):
+                cls.by_route.setdefault(r, set()).add(f["class"])
+
+    def test_net_http_and_frameworks(self):
+        for route, cls in [("ANY /search", "sqli"), ("ANY /run", "command_injection"),
+                           ("ANY /fetch", "ssrf"), ("ANY /next", "open_redirect"),
+                           ("ANY /read", "path_traversal"), ("GET /gin-search", "sqli")]:
+            self.assertIn(cls, self.by_route.get(route, set()), f"{cls} missing for {route}")
+
+    def test_interprocedural_sqli(self):
+        # /gin-search -> lookupByName -> rawQuery -> db.Query
+        f = next(f for f in self.res.findings if f["file"] == "db.go")
+        self.assertEqual(f["class"], "sqli")
+        self.assertGreaterEqual(len(f["evidence"]["path"]), 3)
+
+    def test_safe_twins_silent(self):
+        self.assertNotIn("ANY /count", self.by_route)       # strconv.Atoi coercion
+        self.assertNotIn("ANY /read-safe", self.by_route)   # filepath.Base

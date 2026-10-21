@@ -11,7 +11,7 @@ recon  ->  graph (code-graph taint)  +  hunt (patterns)  ->  chain  ->  verify (
 - **recon** — detect the tech stack, inventory dependency manifests, generate an
   SBOM (syft) and CVE findings (grype / trivy / osv-scanner) when installed.
 - **graph** — the primary engine. Builds a code property graph of the repo
-  (Python via stdlib `ast`, JavaScript/TypeScript via tree-sitter) in networkx,
+  (Python via stdlib `ast`, JavaScript/TypeScript and Go via tree-sitter) in networkx,
   marks attacker-controlled **sources** (request fields, route-handler params,
   destructured `req`) and dangerous **sinks**, then proves source -> sink paths
   with an interprocedural, call/return-matched search. Every finding carries the
@@ -33,6 +33,7 @@ recon  ->  graph (code-graph taint)  +  hunt (patterns)  ->  chain  ->  verify (
 | Graph | networkx `MultiDiGraph`: functions, params, versioned locals, fields, call sites, args, returns, sources |
 | Edges | `flow` (with per-class `sanitizes`), `call` / `ret` labelled by call site, `calls` (call graph) |
 | Python | Flask, FastAPI/Starlette, Django/DRF, Tornado, aiohttp, AWS Lambda; `src/` layouts; nested functions; RQ/Celery/threads/executors (`enqueue(fn, x)`, `fn.delay(x)`, `Thread(target=fn)`) |
+| Go | net/http, gin, echo, chi, gorilla/mux routes; request accessors as sources; interprocedural call/return; `strconv`/`filepath.Base` sanitizers |
 | JS/TS | Express-style routers incl. handler factories and wrappers (`app.get(p, asyncHandler(login()))`), `require`/`import`/`export`, callbacks |
 | Classes | sqli, nosqli, command/code injection, SSTI, path traversal, SSRF, deserialization, XXE, XSS, open redirect, LDAP, ReDoS, mass assignment (API3), BOLA candidates (API1, with ownership-check detection) |
 | Precision | reaching definitions (`x = int(x)` kills taint), matched call/return, per-class sanitizers, type-coerced params (`int`, `<int:id>`) |
