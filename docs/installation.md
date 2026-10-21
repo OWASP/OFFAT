@@ -52,7 +52,8 @@ docker run --rm -v "$PWD:/src" offat:latest run /src -o /src/app.offat.json
 ```
 
 The image contains the engine and every Python package, and runs as a non-root
-user.
+user. CI publishes it to the GitHub Container Registry: pull
+`ghcr.io/owasp/offat:dev` (or a release tag).
 
 ## AI backends (optional)
 
