@@ -55,9 +55,11 @@ Edges are `flow` (optionally carrying the classes a sanitizer neutralizes),
 
 ## Classes
 
-SQL and NoSQL injection, command and code injection, SSTI, path traversal,
-SSRF, unsafe deserialization, XXE, XSS, open redirect, LDAP injection, ReDoS,
-mass assignment (API3) and BOLA candidates (API1).
+SQL and NoSQL injection, command and code injection, SSTI, XPath injection,
+path traversal, SSRF, unsafe deserialization, XXE, XSS, open redirect, LDAP
+injection, ReDoS, prototype pollution (JS), mass assignment (API3) and BOLA
+candidates (API1). The pattern hunter adds secrets, weak crypto, insecure
+randomness, disabled JWT signature verification and misconfiguration.
 
 Extend the catalog without code:
 

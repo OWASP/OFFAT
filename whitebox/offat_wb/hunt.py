@@ -75,6 +75,15 @@ _RAW_RULES = [
     ("ssrf-open-fetch", "ssrf", "Outbound request to a non-constant URL", "medium", "CWE-918", "A10",
      r"(requests\.(get|post|put)\(\s*[a-zA-Z_]|urllib\.request\.urlopen\(\s*[a-zA-Z_]|axios\.(get|post)\(\s*[a-zA-Z_`])",
      [".py", ".js", ".ts"], 0.4),
+    # JWT signature verification disabled (CWE-347) - accepts forged/unsigned tokens.
+    ("jwt-verify-off", "broken_auth", "JWT signature verification disabled", "high", "CWE-347", "A02",
+     r'''(?i)(verify\s*=\s*False|verify_signature["']?\s*:\s*(False|false)|algorithms\s*[=:]\s*\[?\s*["']none["'])''',
+     [".py", ".js", ".ts"], 0.55),
+    # Insecure randomness used where a security token is implied (CWE-330).
+    ("weak-random-token", "crypto", "Insecure randomness for a security value", "medium", "CWE-330", "A02",
+     r"(?i)(token|secret|otp|nonce|salt|session|password|reset|api[_-]?key)\w*\s*=\s*"
+     r"(random\.(random|randint|randrange|choice|choices|getrandbits)|Math\.random)\s*\(",
+     [".py", ".js", ".ts"], 0.45),
 ]
 
 _RULES = [
