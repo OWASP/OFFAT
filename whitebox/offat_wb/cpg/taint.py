@@ -250,6 +250,33 @@ def _authz_context(cg: CodeGraph, fl: Dict[str, Any], entry_fns: List[str]) -> D
                                  after))
     handler_text = "\n".join(_COMMENT.sub("", cg.function_source(e, 400)) for e in entry_fns) + "\n" + \
         "\n".join(str(cg.g.nodes[e].get("decorators", "")) for e in entry_fns)
-    auth = any(t in handler_text for t in tokens) or bool(re.search(
-        r"login_required|jwt_required|auth|permission|Depends\(\s*get_current|authenticate", handler_text))
-    return {"scoped": scoped or owner_check, "auth": auth, "owner_check": owner_check}
+    # Class-level guards: DRF/APIView `permission_classes` / `authentication_classes`,
+    # and auth markers on the enclosing class, live outside the handler body.
+    cls_text = "\n".join(_class_auth_text(cg, e) for e in entry_fns)
+    # A non-empty permission_classes / authentication_classes that is not AllowAny is an
+    # access-control policy (IsAuthenticated, HasAPIKey, a custom *Permission, JWT auth, ...).
+    drf_guarded = any(g.strip() and "AllowAny" not in g for g in re.findall(
+        r"(?:permission|authentication)_classes\s*=\s*[\[(]([^\])]*)[\])]", cls_text))
+    auth = (any(t in handler_text for t in tokens)
+            or any(t in cls_text for t in tokens)
+            or drf_guarded
+            or bool(re.search(r"login_required|jwt_required|auth|permission|Depends\(\s*get_current|authenticate",
+                              handler_text)))
+    return {"scoped": scoped or owner_check, "auth": auth, "owner_check": owner_check,
+            "class_guarded": drf_guarded}
+
+
+def _class_auth_text(cg: CodeGraph, fn: str) -> str:
+    """Source of the class enclosing a method handler, from ``class X`` down to the
+    method - where DRF/APIView put ``permission_classes`` and auth markers."""
+    d = cg.g.nodes.get(fn, {})
+    cls = d.get("cls")
+    if not cls:
+        return ""
+    name = cls.split(".")[-1]
+    src = cg.lines.get(d.get("file", "")) or []
+    mline = int(d.get("line", 0) or 0)
+    for i in range(min(mline, len(src)) - 1, -1, -1):
+        if re.match(rf"\s*class\s+{re.escape(name)}\b", src[i]):
+            return "".join(_COMMENT.sub("", ln) for ln in src[i:mline])
+    return ""

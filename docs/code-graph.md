@@ -48,7 +48,10 @@ Edges are `flow` (optionally carrying the classes a sanitizer neutralizes),
   an injection payload, but still count for BOLA.
 - **Authorization context.** Object lookups keyed by a client id are reported as
   BOLA candidates only when the query is not scoped to the caller and no
-  ownership check follows.
+  ownership check follows. Route handlers guarded by a class-level
+  policy (DRF `permission_classes` / `authentication_classes`, an enclosing-class auth
+  marker) are recognized as authenticated, so a guarded lookup is not flagged as
+  unauthenticated-reachable.
 
 ## Classes
 
