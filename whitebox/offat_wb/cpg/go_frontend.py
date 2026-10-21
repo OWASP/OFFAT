@@ -105,7 +105,6 @@ class GoFrontend:
                 name = self.t(mod, name_node)
                 recv = ""
                 if n.type == "method_declaration":
-                    r = n.child_by_field_name("receiver")
                     recv = "(recv)."
                 fid = f"fn:{mod.rel}:{name}@{n.start_point[0] + 1}"
                 params = self._params(mod, n)
@@ -403,9 +402,8 @@ class _GoBuilder:
                 return {self.source(raw, n)}
             return self.eval(n.child_by_field_name("operand"))
         if t == "index_expression":
+            # mux.Vars(r)["id"] - the operand call is already the source
             obj = n.child_by_field_name("operand")
-            raw = self.fe.dotted(self.mod, obj) if obj is not None else ""
-            # mux.Vars(r)["id"] - operand is a call that is a source
             vals = self.eval(obj)
             self.eval(n.child_by_field_name("index"))
             return vals
