@@ -195,6 +195,34 @@
         }
       ],
       "silent": []
+    },
+    {
+      "name": "java_app",
+      "path": "tests/fixtures/java_app",
+      "needs_tree_sitter": true,
+      "expect": [
+        {
+          "file": "C.java",
+          "class": "sqli",
+          "route": "GET /u/{id}",
+          "needs_tree_sitter": true
+        },
+        {
+          "file": "C.java",
+          "class": "command_injection",
+          "route": "POST /run",
+          "needs_tree_sitter": true
+        },
+        {
+          "file": "C.java",
+          "class": "path_traversal",
+          "route": "GET /file",
+          "needs_tree_sitter": true
+        }
+      ],
+      "silent": [
+        "GET /safe"
+      ]
     }
   ]
 }

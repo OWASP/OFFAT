@@ -537,3 +537,58 @@ GENERIC_SANITIZERS: List[SanitizerSpec] = [
                   frozenset({"path_traversal"}), lang="*"),
     SanitizerSpec(("escape", "htmlspecialchars", "sanitize", "escapeHtml"), frozenset({"xss"}), lang="*"),
 ]
+
+
+# --- Java (Spring / Jakarta / JDBC) ----------------------------------------
+
+JAVA_SOURCE_PATTERNS = ("*.getParameter", "*.getParameterValues", "*.getHeader", "*.getQueryString",
+                        "*.getPathInfo", "*.getCookies", "*.getInputStream", "*.getReader",
+                        "*.getParameterMap", "request.getParameter")
+# Spring/Jakarta param annotations whose annotated method parameter is attacker input.
+JAVA_SOURCE_ANNOTATIONS = ("RequestParam", "PathVariable", "RequestBody", "RequestHeader",
+                           "CookieValue", "ModelAttribute", "RequestPart", "MatrixVariable",
+                           "QueryParam", "PathParam", "FormParam", "HeaderParam")
+# Route-mapping annotations -> HTTP method.
+JAVA_ROUTE_ANNOTATIONS = {"GetMapping": "GET", "PostMapping": "POST", "PutMapping": "PUT",
+                          "DeleteMapping": "DELETE", "PatchMapping": "PATCH", "RequestMapping": "ANY",
+                          "GET": "GET", "POST": "POST", "PUT": "PUT", "DELETE": "DELETE"}
+
+_JVS = SinkSpec
+JAVA_SINKS: List[SinkSpec] = [
+    _JVS("sqli", "CWE-89", "high", "SQL injection", "A03",
+         ("*.executeQuery", "*.execute", "*.executeUpdate", "*.executeLargeUpdate", "*.addBatch",
+          "*.createQuery", "*.createNativeQuery", "*.createSQLQuery", "*.queryForObject",
+          "*.queryForList", "*.queryForMap", "*.query", "*.update", "*.prepareStatement"),
+         args=(0,), lang="java"),
+    _JVS("command_injection", "CWE-78", "critical", "OS command injection", "A03",
+         ("Runtime.exec", "*.exec", "ProcessBuilder", "*.command"), any_arg=True, lang="java"),
+    _JVS("ssrf", "CWE-918", "high", "Server-side request forgery", "A10",
+         ("URL", "*.openStream", "*.openConnection", "HttpGet", "HttpPost", "*.execute",
+          "WebClient", "*.getForObject", "*.getForEntity", "*.exchange", "RestTemplate"),
+         args=(0,), lang="java"),
+    _JVS("path_traversal", "CWE-22", "high", "Path traversal (file access)", "A01",
+         ("File", "FileInputStream", "FileReader", "FileOutputStream", "FileWriter",
+          "Files.readAllBytes", "Files.readAllLines", "Files.newInputStream", "Files.delete",
+          "Paths.get", "RandomAccessFile"), args=(0,), lang="java"),
+    _JVS("deserialization", "CWE-502", "critical", "Unsafe deserialization", "A08",
+         ("*.readObject", "ObjectInputStream", "XMLDecoder", "*.readUnshared", "*.fromXML"),
+         args=(0,), lang="java"),
+    _JVS("xss", "CWE-79", "medium", "Reflected XSS (response writer)", "A03",
+         ("*.getWriter().write", "*.getWriter().print", "*.getWriter().println", "*.print",
+          "*.println", "*.sendError"), args=(0,), lang="java"),
+    _JVS("code_injection", "CWE-95", "high", "Expression-language / script injection", "A03",
+         ("*.eval", "ScriptEngine.eval", "ExpressionParser.parseExpression", "*.parseExpression"),
+         args=(0,), lang="java"),
+    _JVS("open_redirect", "CWE-601", "medium", "Open redirect", "A01",
+         ("*.sendRedirect", "RedirectView"), args=(0,), lang="java"),
+]
+JAVA_SANITIZERS: List[SanitizerSpec] = [
+    SanitizerSpec(("Integer.parseInt", "Long.parseLong", "Double.parseDouble", "Boolean.parseBoolean",
+                   "UUID.fromString", "Integer.valueOf", "Long.valueOf", "*.longValue", "*.intValue"),
+                  frozenset({ALL}), lang="java"),
+    SanitizerSpec(("FilenameUtils.getName", "*.getFileName", "Paths.get().normalize"),
+                  frozenset({"path_traversal"}), lang="java"),
+    SanitizerSpec(("HtmlUtils.htmlEscape", "*.encodeForHTML", "StringEscapeUtils.escapeHtml4",
+                   "ESAPI.encoder().encodeForHTML"), frozenset({"xss"}), lang="java"),
+    SanitizerSpec(("*.setString", "*.setInt", "*.setLong"), frozenset({"sqli"}), lang="java"),
+]

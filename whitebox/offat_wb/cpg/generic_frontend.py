@@ -16,12 +16,18 @@ generic-profile findings are marked lower confidence.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import tree_sitter_language_pack as tslp
 
 from . import specs
 from .graph import CodeGraph
+
+
+def _descendants(n: Any):
+    for c in n.named_children:
+        yield c
+        yield from _descendants(c)
 
 
 @dataclass
@@ -44,6 +50,9 @@ class GrammarProfile:
     source_patterns: Tuple[str, ...] = ()
     strip_prefix: str = ""
     echo_types: Tuple[str, ...] = ()   # statements whose args are a direct XSS sink (PHP echo)
+    object_creation_types: Tuple[str, ...] = ()   # `new X(...)` call forms (Java)
+    route_annotations: Optional[Dict[str, str]] = None   # annotation name -> HTTP method
+    source_annotations: Tuple[str, ...] = ()             # param annotations that mark attacker input
     generic: bool = False      # heuristic node-type matching for unknown grammars
 
     def is_func(self, t: str) -> bool:
@@ -55,7 +64,7 @@ class GrammarProfile:
     def is_call(self, t: str) -> bool:
         if self.generic:
             return "call" in t or "invocation" in t
-        return t in self.call_types
+        return t in self.call_types or t in self.object_creation_types
 
     def is_assign(self, t: str) -> bool:
         if self.generic:
@@ -118,6 +127,13 @@ class GenericFrontend:
                 self.cg.node(f"ret:{fid}", "return", fn=fid, file=rel, line=line)
                 self.functions.setdefault(name, fid)
                 self.fn_nodes[fid] = (rel, n)
+                if self.p.route_annotations:
+                    for ann, args in self.annotations(rel, n):
+                        if ann in self.p.route_annotations:
+                            self.cg.g.nodes[fid]["route"] = {"method": self.p.route_annotations[ann],
+                                                             "path": self._ann_path(rel, args),
+                                                             "framework": self.p.name}
+                            break
             for c in n.named_children:
                 walk(c)
         walk(root)
@@ -128,11 +144,38 @@ class GenericFrontend:
             return []
         out = []
         for p in ps.named_children:
-            txt = self.text(rel, p).strip(self.p.strip_prefix).split("=")[0].split(":")[0].strip()
-            # take the first identifier-ish token
-            tok = "".join(ch for ch in txt if ch.isalnum() or ch == "_")
-            out.append(tok or f"_p{len(out)}")
+            if p.type in ("block_argument", "comment"):
+                continue
+            # prefer an explicit name field (Java/PHP); else the first identifier token.
+            nm = p.child_by_field_name("name")
+            if nm is None:
+                nm = next((c for c in _descendants(p)
+                           if c.type in ("identifier", "variable_name", "simple_identifier")), None)
+            name = self.text(rel, nm).strip(self.p.strip_prefix) if nm is not None else ""
+            out.append(name or f"_p{len(out)}")
         return out
+
+    def annotations(self, rel: str, node: Any) -> List[Tuple[str, Any]]:
+        """(name, arguments-node) for each annotation in a node's ``modifiers`` child."""
+        out: List[Tuple[str, Any]] = []
+        mods = next((c for c in node.named_children if c.type == "modifiers"), None)
+        for a in (mods.named_children if mods is not None else []):
+            if a.type in ("annotation", "marker_annotation"):
+                nm = a.child_by_field_name("name")
+                out.append((self.text(rel, nm).lstrip("@"), a.child_by_field_name("arguments")))
+        return out
+
+    def _ann_path(self, rel: str, args: Any) -> str:
+        if args is None:
+            return ""
+        for c in args.named_children:
+            if "string" in c.type:
+                return self.text(rel, c).strip('"')
+            if c.type == "element_value_pair" and self.text(rel, c.child_by_field_name("key")) in ("value", "path"):
+                v = c.child_by_field_name("value")
+                if v is not None and "string" in v.type:
+                    return self.text(rel, v).strip('"')
+        return ""
 
     def build(self) -> None:
         for fid, (rel, n) in list(self.fn_nodes.items()):
@@ -186,6 +229,9 @@ class _Builder:
         if t in ("identifier", "name", "variable_name", "field_identifier", "constant",
                  "property_identifier", "type_identifier", "simple_identifier"):
             return self.t(n).strip(self.p.strip_prefix)
+        if t in self.p.object_creation_types:
+            ty = n.child_by_field_name("type") or n.child_by_field_name("constructor")
+            return self.t(ty).split("<")[0].split(".")[-1].strip() if ty is not None else ""
         if self.p.is_call(t):
             callee = (n.child_by_field_name("function") or n.child_by_field_name("method")
                       or n.child_by_field_name("name"))
@@ -210,6 +256,18 @@ class _Builder:
         for prm in self.cg.g.nodes[self.fid].get("params", []):
             self.defs[prm] = {self.cg.node(f"p:{self.fid}:{prm}", "param", name=prm, fn=self.fid,
                                            file=self.rel, line=self.cg.g.nodes[self.fid].get("line"), code="")}
+        if self.p.source_annotations:
+            ps = self.node.child_by_field_name("parameters")
+            for fp in (ps.named_children if ps is not None else []):
+                if fp.type not in ("formal_parameter", "spread_parameter"):
+                    continue
+                anns = {a for a, _ in self.fe.annotations(self.rel, fp)}
+                if anns & set(self.p.source_annotations):
+                    nm = self.fe.text(self.rel, fp.child_by_field_name("name"))
+                    pid = next(iter(self.defs.get(nm, set())), None)
+                    if pid:
+                        src = self.source(f"@param {nm}", fp)
+                        self.cg.flow(src, pid)
         body = self.node.child_by_field_name(self.p.body_field)
         self.walk(body if body is not None else self.node)
 
@@ -436,6 +494,20 @@ PHP = GrammarProfile(
 )
 
 
+JAVA = GrammarProfile(
+    name="java", exts=(".java",), ts_lang="java",
+    sinks=specs.JAVA_SINKS, sanitizers=specs.JAVA_SANITIZERS,
+    func_types=("method_declaration", "constructor_declaration"),
+    call_types=("method_invocation", "explicit_constructor_invocation"),
+    object_creation_types=("object_creation_expression",),
+    assign_types=("assignment_expression",), binary_types=("binary_expression",),
+    concat_ops=("+",), args_field="arguments",
+    source_patterns=specs.JAVA_SOURCE_PATTERNS,
+    route_annotations=specs.JAVA_ROUTE_ANNOTATIONS,
+    source_annotations=specs.JAVA_SOURCE_ANNOTATIONS,
+)
+
+
 def generic_profile(ts_lang: str, name: str, exts: Tuple[str, ...]) -> GrammarProfile:
     return GrammarProfile(
         name=name, exts=exts, ts_lang=ts_lang, generic=True,
@@ -447,9 +519,9 @@ def generic_profile(ts_lang: str, name: str, exts: Tuple[str, ...]) -> GrammarPr
 
 # Languages routed through the generic heuristic profile (no dedicated frontend).
 GENERIC_LANGS = {
-    ".java": ("java", "java"), ".kt": ("kotlin", "kotlin"),
+    ".kt": ("kotlin", "kotlin"),
     ".cs": ("csharp", "c_sharp"), ".rs": ("rust", "rust"),
     ".scala": ("scala", "scala"),
 }
 
-PROFILES: Dict[str, GrammarProfile] = {".rb": RUBY, ".php": PHP}
+PROFILES: Dict[str, GrammarProfile] = {".rb": RUBY, ".php": PHP, ".java": JAVA}
