@@ -17,6 +17,7 @@ from offat_triage import enrich_threats, tiered_triage
 _SQL_ERRORS = [
     "sql syntax", "sqlite3", "psycopg2", "ora-", "you have an error in your sql",
     "unclosed quotation mark", "pg::syntaxerror", "mysql_fetch", "sqlstate",
+    "unterminated quoted string", "syntax error at or near",
 ]
 _TRAVERSAL_MARKERS = ["root:x:0:0", "[extensions]", "; for 16-bit app support"]
 
