@@ -407,3 +407,13 @@ class TestJavaFrontend(unittest.TestCase):
 
     def test_parseint_safe_route_silent(self):
         self.assertNotIn("GET /safe", self.by_route)
+
+
+@unittest.skipUnless(cpg.AVAILABLE and HAVE_TS, "needs networkx + tree-sitter")
+class TestCSharpFrontend(unittest.TestCase):
+    def test_aspnet_attributes(self):
+        hits = {(f["file"], f["class"]) for f in cpg.analyze(os.path.join(HERE, "fixtures", "csharp_app")).findings}
+        self.assertIn(("C.cs", "sqli"), hits)             # [FromQuery] -> SqlCommand
+        self.assertIn(("C.cs", "path_traversal"), hits)   # File.ReadAllText
+        # int.Parse route must not produce a second sqli beyond the vulnerable one
+        self.assertEqual(sum(1 for _, c in hits if c == "sqli"), 1)

@@ -158,11 +158,18 @@ class GenericFrontend:
     def annotations(self, rel: str, node: Any) -> List[Tuple[str, Any]]:
         """(name, arguments-node) for each annotation in a node's ``modifiers`` child."""
         out: List[Tuple[str, Any]] = []
-        mods = next((c for c in node.named_children if c.type == "modifiers"), None)
-        for a in (mods.named_children if mods is not None else []):
-            if a.type in ("annotation", "marker_annotation"):
-                nm = a.child_by_field_name("name")
-                out.append((self.text(rel, nm).lstrip("@"), a.child_by_field_name("arguments")))
+        for c in node.named_children:
+            if c.type == "modifiers":
+                for a in c.named_children:
+                    if a.type in ("annotation", "marker_annotation"):
+                        nm = a.child_by_field_name("name") or next(
+                            (g for g in _descendants(a) if g.type in ("identifier", "type_identifier")), None)
+                        out.append((self.text(rel, nm).lstrip("@"), a.child_by_field_name("arguments")))
+            elif c.type == "attribute_list":   # C# [Attr(...)]
+                for a in c.named_children:
+                    if a.type == "attribute":
+                        nm = a.child_by_field_name("name")
+                        out.append((self.text(rel, nm), a.child_by_field_name("arguments")))
         return out
 
     def _ann_path(self, rel: str, args: Any) -> str:
@@ -227,7 +234,8 @@ class _Builder:
             return ""
         t = n.type
         if t in ("identifier", "name", "variable_name", "field_identifier", "constant",
-                 "property_identifier", "type_identifier", "simple_identifier"):
+                 "property_identifier", "type_identifier", "simple_identifier", "predefined_type",
+                 "package_identifier"):
             return self.t(n).strip(self.p.strip_prefix)
         if t in self.p.object_creation_types:
             ty = n.child_by_field_name("type") or n.child_by_field_name("constructor")
@@ -240,7 +248,8 @@ class _Builder:
             return (base + "." if base else "") + self.dotted(callee)
         # member / field access across grammars
         obj = (n.child_by_field_name("object") or n.child_by_field_name("receiver")
-               or n.child_by_field_name("operand") or n.child_by_field_name("scope"))
+               or n.child_by_field_name("operand") or n.child_by_field_name("scope")
+               or n.child_by_field_name("expression"))
         fld = (n.child_by_field_name("name") or n.child_by_field_name("field")
                or n.child_by_field_name("property"))
         if obj is not None or fld is not None:
@@ -259,7 +268,7 @@ class _Builder:
         if self.p.source_annotations:
             ps = self.node.child_by_field_name("parameters")
             for fp in (ps.named_children if ps is not None else []):
-                if fp.type not in ("formal_parameter", "spread_parameter"):
+                if "parameter" not in fp.type:
                     continue
                 anns = {a for a, _ in self.fe.annotations(self.rel, fp)}
                 if anns & set(self.p.source_annotations):
@@ -392,6 +401,9 @@ class _Builder:
             if c.type in ("variable_declarator", "init_declarator", "declarator"):
                 nm = c.child_by_field_name("name") or c.child_by_field_name("declarator")
                 val = c.child_by_field_name("value")
+                if val is None and nm is not None:
+                    kids = [k for k in c.named_children if k != nm and k.type not in ("type_identifier",)]
+                    val = kids[-1] if kids else None
                 if val is not None and nm is not None:
                     self._bind(nm, self.eval(val))
             elif "declaration" in c.type or c.type == "let_declaration":
@@ -404,6 +416,16 @@ class _Builder:
         cid = self.cg.node(f"c:{self.fid}:{ln}:{n.start_point[1]}:{self._n}", "call", callee=raw or "<dyn>",
                            raw=raw, fn=self.fid, file=self.rel, line=ln, code=self.code(ln))
         self.cg.flow(self.fid, cid, kind="contains")
+
+        # evaluate the receiver chain (member-access object / constructor) for taint + nested calls
+        recv: Set[str] = set()
+        fn = n.child_by_field_name("function") or n.child_by_field_name("method")
+        robj = n.child_by_field_name("receiver") or n.child_by_field_name("object")
+        if robj is None and fn is not None and fn.type not in ("identifier", "name"):
+            robj = (fn.child_by_field_name("object") or fn.child_by_field_name("receiver")
+                    or fn.child_by_field_name("operand") or fn.child_by_field_name("expression"))
+        if robj is not None:
+            recv = self.eval(robj)
 
         args_node = n.child_by_field_name(self.p.args_field)
         args: List[Tuple[int, str, Set[str]]] = []
@@ -447,11 +469,8 @@ class _Builder:
         else:
             for _, aid, _ in args:
                 self.cg.flow(aid, cid)
-            # receiver taint passes through
-            recv = n.child_by_field_name("receiver") or n.child_by_field_name("object")
-            if recv is not None:
-                for v in self.eval(recv):
-                    self.cg.flow(v, cid)
+            for v in recv:   # receiver taint passes through
+                self.cg.flow(v, cid)
         return {cid}
 
     def _bind_call(self, cid: str, target: str, args) -> None:
@@ -508,6 +527,19 @@ JAVA = GrammarProfile(
 )
 
 
+CSHARP = GrammarProfile(
+    name="csharp", exts=(".cs",), ts_lang="csharp",
+    sinks=specs.CSHARP_SINKS, sanitizers=specs.CSHARP_SANITIZERS,
+    func_types=("method_declaration", "local_function_statement", "constructor_declaration"),
+    call_types=("invocation_expression",), object_creation_types=("object_creation_expression",),
+    assign_types=("assignment_expression",), binary_types=("binary_expression",),
+    concat_ops=("+",), args_field="arguments",
+    source_patterns=specs.CSHARP_SOURCE_PATTERNS,
+    route_annotations=specs.CSHARP_ROUTE_ANNOTATIONS,
+    source_annotations=specs.CSHARP_SOURCE_ANNOTATIONS,
+)
+
+
 def generic_profile(ts_lang: str, name: str, exts: Tuple[str, ...]) -> GrammarProfile:
     return GrammarProfile(
         name=name, exts=exts, ts_lang=ts_lang, generic=True,
@@ -519,9 +551,8 @@ def generic_profile(ts_lang: str, name: str, exts: Tuple[str, ...]) -> GrammarPr
 
 # Languages routed through the generic heuristic profile (no dedicated frontend).
 GENERIC_LANGS = {
-    ".kt": ("kotlin", "kotlin"),
-    ".cs": ("csharp", "c_sharp"), ".rs": ("rust", "rust"),
+    ".kt": ("kotlin", "kotlin"), ".rs": ("rust", "rust"),
     ".scala": ("scala", "scala"),
 }
 
-PROFILES: Dict[str, GrammarProfile] = {".rb": RUBY, ".php": PHP, ".java": JAVA}
+PROFILES: Dict[str, GrammarProfile] = {".rb": RUBY, ".php": PHP, ".java": JAVA, ".cs": CSHARP}

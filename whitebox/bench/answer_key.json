@@ -223,6 +223,24 @@
       "silent": [
         "GET /safe"
       ]
+    },
+    {
+      "name": "csharp_app",
+      "path": "tests/fixtures/csharp_app",
+      "needs_tree_sitter": true,
+      "expect": [
+        {
+          "file": "C.cs",
+          "class": "sqli",
+          "needs_tree_sitter": true
+        },
+        {
+          "file": "C.cs",
+          "class": "path_traversal",
+          "needs_tree_sitter": true
+        }
+      ],
+      "silent": []
     }
   ]
 }
