@@ -46,8 +46,11 @@ Edges are `flow` (optionally carrying the classes a sanitizer neutralizes),
 - **Java** (tree-sitter): Spring `@*Mapping` routes and `@RequestParam` / `@PathVariable`
   / `@RequestBody` annotated sources (plus servlet `getParameter`); JDBC/JPA,
   `Runtime.exec`/`ProcessBuilder`, file I/O, `ObjectInputStream`, response-writer sinks.
-- **Generic** (tree-sitter): a best-effort profile for Kotlin, C#, Rust and
-  Scala - structural taint (declarations, calls, string concatenation) against a
+- **C#** (tree-sitter): ASP.NET `[HttpGet]`/`[Route]` routes and `[FromQuery]` /
+  `[FromRoute]` / `[FromBody]` sources; ADO.NET/EF (`SqlCommand`, `ExecuteReader`,
+  `FromSqlRaw`), `Process.Start`, file I/O, `HttpClient`, `BinaryFormatter` sinks.
+- **Generic** (tree-sitter): a best-effort profile for Kotlin, Rust, Scala and
+  Swift - structural taint (declarations, calls, string concatenation) against a
   conservative cross-language sink catalog; findings are marked lower confidence.
 
 ## Precision

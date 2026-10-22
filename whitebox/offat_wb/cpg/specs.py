@@ -592,3 +592,44 @@ JAVA_SANITIZERS: List[SanitizerSpec] = [
                    "ESAPI.encoder().encodeForHTML"), frozenset({"xss"}), lang="java"),
     SanitizerSpec(("*.setString", "*.setInt", "*.setLong"), frozenset({"sqli"}), lang="java"),
 ]
+
+
+# --- C# (ASP.NET Core / ADO.NET / EF) --------------------------------------
+
+CSHARP_SOURCE_PATTERNS = ("*.Query", "Request.Query", "Request.Form", "Request.Headers",
+                          "*.QueryString", "Request.Cookies", "*.ReadAsStringAsync", "Request.Body",
+                          "*.Params")
+CSHARP_SOURCE_ANNOTATIONS = ("FromQuery", "FromRoute", "FromBody", "FromForm", "FromHeader")
+CSHARP_ROUTE_ANNOTATIONS = {"HttpGet": "GET", "HttpPost": "POST", "HttpPut": "PUT",
+                            "HttpDelete": "DELETE", "HttpPatch": "PATCH", "Route": "ANY"}
+
+_CSS = SinkSpec
+CSHARP_SINKS: List[SinkSpec] = [
+    _CSS("sqli", "CWE-89", "high", "SQL injection", "A03",
+         ("SqlCommand", "*.ExecuteReader", "*.ExecuteNonQuery", "*.ExecuteScalar", "*.ExecuteReaderAsync",
+          "*.FromSqlRaw", "*.ExecuteSqlRaw", "*.FromSqlInterpolated", "OracleCommand", "NpgsqlCommand",
+          "MySqlCommand"), args=(0,), lang="csharp"),
+    _CSS("command_injection", "CWE-78", "critical", "OS command injection", "A03",
+         ("Process.Start", "*.Start", "ProcessStartInfo"), any_arg=True, lang="csharp"),
+    _CSS("ssrf", "CWE-918", "high", "Server-side request forgery", "A10",
+         ("*.GetAsync", "*.PostAsync", "*.GetStringAsync", "*.DownloadString", "WebRequest.Create",
+          "*.SendAsync", "HttpClient"), args=(0,), lang="csharp"),
+    _CSS("path_traversal", "CWE-22", "high", "Path traversal (file access)", "A01",
+         ("File.ReadAllText", "File.ReadAllBytes", "File.Open", "File.OpenRead", "File.WriteAllText",
+          "File.Delete", "FileStream", "StreamReader", "Path.Combine"), args=(0, 1), lang="csharp"),
+    _CSS("deserialization", "CWE-502", "critical", "Unsafe deserialization", "A08",
+         ("*.Deserialize", "BinaryFormatter", "*.ReadObject", "JavaScriptSerializer"), args=(0,),
+         lang="csharp"),
+    _CSS("xss", "CWE-79", "medium", "Reflected XSS (response write)", "A03",
+         ("Response.Write", "*.WriteAsync", "*.Write"), any_arg=True, lang="csharp"),
+    _CSS("open_redirect", "CWE-601", "medium", "Open redirect", "A01",
+         ("*.Redirect", "Response.Redirect", "RedirectResult"), args=(0,), lang="csharp"),
+]
+CSHARP_SANITIZERS: List[SanitizerSpec] = [
+    SanitizerSpec(("int.Parse", "Int32.Parse", "long.Parse", "Int64.Parse", "Guid.Parse",
+                   "int.TryParse", "Convert.ToInt32", "Convert.ToInt64"), frozenset({ALL}), lang="csharp"),
+    SanitizerSpec(("Path.GetFileName",), frozenset({"path_traversal"}), lang="csharp"),
+    SanitizerSpec(("HttpUtility.HtmlEncode", "WebUtility.HtmlEncode", "*.Encode"),
+                  frozenset({"xss"}), lang="csharp"),
+    SanitizerSpec(("*.Parameters.Add", "*.Parameters.AddWithValue"), frozenset({"sqli"}), lang="csharp"),
+]
