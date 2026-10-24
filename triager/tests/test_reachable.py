@@ -67,3 +67,16 @@ class TestComplete(unittest.TestCase):
             self.assertEqual(complete("gen", provider="claude-code"), "OK-RESULT")
         finally:
             T.make_triager, subprocess.run = orig_make, orig_run
+
+
+class TestFingerprint(unittest.TestCase):
+    def test_line_independent_and_distinct(self):
+        from offat_triage import finding_fingerprint
+        a = {"class": "sqli", "file": "a.py", "cwe": "CWE-89",
+             "evidence": {"sink": "execute @ a.py:9", "source": "request.args @ a.py:5"}}
+        b = dict(a, evidence={"sink": "execute @ a.py:99", "source": "request.args @ a.py:55"})
+        self.assertEqual(finding_fingerprint(a), finding_fingerprint(b))   # line-stable
+        other_file = dict(a, file="b.py")
+        self.assertNotEqual(finding_fingerprint(a), finding_fingerprint(other_file))
+        other_cls = dict(a, **{"class": "ssrf"})
+        self.assertNotEqual(finding_fingerprint(a), finding_fingerprint(other_cls))

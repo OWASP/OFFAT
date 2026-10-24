@@ -51,8 +51,14 @@ def sarif(bundle: Dict[str, Any]) -> Dict[str, Any]:
         sev = f.get("severity", "")
         level = "error" if sev in ("critical", "high") else "warning" if sev == "medium" else "note"
         uri = f.get("file") or ((f.get("request") or {}).get("url")) or f.get("endpoint", "")
+        try:
+            from offat_triage import finding_fingerprint
+            fp = f.get("fingerprint") or finding_fingerprint(f)
+        except Exception:  # noqa: BLE001
+            fp = f.get("fingerprint", "")
         results.append({
             "ruleId": rid, "level": level,
+            "partialFingerprints": {"offat/v1": fp} if fp else {},
             "message": {"text": f.get("title", "") + _verdict_suffix(f)},
             "locations": [{"physicalLocation": {
                 "artifactLocation": {"uri": uri or "n/a"},

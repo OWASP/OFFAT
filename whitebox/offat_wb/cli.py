@@ -192,6 +192,12 @@ def main(argv: List[str] | None = None) -> int:
     ap.add_argument("--infer-specs", action="store_true",
                     help="list the taint frontier and (with an API key) let AI infer missing sinks/sanitizers")
     ap.add_argument("--no-graft", action="store_true", help="skip graft tracing (used only with --no-graph)")
+    ap.add_argument("--baseline", default="", metavar="FILE",
+                    help="JSON baseline of accepted finding fingerprints; matching findings are "
+                         "suppressed from the --fail-on gate (adopt the scanner without drowning in "
+                         "pre-existing findings)")
+    ap.add_argument("--write-baseline", default="", metavar="FILE",
+                    help="write the current findings' fingerprints to FILE (then review/commit it)")
     ap.add_argument("--reachable-only", action="store_true",
                     help="spend AI tokens only on findings reachable from an endpoint; triage the rest "
                          "offline and cap them at inconclusive (the gray-box token-discipline policy)")
@@ -213,6 +219,30 @@ def main(argv: List[str] | None = None) -> int:
                        spec_file=args.specs, local_sources=args.local_sources,
                        graph_out=args.graph_out, agent=args.agent, infer_specs=args.infer_specs,
                        reachable_only=args.reachable_only)
+
+    # Stamp stable fingerprints, then apply the baseline (suppress known findings).
+    from offat_triage import finding_fingerprint
+    for f in rep.get("findings", []):
+        f.setdefault("fingerprint", finding_fingerprint(f))
+    if args.write_baseline:
+        fps = sorted({f["fingerprint"] for f in rep.get("findings", [])})
+        with open(args.write_baseline, "w", encoding="utf-8") as fh:
+            json.dump({"version": 1, "fingerprints": fps}, fh, indent=2)
+        print(f"[baseline] wrote {len(fps)} fingerprint(s) to {args.write_baseline}")
+    if args.baseline:
+        try:
+            with open(args.baseline, encoding="utf-8") as fh:
+                known = set(json.load(fh).get("fingerprints", []))
+        except (OSError, ValueError) as e:
+            print(f"error: could not read baseline {args.baseline!r}: {e}", file=sys.stderr)
+            return 2
+        suppressed = 0
+        for f in rep.get("findings", []):
+            if f["fingerprint"] in known:
+                f["baselined"] = True
+                suppressed += 1
+        print(f"[baseline] suppressed {suppressed}/{len(rep.get('findings', []))} finding(s) "
+              f"present in {args.baseline}")
 
     if args.fail_on:
         n = report.count_at_or_above(rep, args.fail_on)

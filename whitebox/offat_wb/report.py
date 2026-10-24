@@ -83,7 +83,7 @@ def count_at_or_above(report: Dict[str, Any], sev: str) -> int:
         if rank is None or rank == 5:
             continue
         verdict = (f.get("triage") or {}).get("verdict", "")
-        if rank <= threshold and verdict != "false_positive":
+        if rank <= threshold and verdict != "false_positive" and not f.get("baselined"):
             n += 1
     return n
 
@@ -123,6 +123,18 @@ def _junit(report: Dict[str, Any]) -> str:
     return head + "\n".join(cases) + "\n  </testsuite>\n</testsuites>\n"
 
 
+def _fingerprint(f: Dict[str, Any]) -> str:
+    fp = f.get("fingerprint")
+    if not fp:
+        try:
+            from offat_triage import finding_fingerprint
+            fp = finding_fingerprint(f)
+        except Exception:  # noqa: BLE001
+            fp = ""
+        f["fingerprint"] = fp
+    return fp
+
+
 def _sarif(report: Dict[str, Any]) -> Dict[str, Any]:
     rules, results = {}, []
     for f in report["findings"]:
@@ -137,6 +149,7 @@ def _sarif(report: Dict[str, Any]) -> Dict[str, Any]:
                 "warning" if f.get("severity") == "medium" else "note"
         result = {
             "ruleId": rid, "level": level,
+            "partialFingerprints": {"offat/v1": _fingerprint(f)},
             "message": {"text": f.get("title", "")},
             "locations": [{"physicalLocation": {
                 "artifactLocation": {"uri": f.get("file", "")},

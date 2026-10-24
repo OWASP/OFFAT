@@ -38,6 +38,8 @@ offat-whitebox /path/to/repo
 | `--semgrep` | false | Also run `semgrep --config auto` (opt-in) |
 | `--no-graft` | false | Skip graft tracing (only used with `--no-graph`) |
 | `--reachable-only` | false | Spend AI tokens only on endpoint-reachable findings; cap the rest (gray-box policy) |
+| `--baseline FILE` | — | Suppress findings whose fingerprint is in FILE (gate on new findings only) |
+| `--write-baseline FILE` | — | Write current finding fingerprints to FILE |
 | `--no-cache` | false | Do not read/write the AI-verdict cache |
 | `--fail-on` | — | Exit non-zero if an actionable finding is at/above this severity (CI gate) |
 
