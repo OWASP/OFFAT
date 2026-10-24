@@ -15,6 +15,7 @@ from .triager import (
     complete,
     cvss_for,
     remediation_for,
+    finding_fingerprint,
     DEFAULT_MODEL,
 )
 from .cli_providers import ClaudeCodeTriager, CodexTriager, cli_available
@@ -44,6 +45,7 @@ __all__ = [
     "complete",
     "cvss_for",
     "remediation_for",
+    "finding_fingerprint",
     "VerdictCache",
     "finding_key",
     "enrich_threats",

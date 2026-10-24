@@ -312,3 +312,33 @@ def triage_findings(
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
         list(pool.map(triager.triage, findings))
     return triager.name
+
+
+def finding_fingerprint(finding: Dict[str, Any]) -> str:
+    """A stable, line-independent identity for a finding.
+
+    Built from the vulnerability class, the file, the CWE, and the finding's
+    semantic identity (the proven source+sink, else the sink symbol / endpoint /
+    normalized matched code). Deliberately excludes the line number so a finding
+    keeps its fingerprint when surrounding code shifts - which lets a baseline
+    suppress known findings and lets SARIF consumers (GitHub code scanning)
+    track a finding across commits.
+    """
+    import hashlib
+    import re
+
+    ev = finding.get("evidence", {}) or {}
+    identity = ""
+    if ev.get("sink") or ev.get("source"):
+        # strip "@ file:line" location suffixes so the identity stays line-stable
+        sink = re.sub(r"\s*@\s*\S+:\d+", "", str(ev.get("sink", "")))
+        source = re.sub(r"\s*@\s*\S+:\d+", "", str(ev.get("source", "")))
+        identity = f"{source}->{sink}"
+    elif finding.get("endpoint") or finding.get("param"):
+        identity = f"{finding.get('endpoint', '')}:{finding.get('param', '')}"
+    else:
+        code = str(ev.get("matched_line") or finding.get("code") or "")
+        identity = re.sub(r"\s+", " ", code).strip()[:200]
+    key = "|".join([finding.get("class", ""), finding.get("file", ""),
+                    finding.get("cwe", ""), identity])
+    return hashlib.sha1(key.encode()).hexdigest()[:16]

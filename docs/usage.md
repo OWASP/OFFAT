@@ -92,6 +92,19 @@ Hosted: **[owasp.github.io/OFFAT/viz](https://owasp.github.io/OFFAT/viz/)** - im
 python -m http.server -d viz 8080   # local: open http://localhost:8080 and import a *.offat.json
 ```
 
+## Baseline (adopt on an existing codebase)
+
+Gate only on **new** findings, not the backlog, using stable finding fingerprints:
+
+```bash
+offat-whitebox ./repo --write-baseline .offat-baseline.json   # record today's findings; commit it
+offat-whitebox ./repo --baseline .offat-baseline.json --fail-on high   # fails only on NEW high+ findings
+```
+
+Fingerprints are line-independent, so a finding keeps its identity as surrounding
+code shifts. They are also emitted as SARIF `partialFingerprints`, so GitHub code
+scanning tracks each finding across commits.
+
 ## CI gate
 
 `--fail-on <severity>` exits non-zero when an actionable finding (not triaged as

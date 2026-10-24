@@ -79,3 +79,28 @@ class TestTraceNoGraft(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestBaselineAndFingerprints(unittest.TestCase):
+    def _report(self):
+        findings = _findings()
+        tiered_triage(findings, tempfile.mkdtemp(), use_ai=False)
+        return report.build_report(".", findings, {"languages": {"python": 1}, "manifests": [],
+                                   "sbom_components": 0}, "heuristic", ToolStatus())
+
+    def test_sarif_has_partial_fingerprints(self):
+        rep = self._report()
+        import json
+        with tempfile.TemporaryDirectory() as out:
+            report.write_all(out, rep)
+            with open(os.path.join(out, "results.sarif")) as fh:
+                sarif = json.load(fh)
+        for r in sarif["runs"][0]["results"]:
+            self.assertTrue(r.get("partialFingerprints", {}).get("offat/v1"))
+
+    def test_baseline_suppresses_from_gate(self):
+        rep = self._report()
+        self.assertGreaterEqual(report.count_at_or_above(rep, "high"), 1)
+        for f in rep["findings"]:
+            f["baselined"] = True
+        self.assertEqual(report.count_at_or_above(rep, "high"), 0)
