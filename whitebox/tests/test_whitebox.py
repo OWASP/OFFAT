@@ -93,7 +93,8 @@ class TestBaselineAndFingerprints(unittest.TestCase):
         import json
         with tempfile.TemporaryDirectory() as out:
             report.write_all(out, rep)
-            sarif = json.load(open(os.path.join(out, "results.sarif")))
+            with open(os.path.join(out, "results.sarif")) as fh:
+                sarif = json.load(fh)
         for r in sarif["runs"][0]["results"]:
             self.assertTrue(r.get("partialFingerprints", {}).get("offat/v1"))
 
