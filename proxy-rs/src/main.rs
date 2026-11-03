@@ -312,7 +312,13 @@ fn cmd_ca(cli: Cli) -> Result<()> {
     {
         let authority = ca::CertAuthority::load_or_create(&cli.config.state_dir)
             .context("loading/creating CA")?;
-        println!("{}", authority.ca_cert_pem());
+        // The CA *certificate* is public material (the whole point of this command
+        // is to install it); the private key is never printed. Emit it as program
+        // output on stdout rather than through a logging macro.
+        use std::io::Write;
+        let mut stdout = std::io::stdout();
+        stdout.write_all(authority.ca_cert_pem().as_bytes())?;
+        stdout.write_all(b"\n")?;
         eprintln!(
             "\nInstall the certificate above ONLY into a dedicated test trust store \
              (e.g. a throwaway browser profile) for targets you are authorized to test. \
