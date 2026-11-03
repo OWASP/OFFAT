@@ -1,0 +1,41 @@
+[package]
+name = "offat-proxy"
+version = "0.1.0"
+edition = "2021"
+description = "OFFAT intercepting proxy: capture live API traffic into an OFFAT Bundle, with an inbuilt MCP server to drive the pipeline end to end"
+license = "MIT"
+repository = "https://github.com/OWASP/OFFAT"
+
+[[bin]]
+name = "offat-proxy"
+path = "src/main.rs"
+
+[features]
+default = ["mitm"]
+# TLS interception. Off by default at runtime (needs --mitm and an installed CA);
+# the feature only controls whether the rustls/rcgen code is compiled in.
+mitm = ["dep:rcgen", "dep:tokio-rustls", "dep:rustls", "dep:rustls-pemfile"]
+
+[dependencies]
+tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "sync", "time", "io-util", "io-std", "net", "process", "signal"] }
+hyper = { version = "1.5", features = ["server", "client", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+http = "1"
+bytes = "1"
+# Upstream client, same TLS stack the engine uses (rustls).
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "http2", "gzip", "stream"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
+
+# --- optional, only compiled with the `mitm` feature ---
+rcgen = { version = "0.13", optional = true }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"], optional = true }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"], optional = true }
+rustls-pemfile = { version = "2", optional = true }
+
+[profile.release]
+opt-level = 3
+lto = true

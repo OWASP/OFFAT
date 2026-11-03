@@ -28,6 +28,7 @@ source -> sink path and the route that reaches them.
 | `graybox/` | `offat_gb` | SAST fused with endpoint reachability |
 | `platform/` | `offat_platform` | `offat-platform`: map, PRG, threat model, test-gen, triage |
 | `engine-rs/` | — | `offat-engine`: Rust execution engine |
+| `proxy-rs/` | — | `offat-proxy`: Rust intercepting proxy (capture live traffic -> Bundle) + inbuilt MCP server |
 | `reporter/` | `offat_report` | SARIF / Markdown / HTML / compliance reports |
 | `viz/` | — | static Bundle visualizer (deployed at `/viz/`) |
 | `docs/` | — | docs site (`build.py` -> `_site/`, Python-Markdown) |
