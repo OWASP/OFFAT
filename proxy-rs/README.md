@@ -74,6 +74,7 @@ Tools exposed:
 | `replay_flow` | re-send a captured request with overrides (Repeater) |
 | `fuzz_flow` | iterate payloads over a query/header/body insertion point (Intruder) |
 | `ca_cert` | the CA PEM to install into a test trust store (mitm) |
+| `open_browser` | launch a browser wired to the proxy, pin-trusting the CA (mitm) |
 | `run_platform` | run `offat-platform` (map/PRG/threat-model/test-gen/triage) |
 | `run_engine` | execute a Bundle's test plan with `offat-engine` |
 
@@ -81,7 +82,26 @@ Tools exposed:
 shell), so **AI routing stays in `offat_triage`** — the proxy never calls a model
 API directly.
 
-### 3. TLS interception (optional)
+### 3. Launch a browser already wired to the proxy
+
+```bash
+# starts the proxy AND opens a browser pointed at it, trusting the CA automatically
+offat-proxy run --mitm --scope api.your-authorized-target.test --open-browser
+```
+
+`--open-browser` finds a Chromium-family browser (Chrome, Chromium, Edge, Brave, or
+Playwright's bundled Chromium) and launches it in a **dedicated throwaway profile**
+pointed at the proxy. When MITM is on, it passes Chrome's
+`--ignore-certificate-errors-spki-list=<CA SPKI hash>` so the browser trusts
+certificates minted by *this* CA **only** — never a blanket "ignore all cert
+errors", and never touching your real browser's trust store. When MITM is off,
+HTTPS tunnels through untouched and the real certificate is validated normally.
+
+Flags: `--browser <chrome|chromium|edge|brave|path>`, `--browser-profile <dir>`,
+`--browser-url <url>`, `--browser-headless`, `--browser-no-sandbox` (for
+containers/CI). The agent can do the same with the `open_browser` MCP tool.
+
+### 4. TLS interception (optional)
 
 ```bash
 offat-proxy ca            # prints the local CA (PEM); install it into a TEST profile only

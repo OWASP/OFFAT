@@ -621,6 +621,7 @@ dependencies = [
  "hyper-util",
  "rcgen",
  "reqwest",
+ "ring",
  "rustls",
  "rustls-pemfile",
  "serde",

@@ -11,6 +11,7 @@
 //! active actions (replay/fuzz, the engine, and TLS interception) are gated on an
 //! explicit scope and confirmation, and credentials are redacted by default.
 
+mod browser;
 mod bundle;
 #[cfg(feature = "mitm")]
 mod ca;
@@ -34,6 +35,13 @@ struct Cli {
     command: String,
     config: Config,
     scope: Scope,
+    // browser launch (run/mcp)
+    open_browser: bool,
+    browser: Option<String>,
+    browser_profile: Option<String>,
+    browser_url: Option<String>,
+    browser_headless: bool,
+    browser_no_sandbox: bool,
     // export-only
     flows_in: String,
     out: String,
@@ -63,6 +71,13 @@ Common flags:\n  \
 --persist              append sanitized flows to <state-dir>/flows.jsonl\n  \
 --body-cap <bytes>     max stored body size (default 1048576)\n  \
 --max-flows <n>        ring-buffer size (default 5000)\n\n\
+Browser (run/mcp) - launch a browser wired to the proxy:\n  \
+--open-browser         launch a Chromium-family browser pointed at the proxy\n  \
+--browser <name|path>  chrome|chromium|edge|brave, or an explicit binary path\n  \
+--browser-profile <d>  throwaway profile dir (default <state-dir>/browser-profile)\n  \
+--browser-url <url>    initial URL to open (default: first scope host)\n  \
+--browser-headless     run headless (for CI/containers)\n  \
+--browser-no-sandbox   pass --no-sandbox (some containers; avoid on real machines)\n\n\
 export flags:\n  \
 --flows <file.jsonl>   input flows (default <state-dir>/flows.jsonl)\n  \
 --out <file.json>      output Bundle (required)\n  \
@@ -89,6 +104,12 @@ fn parse_cli() -> Cli {
     let mut out = String::new();
     let mut base_url = String::new();
     let mut only_scope = true;
+    let mut open_browser = false;
+    let mut browser: Option<String> = None;
+    let mut browser_profile: Option<String> = None;
+    let mut browser_url: Option<String> = None;
+    let mut browser_headless = false;
+    let mut browser_no_sandbox = false;
 
     let mut i = 1;
     let val = |args: &[String], i: &mut usize| -> String {
@@ -126,6 +147,12 @@ fn parse_cli() -> Cli {
                 config.body_cap = val(&args, &mut i).parse().unwrap_or(flow::DEFAULT_BODY_CAP)
             }
             "--max-flows" => config.max_flows = val(&args, &mut i).parse().unwrap_or(5000),
+            "--open-browser" => open_browser = true,
+            "--browser" => browser = Some(val(&args, &mut i)),
+            "--browser-profile" => browser_profile = Some(val(&args, &mut i)),
+            "--browser-url" => browser_url = Some(val(&args, &mut i)),
+            "--browser-headless" => browser_headless = true,
+            "--browser-no-sandbox" => browser_no_sandbox = true,
             "--flows" => flows_in = val(&args, &mut i),
             "--out" => out = val(&args, &mut i),
             "--base-url" => base_url = val(&args, &mut i),
@@ -142,6 +169,12 @@ fn parse_cli() -> Cli {
         command,
         config,
         scope: Scope::new(include, exclude),
+        open_browser,
+        browser,
+        browser_profile,
+        browser_url,
+        browser_headless,
+        browser_no_sandbox,
         flows_in,
         out,
         only_scope,
@@ -173,18 +206,82 @@ async fn cmd_serve(cli: Cli, with_mcp: bool) -> Result<()> {
 
     let runtime = build_runtime(&cli.config, state)?;
 
-    if with_mcp {
-        // Proxy in the background, MCP on the foreground (owns stdio).
-        let proxy_rt = runtime.clone();
-        tokio::spawn(async move {
-            if let Err(e) = proxy::serve(proxy_rt).await {
-                eprintln!("proxy error: {e}");
+    // The proxy always runs as a task so we can launch a browser once it's bound.
+    let proxy_rt = runtime.clone();
+    let proxy_task = tokio::spawn(async move {
+        if let Err(e) = proxy::serve(proxy_rt).await {
+            eprintln!("proxy error: {e}");
+        }
+    });
+
+    if cli.open_browser {
+        if wait_listen(cli.config.listen).await {
+            if let Err(e) = launch_browser(&cli, &runtime) {
+                eprintln!("could not launch browser: {e}");
             }
-        });
+        } else {
+            eprintln!("proxy did not become ready in time; skipping browser launch");
+        }
+    }
+
+    if with_mcp {
+        // MCP owns stdio in the foreground; the proxy keeps running behind it.
         mcp::serve(runtime).await
     } else {
-        proxy::serve(runtime).await
+        proxy_task.await.ok();
+        Ok(())
     }
+}
+
+/// Poll the listen address until the proxy accepts connections (or we give up).
+async fn wait_listen(addr: SocketAddr) -> bool {
+    for _ in 0..30 {
+        if tokio::net::TcpStream::connect(addr).await.is_ok() {
+            return true;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+    false
+}
+
+fn launch_browser(cli: &Cli, runtime: &Arc<proxy::ProxyRuntime>) -> Result<()> {
+    let profile_dir = cli
+        .browser_profile
+        .clone()
+        .map(Into::into)
+        .unwrap_or_else(|| cli.config.state_dir.join("browser-profile"));
+    let url = cli
+        .browser_url
+        .clone()
+        .or_else(|| default_browser_url(&cli.scope));
+    let spki = runtime.ca_spki();
+    if cli.config.mitm && spki.is_none() {
+        eprintln!(
+            "note: --mitm set but no CA available; HTTPS pages in the browser will show cert warnings"
+        );
+    }
+    let opts = browser::LaunchOptions {
+        proxy: cli.config.listen,
+        profile_dir,
+        url,
+        spki,
+        headless: cli.browser_headless,
+        no_sandbox: cli.browser_no_sandbox,
+        browser: cli.browser.as_deref(),
+    };
+    let (child, summary, _args) = browser::launch(&opts)?;
+    eprintln!("{summary}");
+    // Detach: the browser runs independently of the proxy process.
+    std::mem::forget(child);
+    Ok(())
+}
+
+/// Default landing URL: the first in-scope host (https when MITM-capable).
+fn default_browser_url(scope: &Scope) -> Option<String> {
+    scope.include.first().map(|h| {
+        let host = h.trim_start_matches("*.");
+        format!("https://{host}/")
+    })
 }
 
 #[cfg(feature = "mitm")]

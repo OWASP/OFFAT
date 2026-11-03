@@ -47,6 +47,34 @@ fn civil_from_days(z: i64) -> (i64, u32, u32) {
     (if m <= 2 { y + 1 } else { y }, m, d)
 }
 
+/// Standard base64 (RFC 4648) encoder with padding. Dependency-free; used for
+/// Basic proxy-auth and for the CA SPKI hash passed to the browser.
+pub fn base64(input: &[u8]) -> String {
+    const ALPHA: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(input.len().div_ceil(3) * 4);
+    for chunk in input.chunks(3) {
+        let b = [
+            chunk[0],
+            *chunk.get(1).unwrap_or(&0),
+            *chunk.get(2).unwrap_or(&0),
+        ];
+        let n = ((b[0] as u32) << 16) | ((b[1] as u32) << 8) | (b[2] as u32);
+        out.push(ALPHA[((n >> 18) & 63) as usize] as char);
+        out.push(ALPHA[((n >> 12) & 63) as usize] as char);
+        out.push(if chunk.len() > 1 {
+            ALPHA[((n >> 6) & 63) as usize] as char
+        } else {
+            '='
+        });
+        out.push(if chunk.len() > 2 {
+            ALPHA[(n & 63) as usize] as char
+        } else {
+            '='
+        });
+    }
+    out
+}
+
 /// Case-insensitive glob match supporting `*` (any run, including empty). Used for
 /// host scope patterns like `*.example.test`. `?` and character classes are not
 /// supported on purpose - scope rules should stay obvious.
@@ -87,6 +115,15 @@ mod tests {
         // 2021-01-01T00:00:00Z == 1609459200s
         assert_eq!(rfc3339(1_609_459_200_000), "2021-01-01T00:00:00Z");
         assert_eq!(rfc3339(0), "1970-01-01T00:00:00Z");
+    }
+
+    #[test]
+    fn base64_vectors() {
+        assert_eq!(base64(b""), "");
+        assert_eq!(base64(b"f"), "Zg==");
+        assert_eq!(base64(b"fo"), "Zm8=");
+        assert_eq!(base64(b"foo"), "Zm9v");
+        assert_eq!(base64(b"user:pass"), "dXNlcjpwYXNz");
     }
 
     #[test]

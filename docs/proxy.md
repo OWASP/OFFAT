@@ -77,6 +77,21 @@ Tools: `proxy_status`, `set_scope`, `list_flows`, `get_flow`, `export_bundle`,
 shell), so **model calls stay inside `offat_triage`** — the proxy never talks to a
 model API itself, and captured target content is always treated as untrusted data.
 
+## Launch a browser, zero setup
+
+```bash
+offat-proxy run --mitm --scope api.your-authorized-target.test --open-browser
+```
+
+`--open-browser` finds a Chromium-family browser (or Playwright's bundled
+Chromium) and opens it in a dedicated throwaway profile already pointed at the
+proxy. With MITM on, it trusts the CA automatically via Chrome's
+`--ignore-certificate-errors-spki-list=<CA SPKI hash>` — scoped to *this* CA only,
+never a blanket "ignore all certificate errors", and never touching your real
+browser's trust store. Pick the browser with `--browser`, the landing page with
+`--browser-url`, and add `--browser-headless` / `--browser-no-sandbox` for
+containers. Agents can do the same through the `open_browser` MCP tool.
+
 ## TLS interception
 
 ```bash

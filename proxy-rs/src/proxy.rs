@@ -83,6 +83,18 @@ impl ProxyRuntime {
             ca: Some(ca),
         }))
     }
+
+    /// The CA SPKI hash to pin-trust in a launched browser, when MITM is active.
+    #[cfg(feature = "mitm")]
+    pub fn ca_spki(&self) -> Option<String> {
+        self.ca.as_ref().map(|c| c.spki_sha256_b64())
+    }
+
+    /// Without the MITM feature there is no CA, so nothing to pin-trust.
+    #[cfg(not(feature = "mitm"))]
+    pub fn ca_spki(&self) -> Option<String> {
+        None
+    }
 }
 
 /// Bind and serve until the process is stopped.
@@ -497,33 +509,7 @@ fn resp_status(status: StatusCode, msg: &str) -> Response<ClientBody> {
 
 /// Minimal base64 for Basic auth comparison (RFC 4648, standard alphabet).
 fn base64_basic(user: &str, pass: &str) -> String {
-    base64_encode(format!("{user}:{pass}").as_bytes())
-}
-
-fn base64_encode(input: &[u8]) -> String {
-    const ALPHA: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut out = String::with_capacity(input.len().div_ceil(3) * 4);
-    for chunk in input.chunks(3) {
-        let b = [
-            chunk[0],
-            *chunk.get(1).unwrap_or(&0),
-            *chunk.get(2).unwrap_or(&0),
-        ];
-        let n = ((b[0] as u32) << 16) | ((b[1] as u32) << 8) | (b[2] as u32);
-        out.push(ALPHA[((n >> 18) & 63) as usize] as char);
-        out.push(ALPHA[((n >> 12) & 63) as usize] as char);
-        out.push(if chunk.len() > 1 {
-            ALPHA[((n >> 6) & 63) as usize] as char
-        } else {
-            '='
-        });
-        out.push(if chunk.len() > 2 {
-            ALPHA[(n & 63) as usize] as char
-        } else {
-            '='
-        });
-    }
-    out
+    crate::util::base64(format!("{user}:{pass}").as_bytes())
 }
 
 #[cfg(test)]
@@ -538,11 +524,7 @@ mod tests {
     }
 
     #[test]
-    fn base64_matches_known_vectors() {
-        assert_eq!(base64_encode(b""), "");
-        assert_eq!(base64_encode(b"f"), "Zg==");
-        assert_eq!(base64_encode(b"fo"), "Zm8=");
-        assert_eq!(base64_encode(b"foo"), "Zm9v");
-        assert_eq!(base64_encode(b"user:pass"), "dXNlcjpwYXNz");
+    fn basic_auth_header_value() {
+        assert_eq!(base64_basic("user", "pass"), "dXNlcjpwYXNz");
     }
 }

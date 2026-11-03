@@ -84,6 +84,15 @@ impl CertAuthority {
         &self.cert_pem_on_disk
     }
 
+    /// Base64(SHA-256(SubjectPublicKeyInfo)) of the CA public key. This is exactly
+    /// the value Chrome's `--ignore-certificate-errors-spki-list` expects, so a
+    /// launched browser trusts leaves minted by *this* CA only - not all certs.
+    pub fn spki_sha256_b64(&self) -> String {
+        let spki = self.ca_key.public_key_der();
+        let digest = ring::digest::digest(&ring::digest::SHA256, &spki);
+        crate::util::base64(digest.as_ref())
+    }
+
     /// A `TlsAcceptor` presenting a freshly minted, CA-signed leaf for `host`.
     /// Results are cached per host for the process lifetime.
     pub fn acceptor_for(&self, host: &str) -> Result<TlsAcceptor> {

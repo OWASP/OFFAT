@@ -166,6 +166,16 @@ fn tool_specs() -> Value {
             "inputSchema": {"type": "object", "properties": {}}
         },
         {
+            "name": "open_browser",
+            "description": "Launch a Chromium-family browser wired to this proxy (and pin-trusting the CA when MITM is on), in a throwaway profile. Lets you capture a real browser session.",
+            "inputSchema": {"type": "object", "properties": {
+                "browser": {"type": "string", "description": "chrome|chromium|edge|brave or an explicit path"},
+                "url": {"type": "string"},
+                "headless": {"type": "boolean"},
+                "no_sandbox": {"type": "boolean"}
+            }}
+        },
+        {
             "name": "run_platform",
             "description": "Run `offat-platform` (source-aware map/PRG/threat-model/test-gen/triage). Pass argv in `args`. A live run (--url present) requires confirm=true.",
             "inputSchema": {"type": "object", "properties": {
@@ -205,6 +215,7 @@ async fn call_tool(rt: Arc<ProxyRuntime>, params: &Value) -> Result<String> {
         "replay_flow" => tool_replay(&rt, &args).await,
         "fuzz_flow" => tool_fuzz(&rt, &args).await,
         "ca_cert" => tool_ca_cert(&rt),
+        "open_browser" => tool_open_browser(&rt, &args),
         "run_platform" => tool_run_platform(&args).await,
         "run_engine" => tool_run_engine(&rt, &args).await,
         other => anyhow::bail!("unknown tool: {other}"),
@@ -451,6 +462,29 @@ fn tool_ca_cert(rt: &Arc<ProxyRuntime>) -> Result<String> {
         let _ = rt;
         anyhow::bail!("this build has no mitm feature")
     }
+}
+
+fn tool_open_browser(rt: &Arc<ProxyRuntime>, args: &Value) -> Result<String> {
+    let profile_dir = rt.state.config.state_dir.join("browser-profile");
+    let opts = crate::browser::LaunchOptions {
+        proxy: rt.state.config.listen,
+        profile_dir,
+        url: args.get("url").and_then(Value::as_str).map(String::from),
+        spki: rt.ca_spki(),
+        headless: args
+            .get("headless")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+        no_sandbox: args
+            .get("no_sandbox")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+        browser: args.get("browser").and_then(Value::as_str),
+    };
+    let (child, summary, cmd_args) = crate::browser::launch(&opts)?;
+    // Detach: the browser runs independently of this process.
+    std::mem::forget(child);
+    Ok(pretty(&json!({"launched": summary, "args": cmd_args})))
 }
 
 async fn tool_run_platform(args: &Value) -> Result<String> {
