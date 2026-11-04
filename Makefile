@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: all engine engine-http3 engine-test proxy proxy-gui proxy-test platform-install python-check viz-test smoke docker clean help
+.PHONY: all engine engine-http3 engine-test proxy proxy-min proxy-test platform-install python-check viz-test smoke docker clean help
 
 all: engine ## Build the execution engine (default)
 
@@ -17,11 +17,11 @@ engine-http3: ## Build the engine with the HTTP/3 + QUIC transport enabled
 engine-test: ## Run the engine's unit tests
 	cd engine-rs && cargo test
 
-proxy: ## Build the intercepting proxy + MCP server -> proxy-rs/target/release/offat-proxy
+proxy: ## Build the all-in-one proxy binary (CLI + TUI + GUI + MCP) -> proxy-rs/target/release/offat-proxy
 	cd proxy-rs && cargo build --release
 
-proxy-gui: ## Build the intercepting proxy with the cross-platform desktop GUI (offat-proxy gui)
-	cd proxy-rs && cargo build --release --features gui
+proxy-min: ## Build a minimal proxy binary (no GUI/graphics or TLS-interception deps)
+	cd proxy-rs && cargo build --release --no-default-features
 
 proxy-test: ## Run the proxy's unit tests
 	cd proxy-rs && cargo test

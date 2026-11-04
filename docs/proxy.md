@@ -91,20 +91,19 @@ count. Press `/` to filter history with the same expression language the rules u
 `?` shows help, `q` quits. It reads the flow store read-only and never alters
 traffic.
 
-## Desktop GUI (cross-platform, opt-in)
+## Desktop GUI (cross-platform)
 
 ```bash
-cargo build --release --features gui
 offat-proxy gui --scope api.example.test
 ```
 
 A native window (egui/eframe) that runs on Linux, macOS and Windows, with the same
 live flow list, detail pane, scope/rule status and expression filter as the
-terminal UI, plus mouse selection. The GUI is an **opt-in build feature** so the
-default binary stays a lean, cross-platform CLI with no windowing dependencies —
-the CLI, the terminal UI (`tui`) and MCP all work everywhere without it. A build
-without the feature still recognises the `gui` command and tells you how to enable
-it.
+terminal UI, plus mouse selection. It ships in the default single binary alongside
+the CLI, terminal UI (`tui`) and MCP; the GUI's graphics libraries load only when
+you open the window, so the same binary still runs headless. For a minimal build
+without windowing/graphics dependencies, compile with `--no-default-features`; the
+`gui` command then explains how to re-enable it.
 
 ## Rules and filters (live block / allow / tag / match-replace)
 

@@ -304,8 +304,9 @@ async fn cmd_gui(cli: Cli) -> Result<()> {
     {
         let _ = cli;
         eprintln!(
-            "this build has no GUI. Rebuild with `cargo build --release --features gui`, \
-             or use `offat-proxy tui` for the cross-platform terminal UI."
+            "this is a minimal build without the GUI. The default build includes it \
+             (`cargo build --release`), or use `offat-proxy tui` for the cross-platform \
+             terminal UI."
         );
         Ok(())
     }
