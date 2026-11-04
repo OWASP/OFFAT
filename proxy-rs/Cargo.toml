@@ -28,6 +28,9 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 anyhow = "1"
+# Terminal UI (the `tui` subcommand): live flow viewer, detail pane, filters.
+ratatui = "0.29"
+crossterm = "0.28"
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
 
 # --- optional, only compiled with the `mitm` feature ---
