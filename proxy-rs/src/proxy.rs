@@ -149,6 +149,22 @@ async fn handle(
     if req.method() == Method::CONNECT {
         return Ok(handle_connect(req, rt, peer));
     }
+
+    // WebSocket handshake (absolute-form, e.g. ws://): intercept and relay.
+    if crate::ws::is_upgrade(req.headers()) {
+        if let Some(authority) = req.uri().authority().cloned() {
+            let tls = req.uri().scheme_str() == Some("https");
+            let path = req
+                .uri()
+                .path_and_query()
+                .map(|p| p.as_str().to_string())
+                .unwrap_or_else(|| "/".to_string());
+            return Ok(
+                crate::ws::proxy_websocket(req, rt, peer, tls, authority.to_string(), path).await,
+            );
+        }
+    }
+
     Ok(forward(req, rt, peer).await)
 }
 
@@ -516,6 +532,12 @@ where
                 .map(|s| s.to_string())
                 .unwrap_or_else(|| authority.clone());
             let _ = &host;
+            // WebSocket over the decrypted channel (wss): relay to upstream over TLS.
+            if crate::ws::is_upgrade(req.headers()) {
+                return Ok::<_, Infallible>(
+                    crate::ws::proxy_websocket(req, rt, peer, true, eff_host, path).await,
+                );
+            }
             let url = format!("https://{eff_host}{path}");
             Ok::<_, Infallible>(
                 forward_url(req, rt, peer, "https", &eff_host, &path, &url, true).await,
@@ -525,6 +547,7 @@ where
 
     http1::Builder::new()
         .serve_connection(io, service)
+        .with_upgrades()
         .await
         .map_err(|e| anyhow::anyhow!(e))?;
     Ok(())

@@ -102,6 +102,19 @@ operators `== != contains startswith endswith matches < > <= >=`, combined with
 `&& || !` and parentheses. Over MCP: `get_rules`, `set_rules`, `test_expr`, and a
 `filter` argument on `list_flows`.
 
+## Protocols
+
+| Protocol | Handling |
+|---|---|
+| HTTP/1.1 | captured (MITM-decrypted over TLS) |
+| HTTP/2 | negotiated to the upstream; captured |
+| HTTPS (TLS) | intercepted with `--mitm`, else tunneled opaquely |
+| WebSocket (`ws` / `wss`) | handshake captured as a flow; frames relayed (over TLS when intercepted) |
+| gRPC / HTTP/3 / other TCP+TLS | tunneled opaquely via `CONNECT` (metadata recorded) |
+
+The `offat-engine` executor covers full HTTP/2, WebSocket and gRPC (and opt-in
+HTTP/3) when running a test plan.
+
 ## Launch a browser, zero setup
 
 ```bash

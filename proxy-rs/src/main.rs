@@ -25,6 +25,7 @@ mod rule;
 mod scope;
 mod store;
 mod util;
+mod ws;
 
 use anyhow::{Context, Result};
 use config::Config;

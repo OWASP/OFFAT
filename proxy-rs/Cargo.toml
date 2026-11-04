@@ -14,7 +14,7 @@ path = "src/main.rs"
 default = ["mitm"]
 # TLS interception. Off by default at runtime (needs --mitm and an installed CA);
 # the feature only controls whether the rustls/rcgen code is compiled in.
-mitm = ["dep:rcgen", "dep:tokio-rustls", "dep:rustls", "dep:rustls-pemfile", "dep:ring"]
+mitm = ["dep:rcgen", "dep:tokio-rustls", "dep:rustls", "dep:rustls-pemfile", "dep:ring", "dep:webpki-roots"]
 
 [dependencies]
 tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "sync", "time", "io-util", "io-std", "net", "process", "signal"] }
@@ -38,6 +38,8 @@ rustls-pemfile = { version = "2", optional = true }
 # Already in the tree via rustls/rcgen; used here only to hash the CA SPKI for the
 # browser's --ignore-certificate-errors-spki-list trust pin.
 ring = { version = "0.17", optional = true }
+# Root certificates for verifying upstream TLS on intercepted WebSocket (wss) relays.
+webpki-roots = { version = "0.26", optional = true }
 
 [profile.release]
 opt-level = 3
