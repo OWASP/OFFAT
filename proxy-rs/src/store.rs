@@ -12,6 +12,7 @@ use std::sync::{Arc, Mutex, RwLock};
 pub struct AppState {
     pub config: Config,
     pub scope: RwLock<Scope>,
+    rules: RwLock<crate::rule::RuleSet>,
     flows: Mutex<VecDeque<Flow>>,
     spill: Mutex<Option<std::fs::File>>,
 }
@@ -28,9 +29,18 @@ impl AppState {
         Ok(Arc::new(AppState {
             config,
             scope: RwLock::new(scope),
+            rules: RwLock::new(crate::rule::RuleSet::default()),
             flows: Mutex::new(VecDeque::new()),
             spill: Mutex::new(spill),
         }))
+    }
+
+    pub fn set_rules(&self, rules: crate::rule::RuleSet) {
+        *self.rules.write().expect("rules lock poisoned") = rules;
+    }
+
+    pub fn rules_snapshot(&self) -> crate::rule::RuleSet {
+        self.rules.read().expect("rules lock poisoned").clone()
     }
 
     /// Record a completed flow. Applies redaction/scope on the persisted copy and
@@ -49,23 +59,6 @@ impl AppState {
             flows.pop_front();
         }
         flows.push_back(sanitized);
-    }
-
-    /// Snapshot of up to `limit` most-recent flows (newest last), optionally
-    /// filtered to a host substring. Returns already-sanitized flows.
-    pub fn list(&self, limit: usize, host_filter: Option<&str>) -> Vec<Flow> {
-        let flows = self.flows.lock().expect("flows mutex poisoned");
-        let matched: Vec<Flow> = flows
-            .iter()
-            .filter(|f| match host_filter {
-                Some(h) => f.request.host.contains(h),
-                None => true,
-            })
-            .cloned()
-            .collect();
-        // Keep the most-recent `limit`, preserving chronological order.
-        let start = matched.len().saturating_sub(limit);
-        matched[start..].to_vec()
     }
 
     pub fn get(&self, id: &str) -> Option<Flow> {
@@ -161,12 +154,11 @@ mod tests {
     }
 
     #[test]
-    fn host_filter_and_limit() {
+    fn all_returns_in_order() {
         let st = AppState::new(Config::default(), Scope::default()).unwrap();
         st.record(flow("api.example.test"));
         st.record(flow("cdn.other.test"));
-        let only = st.list(10, Some("example"));
-        assert_eq!(only.len(), 1);
-        assert_eq!(only[0].request.host, "api.example.test");
+        let hosts: Vec<_> = st.all().iter().map(|f| f.request.host.clone()).collect();
+        assert_eq!(hosts, vec!["api.example.test", "cdn.other.test"]);
     }
 }

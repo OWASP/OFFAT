@@ -149,6 +149,22 @@ async fn handle(
     if req.method() == Method::CONNECT {
         return Ok(handle_connect(req, rt, peer));
     }
+
+    // WebSocket handshake (absolute-form, e.g. ws://): intercept and relay.
+    if crate::ws::is_upgrade(req.headers()) {
+        if let Some(authority) = req.uri().authority().cloned() {
+            let tls = req.uri().scheme_str() == Some("https");
+            let path = req
+                .uri()
+                .path_and_query()
+                .map(|p| p.as_str().to_string())
+                .unwrap_or_else(|| "/".to_string());
+            return Ok(
+                crate::ws::proxy_websocket(req, rt, peer, tls, authority.to_string(), path).await,
+            );
+        }
+    }
+
     Ok(forward(req, rt, peer).await)
 }
 
@@ -210,7 +226,7 @@ async fn forward_url(
         })
         .collect();
 
-    let (parts, body) = req.into_parts();
+    let (_parts, body) = req.into_parts();
     let body_bytes = match body.collect().await {
         Ok(c) => c.to_bytes(),
         Err(e) => {
@@ -238,18 +254,47 @@ async fn forward_url(
         intercepted,
     );
 
-    // Build the upstream request.
+    // --- request-phase rules: block / allow / drop / tag / match-and-replace ---
+    let rules = rt.state.rules_snapshot();
+    let (decision, req_mods) = rules.apply_request(&flow);
+    push_unique_tags(&mut flow.tags, &req_mods.tags);
+    match decision {
+        crate::rule::ReqDecision::Block { status, body } => {
+            return blocked(&rt, flow, status, &body)
+        }
+        crate::rule::ReqDecision::Drop => return dropped(&rt, flow),
+        crate::rule::ReqDecision::Allow => {}
+        crate::rule::ReqDecision::Forward => {
+            if rt.state.config.block_out_of_scope && !in_scope {
+                return blocked(&rt, flow, 403, "host not in allowlist (scope)");
+            }
+        }
+    }
+
+    // Apply request match-and-replace to the stored + forwarded request.
+    if !req_mods.set_headers.is_empty() {
+        crate::rule::apply_header_mods(&mut flow.request.headers, &req_mods.set_headers);
+    }
+    let mut fwd_body = body_bytes.to_vec();
+    if !req_mods.replace_body.is_empty() {
+        let replaced = crate::rule::apply_body_mods(&flow.request.body, &req_mods.replace_body);
+        flow.request.body = replaced.clone();
+        fwd_body = replaced.into_bytes();
+    }
+
+    // Build the upstream request from the (possibly modified) request headers.
     let r_method =
         reqwest::Method::from_bytes(method.as_str().as_bytes()).unwrap_or(reqwest::Method::GET);
     let mut rb = rt.client.request(r_method, url);
-    for (name, value) in parts.headers.iter() {
-        if is_hop_by_hop(name.as_str()) {
+    for h in &flow.request.headers {
+        // Let reqwest set framing/length itself (body may have been rewritten).
+        if is_hop_by_hop(&h.name) || h.name.eq_ignore_ascii_case("content-length") {
             continue;
         }
-        rb = rb.header(name, value);
+        rb = rb.header(h.name.as_str(), h.value.as_str());
     }
-    if !body_bytes.is_empty() {
-        rb = rb.body(body_bytes.to_vec());
+    if !fwd_body.is_empty() {
+        rb = rb.body(fwd_body);
     }
 
     let started = Instant::now();
@@ -275,16 +320,6 @@ async fn forward_url(
                 })
                 .collect();
 
-            // Build the client-facing response, dropping framing/encoding headers
-            // (reqwest has already decoded the body).
-            let mut builder = Response::builder().status(status.as_u16());
-            for h in &resp_headers {
-                if is_hop_by_hop(&h.name) || is_encoding_header(&h.name) {
-                    continue;
-                }
-                builder = builder.header(&h.name, &h.value);
-            }
-
             let bytes = resp.bytes().await.unwrap_or_default();
             let (resp_body_text, resp_trunc) = cap_body(&bytes, rt.state.config.body_cap);
 
@@ -297,10 +332,45 @@ async fn forward_url(
                 body: resp_body_text,
                 body_truncated: resp_trunc,
             });
+
+            // --- response-phase rules: tag / set-resp-header / replace-resp ---
+            let resp_mods = rules.apply_response(&flow);
+            push_unique_tags(&mut flow.tags, &resp_mods.tags);
+            if let Some(r) = flow.response.as_mut() {
+                if !resp_mods.set_headers.is_empty() {
+                    crate::rule::apply_header_mods(&mut r.headers, &resp_mods.set_headers);
+                }
+            }
+            let client_bytes = if resp_mods.replace_body.is_empty() {
+                bytes
+            } else {
+                let replaced = crate::rule::apply_body_mods(
+                    &String::from_utf8_lossy(&bytes),
+                    &resp_mods.replace_body,
+                );
+                if let Some(r) = flow.response.as_mut() {
+                    let (t, tr) = cap_body(replaced.as_bytes(), rt.state.config.body_cap);
+                    r.body = t;
+                    r.body_truncated = tr;
+                }
+                Bytes::from(replaced.into_bytes())
+            };
+
+            // Build the client-facing response from the (possibly modified) headers,
+            // dropping framing/encoding headers (reqwest already decoded the body).
+            let mut builder = Response::builder().status(status.as_u16());
+            if let Some(r) = flow.response.as_ref() {
+                for h in &r.headers {
+                    if is_hop_by_hop(&h.name) || is_encoding_header(&h.name) {
+                        continue;
+                    }
+                    builder = builder.header(&h.name, &h.value);
+                }
+            }
             rt.state.record(flow);
 
             builder
-                .body(full(bytes))
+                .body(full(client_bytes))
                 .unwrap_or_else(|_| resp_status(StatusCode::BAD_GATEWAY, "building response"))
         }
         Err(e) => {
@@ -462,6 +532,12 @@ where
                 .map(|s| s.to_string())
                 .unwrap_or_else(|| authority.clone());
             let _ = &host;
+            // WebSocket over the decrypted channel (wss): relay to upstream over TLS.
+            if crate::ws::is_upgrade(req.headers()) {
+                return Ok::<_, Infallible>(
+                    crate::ws::proxy_websocket(req, rt, peer, true, eff_host, path).await,
+                );
+            }
             let url = format!("https://{eff_host}{path}");
             Ok::<_, Infallible>(
                 forward_url(req, rt, peer, "https", &eff_host, &path, &url, true).await,
@@ -471,6 +547,7 @@ where
 
     http1::Builder::new()
         .serve_connection(io, service)
+        .with_upgrades()
         .await
         .map_err(|e| anyhow::anyhow!(e))?;
     Ok(())
@@ -505,6 +582,58 @@ fn resp_status(status: StatusCode, msg: &str) -> Response<ClientBody> {
         .header("content-type", "text/plain; charset=utf-8")
         .body(full(Bytes::from(format!("offat-proxy: {msg}\n"))))
         .expect("status response builds")
+}
+
+/// Append tags, skipping any already present (a tag rule can match in both the
+/// request and response phases).
+fn push_unique_tags(tags: &mut Vec<String>, new: &[String]) {
+    for t in new {
+        if !tags.contains(t) {
+            tags.push(t.clone());
+        }
+    }
+}
+
+/// Record a rule-blocked request and return the canned response to the client.
+fn blocked(
+    rt: &Arc<ProxyRuntime>,
+    mut flow: Flow,
+    status: u16,
+    body: &str,
+) -> Response<ClientBody> {
+    flow.tags.push("blocked".into());
+    flow.response = Some(FlowResponse {
+        status,
+        http_version: "HTTP/1.1".into(),
+        content_type: "text/plain; charset=utf-8".into(),
+        headers: vec![Header {
+            name: "x-offat-proxy".into(),
+            value: "blocked".into(),
+        }],
+        body: body.to_string(),
+        body_truncated: false,
+    });
+    rt.state.record(flow);
+    let sc = StatusCode::from_u16(status).unwrap_or(StatusCode::FORBIDDEN);
+    Response::builder()
+        .status(sc)
+        .header("content-type", "text/plain; charset=utf-8")
+        .header("x-offat-proxy", "blocked")
+        .body(full(Bytes::from(format!("{body}\n"))))
+        .unwrap_or_else(|_| resp_status(sc, body))
+}
+
+/// Record a rule-dropped request and close the connection.
+fn dropped(rt: &Arc<ProxyRuntime>, mut flow: Flow) -> Response<ClientBody> {
+    flow.tags.push("dropped".into());
+    flow.error = Some("dropped by rule".into());
+    rt.state.record(flow);
+    Response::builder()
+        .status(StatusCode::FORBIDDEN)
+        .header("connection", "close")
+        .header("x-offat-proxy", "dropped")
+        .body(empty())
+        .unwrap_or_else(|_| resp_status(StatusCode::FORBIDDEN, "dropped"))
 }
 
 /// Minimal base64 for Basic auth comparison (RFC 4648, standard alphabet).

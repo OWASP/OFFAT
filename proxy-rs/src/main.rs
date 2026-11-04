@@ -21,9 +21,11 @@ mod mcp;
 mod pipeline;
 mod proxy;
 mod replay;
+mod rule;
 mod scope;
 mod store;
 mod util;
+mod ws;
 
 use anyhow::{Context, Result};
 use config::Config;
@@ -42,6 +44,8 @@ struct Cli {
     browser_url: Option<String>,
     browser_headless: bool,
     browser_no_sandbox: bool,
+    rules_file: Option<String>,
+    inline_rules: Vec<String>,
     // export-only
     flows_in: String,
     out: String,
@@ -71,6 +75,10 @@ Common flags:\n  \
 --persist              append sanitized flows to <state-dir>/flows.jsonl\n  \
 --body-cap <bytes>     max stored body size (default 1048576)\n  \
 --max-flows <n>        ring-buffer size (default 5000)\n\n\
+Rules (live block / allow / tag / match-replace; see docs/proxy.md):\n  \
+--rules <file>         load a rules file (one rule per line)\n  \
+--rule '<rule>'        add one inline rule, e.g. 'block when host == \"evil.test\"' (repeatable)\n  \
+--block-out-of-scope   allowlist mode: block any request whose host is not in scope\n\n\
 Browser (run/mcp) - launch a browser wired to the proxy:\n  \
 --open-browser         launch a Chromium-family browser pointed at the proxy\n  \
 --browser <name|path>  chrome|chromium|edge|brave, or an explicit binary path\n  \
@@ -110,6 +118,8 @@ fn parse_cli() -> Cli {
     let mut browser_url: Option<String> = None;
     let mut browser_headless = false;
     let mut browser_no_sandbox = false;
+    let mut rules_file: Option<String> = None;
+    let mut inline_rules: Vec<String> = Vec::new();
 
     let mut i = 1;
     let val = |args: &[String], i: &mut usize| -> String {
@@ -147,6 +157,9 @@ fn parse_cli() -> Cli {
                 config.body_cap = val(&args, &mut i).parse().unwrap_or(flow::DEFAULT_BODY_CAP)
             }
             "--max-flows" => config.max_flows = val(&args, &mut i).parse().unwrap_or(5000),
+            "--rules" => rules_file = Some(val(&args, &mut i)),
+            "--rule" => inline_rules.push(val(&args, &mut i)),
+            "--block-out-of-scope" => config.block_out_of_scope = true,
             "--open-browser" => open_browser = true,
             "--browser" => browser = Some(val(&args, &mut i)),
             "--browser-profile" => browser_profile = Some(val(&args, &mut i)),
@@ -175,6 +188,8 @@ fn parse_cli() -> Cli {
         browser_url,
         browser_headless,
         browser_no_sandbox,
+        rules_file,
+        inline_rules,
         flows_in,
         out,
         only_scope,
@@ -203,6 +218,28 @@ async fn cmd_serve(cli: Cli, with_mcp: bool) -> Result<()> {
 
     let state = store::AppState::new(cli.config.clone(), cli.scope.clone())
         .context("initializing flow store")?;
+
+    // Load rules (file first, then inline rules appended) and fail fast on syntax.
+    let mut rules_src = String::new();
+    if let Some(path) = &cli.rules_file {
+        rules_src.push_str(
+            &std::fs::read_to_string(path).with_context(|| format!("reading rules file {path}"))?,
+        );
+        rules_src.push('\n');
+    }
+    for r in &cli.inline_rules {
+        rules_src.push_str(r);
+        rules_src.push('\n');
+    }
+    if !rules_src.trim().is_empty() {
+        let rs =
+            rule::RuleSet::parse(&rules_src).map_err(|e| anyhow::anyhow!("rule error: {e}"))?;
+        eprintln!("  loaded {} rule(s)", rs.rules.len());
+        state.set_rules(rs);
+    }
+    if cli.config.block_out_of_scope {
+        eprintln!("  allowlist mode ON: requests to out-of-scope hosts are blocked (403)");
+    }
 
     let runtime = build_runtime(&cli.config, state)?;
 

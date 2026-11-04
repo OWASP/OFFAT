@@ -69,7 +69,8 @@ Tools exposed:
 |---|---|
 | `proxy_status` | listen addr, flow count, scope, mitm/redaction state |
 | `set_scope` | set the authorized host allowlist (gates all active actions) |
-| `list_flows` / `get_flow` | browse captured exchanges (redacted) |
+| `list_flows` / `get_flow` | browse captured exchanges (redacted); `list_flows` takes a `filter` expression |
+| `get_rules` / `set_rules` / `test_expr` | manage live rules and validate/evaluate expressions |
 | `export_bundle` | write captured flows to an OFFAT Bundle |
 | `replay_flow` | re-send a captured request with overrides (Repeater) |
 | `fuzz_flow` | iterate payloads over a query/header/body insertion point (Intruder) |
@@ -82,7 +83,43 @@ Tools exposed:
 shell), so **AI routing stays in `offat_triage`** — the proxy never calls a model
 API directly.
 
-### 3. Launch a browser already wired to the proxy
+### 3. Rules: live block / allow / drop / tag / match-and-replace
+
+`offat-proxy` has a small, safe expression interpreter ("bambdas") that matches
+flows and acts on them live — and the same expressions filter captured history.
+It is an interpreter over a fixed set of flow fields, not an eval of arbitrary
+code: no I/O, no host access, nothing executes.
+
+```bash
+offat-proxy run --scope api.example.test \
+  --rule 'block respond 403 "no" when path contains "/admin" && header["x-role"] != "admin"' \
+  --rule 'tag "login" when path endswith "/login"' \
+  --rule 'replace-resp "secret" -> "<redacted>" when status == 200' \
+  --rule 'set-req-header "X-OFFAT: 1" when in_scope'
+
+# or load a file of rules, one per line:
+offat-proxy run --rules myrules.txt --scope api.example.test
+
+# allowlist mode: block anything whose host isn't in --scope
+offat-proxy run --scope api.example.test --block-out-of-scope
+```
+
+**Actions:** `block [respond <status> "body"]`, `drop`, `allow`, `tag "name"`,
+`set-req-header "Name: v"`, `set-resp-header "Name: v"`,
+`replace-req "find" -> "repl"`, `replace-resp "find" -> "repl"` — each followed by
+an optional `when <expr>`.
+
+**Expression language** (also used as history filters): fields `method`, `host`,
+`path`, `url`, `scheme`, `query`, `body`, `status`, `content_type`, `in_scope`,
+`intercepted`, `tags`, `resp_body`, and indexed `header["name"]`,
+`resp_header["name"]`, `query["name"]`; operators `==`, `!=`, `contains`,
+`startswith`, `endswith`, `matches` (glob), `<`, `>`, `<=`, `>=`; combine with
+`&&`, `||`, `!`, parentheses.
+
+Agents get `get_rules`, `set_rules`, `test_expr`, and a `filter` argument on
+`list_flows` over MCP.
+
+### 4. Launch a browser already wired to the proxy
 
 ```bash
 # starts the proxy AND opens a browser pointed at it, trusting the CA automatically
@@ -101,7 +138,7 @@ Flags: `--browser <chrome|chromium|edge|brave|path>`, `--browser-profile <dir>`,
 `--browser-url <url>`, `--browser-headless`, `--browser-no-sandbox` (for
 containers/CI). The agent can do the same with the `open_browser` MCP tool.
 
-### 4. TLS interception (optional)
+### 5. TLS interception (optional)
 
 ```bash
 offat-proxy ca            # prints the local CA (PEM); install it into a TEST profile only
@@ -127,6 +164,21 @@ Out-of-scope tunnels stay opaque (metadata only — no TLS is broken).
   (`--body-cap`).
 - **Untrusted by construction.** Captured content is forwarded and recorded, never
   interpreted or executed; upstream TLS is verified unless `--insecure-upstream`.
+- **Rules are sandboxed.** The rule/filter language is an interpreter over fixed
+  flow fields — no code execution, I/O, or host access.
+
+## Protocols
+
+| Protocol | Handling |
+|---|---|
+| HTTP/1.1 | captured (and MITM-decrypted over TLS) |
+| HTTP/2 | negotiated to the upstream; captured |
+| HTTPS (TLS) | intercepted and captured with `--mitm`; otherwise tunneled opaquely |
+| WebSocket | handshake captured; frames relayed (see `docs/proxy.md`) |
+| gRPC / HTTP/3 / other TCP+TLS | tunneled opaquely via `CONNECT` (metadata recorded) |
+
+The `offat-engine` executor covers full HTTP/2, WebSocket and gRPC (and opt-in
+HTTP/3) when running a test plan.
 
 ## Flags
 

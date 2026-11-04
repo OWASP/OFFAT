@@ -28,6 +28,8 @@ pub struct Config {
     pub state_dir: PathBuf,
     /// Append sanitized flows to `state_dir/flows.jsonl`.
     pub persist: bool,
+    /// Allowlist mode: block any request whose host is not in scope.
+    pub block_out_of_scope: bool,
 }
 
 impl Default for Config {
@@ -44,6 +46,7 @@ impl Default for Config {
             max_flows: 5000,
             state_dir,
             persist: false,
+            block_out_of_scope: false,
         }
     }
 }

@@ -125,6 +125,9 @@ impl CertAuthority {
         params.is_ca = IsCa::NoCa;
         params.key_usages = vec![KeyUsagePurpose::DigitalSignature];
         params.extended_key_usages = vec![ExtendedKeyUsagePurpose::ServerAuth];
+        // Emit an Authority Key Identifier; strict verifiers (modern OpenSSL,
+        // browsers) reject a leaf without one even when the chain is otherwise valid.
+        params.use_authority_key_identifier_extension = true;
         params.not_before = date_time_ymd(2020, 1, 1);
         params.not_after = date_time_ymd(2099, 1, 1);
 

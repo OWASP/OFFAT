@@ -121,8 +121,24 @@ fn tool_specs() -> Value {
             "description": "List captured flows (most recent last), optionally filtered by host substring.",
             "inputSchema": {"type": "object", "properties": {
                 "limit": {"type": "integer", "minimum": 1, "maximum": 1000},
-                "host": {"type": "string"}
+                "host": {"type": "string"},
+                "filter": {"type": "string", "description": "filter expression, e.g. status >= 500 || tags contains \"login\""}
             }}
+        },
+        {
+            "name": "get_rules",
+            "description": "Show the active live-rules (block/allow/drop/tag/match-replace) and their count.",
+            "inputSchema": {"type": "object", "properties": {}}
+        },
+        {
+            "name": "set_rules",
+            "description": "Replace the active rules. One rule per line; see docs/proxy.md for the language. Rules act on live traffic (block/allow/drop/tag/match-replace).",
+            "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]}
+        },
+        {
+            "name": "test_expr",
+            "description": "Validate a filter/when expression, and optionally evaluate it against a captured flow id.",
+            "inputSchema": {"type": "object", "properties": {"expr": {"type": "string"}, "id": {"type": "string"}}, "required": ["expr"]}
         },
         {
             "name": "get_flow",
@@ -211,6 +227,9 @@ async fn call_tool(rt: Arc<ProxyRuntime>, params: &Value) -> Result<String> {
         "set_scope" => tool_set_scope(&rt, &args),
         "list_flows" => tool_list_flows(&rt, &args),
         "get_flow" => tool_get_flow(&rt, &args),
+        "get_rules" => tool_get_rules(&rt),
+        "set_rules" => tool_set_rules(&rt, &args),
+        "test_expr" => tool_test_expr(&rt, &args),
         "export_bundle" => tool_export_bundle(&rt, &args),
         "replay_flow" => tool_replay(&rt, &args).await,
         "fuzz_flow" => tool_fuzz(&rt, &args).await,
@@ -255,7 +274,22 @@ fn tool_set_scope(rt: &Arc<ProxyRuntime>, args: &Value) -> Result<String> {
 fn tool_list_flows(rt: &Arc<ProxyRuntime>, args: &Value) -> Result<String> {
     let limit = args.get("limit").and_then(Value::as_u64).unwrap_or(50) as usize;
     let host = args.get("host").and_then(Value::as_str);
-    let flows = rt.state.list(limit.min(1000), host);
+    // Optional filter expression (same language as rules' `when`).
+    let expr = match args.get("filter").and_then(Value::as_str) {
+        Some(src) if !src.trim().is_empty() => {
+            Some(crate::rule::parse_expr(src).map_err(|e| anyhow::anyhow!("filter: {e}"))?)
+        }
+        _ => None,
+    };
+    let mut flows: Vec<crate::flow::Flow> = rt
+        .state
+        .all()
+        .into_iter()
+        .filter(|f| host.map(|h| f.request.host.contains(h)).unwrap_or(true))
+        .filter(|f| expr.as_ref().map(|e| e.matches(f)).unwrap_or(true))
+        .collect();
+    let start = flows.len().saturating_sub(limit.min(1000));
+    flows = flows[start..].to_vec();
     let summaries: Vec<Value> = flows
         .iter()
         .map(|f| {
@@ -266,6 +300,7 @@ fn tool_list_flows(rt: &Arc<ProxyRuntime>, args: &Value) -> Result<String> {
                 "status": f.response.as_ref().map(|r| r.status),
                 "in_scope": f.in_scope,
                 "intercepted": f.intercepted,
+                "tags": f.tags,
                 "error": f.error,
             })
         })
@@ -280,6 +315,38 @@ fn tool_get_flow(rt: &Arc<ProxyRuntime>, args: &Value) -> Result<String> {
     match rt.state.get(&id) {
         Some(f) => Ok(pretty(&serde_json::to_value(&f)?)),
         None => anyhow::bail!("no flow with id {id}"),
+    }
+}
+
+fn tool_get_rules(rt: &Arc<ProxyRuntime>) -> Result<String> {
+    let rs = rt.state.rules_snapshot();
+    Ok(pretty(
+        &json!({"count": rs.rules.len(), "rules": rs.source}),
+    ))
+}
+
+fn tool_set_rules(rt: &Arc<ProxyRuntime>, args: &Value) -> Result<String> {
+    let text = req_str(args, "text")?;
+    let rs = crate::rule::RuleSet::parse(&text).map_err(|e| anyhow::anyhow!("rule error: {e}"))?;
+    let count = rs.rules.len();
+    rt.state.set_rules(rs);
+    Ok(pretty(&json!({"ok": true, "rules_loaded": count})))
+}
+
+fn tool_test_expr(rt: &Arc<ProxyRuntime>, args: &Value) -> Result<String> {
+    let src = req_str(args, "expr")?;
+    let expr = crate::rule::parse_expr(&src).map_err(|e| anyhow::anyhow!("parse error: {e}"))?;
+    match args.get("id").and_then(Value::as_str) {
+        Some(id) => {
+            let flow = rt
+                .state
+                .get(id)
+                .ok_or_else(|| anyhow::anyhow!("no flow {id}"))?;
+            Ok(pretty(
+                &json!({"valid": true, "flow": id, "matches": expr.matches(&flow)}),
+            ))
+        }
+        None => Ok(pretty(&json!({"valid": true}))),
     }
 }
 
