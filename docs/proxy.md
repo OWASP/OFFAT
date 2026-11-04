@@ -77,6 +77,31 @@ Tools: `proxy_status`, `set_scope`, `list_flows`, `get_flow`, `export_bundle`,
 shell), so **model calls stay inside `offat_triage`** — the proxy never talks to a
 model API itself, and captured target content is always treated as untrusted data.
 
+## Rules and filters (live block / allow / tag / match-replace)
+
+A small, safe expression interpreter ("bambdas") matches flows and acts on them
+live; the same expressions filter captured history. It is an interpreter over a
+fixed set of flow fields — no code execution, I/O or host access.
+
+```bash
+offat-proxy run --scope api.example.test \
+  --rule 'block respond 403 "no" when path contains "/admin" && header["x-role"] != "admin"' \
+  --rule 'tag "login" when path endswith "/login"' \
+  --rule 'replace-resp "secret" -> "<redacted>" when status == 200'
+
+offat-proxy run --rules myrules.txt --scope api.example.test   # one rule per line
+offat-proxy run --scope api.example.test --block-out-of-scope  # allowlist mode
+```
+
+Actions: `block [respond <status> "body"]`, `drop`, `allow`, `tag`,
+`set-req-header`, `set-resp-header`, `replace-req`, `replace-resp`, each with an
+optional `when <expr>`. Expression fields include `method`, `host`, `path`, `url`,
+`scheme`, `query`, `body`, `status`, `content_type`, `in_scope`, `intercepted`,
+`tags`, `resp_body`, and `header["..."]` / `resp_header["..."]` / `query["..."]`;
+operators `== != contains startswith endswith matches < > <= >=`, combined with
+`&& || !` and parentheses. Over MCP: `get_rules`, `set_rules`, `test_expr`, and a
+`filter` argument on `list_flows`.
+
 ## Launch a browser, zero setup
 
 ```bash

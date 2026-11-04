@@ -71,6 +71,9 @@ pub struct Flow {
     pub latency_ms: Option<u64>,
     /// Populated when the exchange failed before a response (DNS, connect, TLS).
     pub error: Option<String>,
+    /// Labels applied by rules (`tag "..."`) - highlights/annotations.
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 impl Flow {
@@ -85,6 +88,7 @@ impl Flow {
             response: None,
             latency_ms: None,
             error: None,
+            tags: Vec::new(),
         }
     }
 
