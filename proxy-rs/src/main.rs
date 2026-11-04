@@ -24,6 +24,7 @@ mod replay;
 mod rule;
 mod scope;
 mod store;
+mod tui;
 mod util;
 mod ws;
 
@@ -56,9 +57,10 @@ struct Cli {
 fn usage() -> ! {
     eprintln!(
         "offat-proxy - intercepting proxy + MCP for authorized OFFAT API testing\n\n\
-Usage:\n  offat-proxy <run|mcp|ca|export> [flags]\n\n\
+Usage:\n  offat-proxy <run|tui|mcp|ca|export> [flags]\n\n\
 Commands:\n  \
 run       start the proxy and capture traffic you route through it\n  \
+tui       start the proxy with a live terminal UI (flow viewer + filters)\n  \
 mcp       start the proxy and an MCP server on stdio (for an AI agent)\n  \
 ca        print the local CA cert to install into a TEST trust store\n  \
 export    build an OFFAT Bundle from a persisted flows.jsonl\n\n\
@@ -202,6 +204,7 @@ async fn main() -> Result<()> {
     let cli = parse_cli();
     match cli.command.as_str() {
         "run" => cmd_serve(cli, false).await,
+        "tui" => cmd_tui(cli).await,
         "mcp" => cmd_serve(cli, true).await,
         "ca" => cmd_ca(cli),
         "export" => cmd_export(cli),
@@ -212,7 +215,9 @@ async fn main() -> Result<()> {
     }
 }
 
-async fn cmd_serve(cli: Cli, with_mcp: bool) -> Result<()> {
+/// Validate config, build shared state + rules, start the proxy task, and
+/// optionally launch a browser. Shared by `run`, `tui`, and `mcp`.
+async fn start(cli: &Cli) -> Result<(Arc<proxy::ProxyRuntime>, tokio::task::JoinHandle<()>)> {
     cli.config.validate().map_err(|e| anyhow::anyhow!(e))?;
     print_safety_banner(&cli.config, &cli.scope);
 
@@ -253,7 +258,7 @@ async fn cmd_serve(cli: Cli, with_mcp: bool) -> Result<()> {
 
     if cli.open_browser {
         if wait_listen(cli.config.listen).await {
-            if let Err(e) = launch_browser(&cli, &runtime) {
+            if let Err(e) = launch_browser(cli, &runtime) {
                 eprintln!("could not launch browser: {e}");
             }
         } else {
@@ -261,6 +266,11 @@ async fn cmd_serve(cli: Cli, with_mcp: bool) -> Result<()> {
         }
     }
 
+    Ok((runtime, proxy_task))
+}
+
+async fn cmd_serve(cli: Cli, with_mcp: bool) -> Result<()> {
+    let (runtime, proxy_task) = start(&cli).await?;
     if with_mcp {
         // MCP owns stdio in the foreground; the proxy keeps running behind it.
         mcp::serve(runtime).await
@@ -268,6 +278,13 @@ async fn cmd_serve(cli: Cli, with_mcp: bool) -> Result<()> {
         proxy_task.await.ok();
         Ok(())
     }
+}
+
+async fn cmd_tui(cli: Cli) -> Result<()> {
+    let (runtime, _proxy_task) = start(&cli).await?;
+    // The TUI event loop is blocking (crossterm); run it off the async runtime
+    // while the proxy keeps serving on background tasks.
+    tokio::task::spawn_blocking(move || tui::run(runtime)).await?
 }
 
 /// Poll the listen address until the proxy accepts connections (or we give up).

@@ -1,9 +1,9 @@
 # OFFAT Intercepting Proxy (`offat-proxy`)
 
 An intercepting HTTP(S) proxy for **authorized** API security testing, built to
-feed the [OFFAT Bundle](../bundle/README.md) pipeline, with an **inbuilt MCP
-server** so an AI agent can drive capture → map → test → triage → report end to
-end.
+feed the [OFFAT Bundle](../bundle/README.md) pipeline, with a **live terminal UI**
+and an **inbuilt MCP server** so an AI agent can drive capture → map → test →
+triage → report end to end.
 
 Think of it as the "map from live traffic" front-end: point a client (browser,
 mobile app, test suite) at the proxy, exercise the API, and every request/response
@@ -138,7 +138,31 @@ Flags: `--browser <chrome|chromium|edge|brave|path>`, `--browser-profile <dir>`,
 `--browser-url <url>`, `--browser-headless`, `--browser-no-sandbox` (for
 containers/CI). The agent can do the same with the `open_browser` MCP tool.
 
-### 5. TLS interception (optional)
+### 5. Live terminal UI (`offat-proxy tui`)
+
+```bash
+offat-proxy tui --scope api.example.test
+```
+
+Runs the proxy with a built-in terminal UI (ratatui): a live flow list (colored by
+status, marked for scope, annotated with tags), a detail pane showing the selected
+request/response, and a header with listen address, counts, scope, MITM/redaction
+state and rule count. Press `/` to filter with the same expression language as the
+rules engine (e.g. `status >= 500 && path contains "/api"`).
+
+```
+ offat-proxy  listen=127.0.0.1:8080  flows=12/37  scope=api.example.test  mitm=on  redact=on  rules=3
+ ┌flows───────────────────────┐┌detail──────────────────────────────┐
+ > *GET  200 api.example.test/users/1   REQUEST
+   *POST 500 api.example.test/login [..] GET https://api.example.test/users/1
+   ...                                   RESPONSE status=200 ...
+ j/k move  Tab focus  / filter  c clear  g/G top/bottom  f/b scroll  ? help  q quit
+```
+
+Keys: `j`/`k` move, `Tab` switch focus, `/` filter, `c` clear, `g`/`G` first/last,
+`f`/`b` scroll detail, `?` help, `q` quit.
+
+### 6. TLS interception (optional)
 
 ```bash
 offat-proxy ca            # prints the local CA (PEM); install it into a TEST profile only

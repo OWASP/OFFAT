@@ -77,6 +77,20 @@ Tools: `proxy_status`, `set_scope`, `list_flows`, `get_flow`, `export_bundle`,
 shell), so **model calls stay inside `offat_triage`** — the proxy never talks to a
 model API itself, and captured target content is always treated as untrusted data.
 
+## Live terminal UI
+
+```bash
+offat-proxy tui --scope api.example.test
+```
+
+Runs the proxy with a built-in terminal UI (ratatui): a live, colour-coded flow
+list (by status, scope and tags), a detail pane for the selected request/response,
+and a header showing listen address, counts, scope, MITM/redaction state and rule
+count. Press `/` to filter history with the same expression language the rules use
+(e.g. `status >= 500 && path contains "/api"`); `j`/`k` move, `Tab` switches focus,
+`?` shows help, `q` quits. It reads the flow store read-only and never alters
+traffic.
+
 ## Rules and filters (live block / allow / tag / match-replace)
 
 A small, safe expression interpreter ("bambdas") matches flows and acts on them
