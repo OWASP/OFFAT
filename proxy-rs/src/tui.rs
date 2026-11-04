@@ -81,12 +81,7 @@ impl Default for App {
 impl App {
     /// Indices into `flows` that pass the active filter (chronological order).
     pub fn visible(&self) -> Vec<usize> {
-        self.flows
-            .iter()
-            .enumerate()
-            .filter(|(_, f)| self.filter.as_ref().map(|e| e.matches(f)).unwrap_or(true))
-            .map(|(i, _)| i)
-            .collect()
+        crate::view::visible_indices(&self.flows, &self.filter)
     }
 
     /// Refresh from the latest flow snapshot, keeping the selection in range.
@@ -312,19 +307,7 @@ fn render_list(frame: &mut Frame, area: Rect, app: &App) {
         .iter()
         .map(|&i| {
             let f = &app.flows[i];
-            let status = f
-                .response
-                .as_ref()
-                .map(|r| r.status)
-                .filter(|s| *s > 0)
-                .map(|s| s.to_string())
-                .unwrap_or_else(|| {
-                    if f.error.is_some() {
-                        "ERR".into()
-                    } else {
-                        "-".into()
-                    }
-                });
+            let status = crate::view::status_label(f);
             let tag = if f.tags.is_empty() {
                 String::new()
             } else {
@@ -501,17 +484,12 @@ fn focus_border(focused: bool) -> Style {
 }
 
 fn status_style(f: &Flow) -> Style {
-    let code = f.response.as_ref().map(|r| r.status).unwrap_or(0);
-    let color = if f.tags.iter().any(|t| t == "blocked" || t == "dropped") {
-        Color::Magenta
-    } else if f.error.is_some() || code >= 500 {
-        Color::Red
-    } else if code >= 400 {
-        Color::Yellow
-    } else if (200..300).contains(&code) {
-        Color::Green
-    } else {
-        Color::Gray
+    let color = match crate::view::status_class(f) {
+        "blocked" => Color::Magenta,
+        "error" | "5xx" => Color::Red,
+        "4xx" => Color::Yellow,
+        "2xx" => Color::Green,
+        _ => Color::Gray,
     };
     Style::default().fg(color)
 }

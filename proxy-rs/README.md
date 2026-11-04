@@ -1,9 +1,10 @@
 # OFFAT Intercepting Proxy (`offat-proxy`)
 
 An intercepting HTTP(S) proxy for **authorized** API security testing, built to
-feed the [OFFAT Bundle](../bundle/README.md) pipeline, with a **live terminal UI**
-and an **inbuilt MCP server** so an AI agent can drive capture → map → test →
-triage → report end to end.
+feed the [OFFAT Bundle](../bundle/README.md) pipeline. It runs headless, with a
+**live terminal UI**, with an optional **cross-platform desktop GUI**, and with an
+**inbuilt MCP server** so an AI agent can drive capture → map → test → triage →
+report end to end.
 
 Think of it as the "map from live traffic" front-end: point a client (browser,
 mobile app, test suite) at the proxy, exercise the API, and every request/response
@@ -26,6 +27,16 @@ cargo build --release            # -> target/release/offat-proxy
 The `mitm` feature (TLS interception) is on by default at build time but **off at
 runtime** until you pass `--mitm` and install the generated CA. Build without it
 (`--no-default-features`) for a capture-only proxy with a smaller surface.
+
+The desktop GUI is an **opt-in** feature so the default build stays a lean,
+cross-platform CLI with no windowing/graphics dependencies:
+
+```bash
+cargo build --release --features gui     # adds the `offat-proxy gui` window
+```
+
+Everything else — the CLI, the terminal UI, MCP — works the same on Linux, macOS
+and Windows without that feature.
 
 ## Use
 
@@ -162,7 +173,20 @@ rules engine (e.g. `status >= 500 && path contains "/api"`).
 Keys: `j`/`k` move, `Tab` switch focus, `/` filter, `c` clear, `g`/`G` first/last,
 `f`/`b` scroll detail, `?` help, `q` quit.
 
-### 6. TLS interception (optional)
+### 6. Desktop GUI (cross-platform, opt-in)
+
+```bash
+cargo build --release --features gui
+offat-proxy gui --scope api.example.test
+```
+
+A native window (egui/eframe, runs on Linux, macOS and Windows) with the same live
+flow list, detail pane, scope/rule status and expression filter as the terminal
+UI, plus mouse selection. It reads the flow store read-only and never alters
+traffic. A build without the `gui` feature still accepts the `gui` command — it
+prints how to enable it and points you at `offat-proxy tui`.
+
+### 7. TLS interception (optional)
 
 ```bash
 offat-proxy ca            # prints the local CA (PEM); install it into a TEST profile only

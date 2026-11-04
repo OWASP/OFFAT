@@ -17,6 +17,8 @@ mod bundle;
 mod ca;
 mod config;
 mod flow;
+#[cfg(feature = "gui")]
+mod gui;
 mod mcp;
 mod pipeline;
 mod proxy;
@@ -26,6 +28,7 @@ mod scope;
 mod store;
 mod tui;
 mod util;
+mod view;
 mod ws;
 
 use anyhow::{Context, Result};
@@ -57,10 +60,11 @@ struct Cli {
 fn usage() -> ! {
     eprintln!(
         "offat-proxy - intercepting proxy + MCP for authorized OFFAT API testing\n\n\
-Usage:\n  offat-proxy <run|tui|mcp|ca|export> [flags]\n\n\
+Usage:\n  offat-proxy <run|tui|gui|mcp|ca|export> [flags]\n\n\
 Commands:\n  \
 run       start the proxy and capture traffic you route through it\n  \
 tui       start the proxy with a live terminal UI (flow viewer + filters)\n  \
+gui       start the proxy with a desktop GUI (requires a build with --features gui)\n  \
 mcp       start the proxy and an MCP server on stdio (for an AI agent)\n  \
 ca        print the local CA cert to install into a TEST trust store\n  \
 export    build an OFFAT Bundle from a persisted flows.jsonl\n\n\
@@ -205,6 +209,7 @@ async fn main() -> Result<()> {
     match cli.command.as_str() {
         "run" => cmd_serve(cli, false).await,
         "tui" => cmd_tui(cli).await,
+        "gui" => cmd_gui(cli).await,
         "mcp" => cmd_serve(cli, true).await,
         "ca" => cmd_ca(cli),
         "export" => cmd_export(cli),
@@ -285,6 +290,25 @@ async fn cmd_tui(cli: Cli) -> Result<()> {
     // The TUI event loop is blocking (crossterm); run it off the async runtime
     // while the proxy keeps serving on background tasks.
     tokio::task::spawn_blocking(move || tui::run(runtime)).await?
+}
+
+async fn cmd_gui(cli: Cli) -> Result<()> {
+    #[cfg(feature = "gui")]
+    {
+        let (runtime, _proxy_task) = start(&cli).await?;
+        // The windowing event loop must own the main thread; the proxy keeps
+        // serving on the runtime's worker threads while the GUI blocks here.
+        gui::run(runtime)
+    }
+    #[cfg(not(feature = "gui"))]
+    {
+        let _ = cli;
+        eprintln!(
+            "this build has no GUI. Rebuild with `cargo build --release --features gui`, \
+             or use `offat-proxy tui` for the cross-platform terminal UI."
+        );
+        Ok(())
+    }
 }
 
 /// Poll the listen address until the proxy accepts connections (or we give up).
