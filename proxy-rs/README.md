@@ -24,19 +24,20 @@ cargo build --release            # -> target/release/offat-proxy
 # or: make proxy   (from the repo root)
 ```
 
-The `mitm` feature (TLS interception) is on by default at build time but **off at
-runtime** until you pass `--mitm` and install the generated CA. Build without it
-(`--no-default-features`) for a capture-only proxy with a smaller surface.
+This produces **one binary with everything**: the CLI, the terminal UI (`tui`),
+the desktop GUI (`gui`) and the MCP server. It still runs fine on a headless
+server — the GUI's graphics libraries are only loaded if you actually open the
+window (`offat-proxy gui`).
 
-The desktop GUI is an **opt-in** feature so the default build stays a lean,
-cross-platform CLI with no windowing/graphics dependencies:
+Defaults enabled: `mitm` (TLS interception — compiled in, but **off at runtime**
+until you pass `--mitm` and install the CA) and `gui`. For a minimal binary with
+no TLS-interception or windowing/graphics dependencies:
 
 ```bash
-cargo build --release --features gui     # adds the `offat-proxy gui` window
+cargo build --release --no-default-features                 # CLI + tui + mcp only
+cargo build --release --no-default-features --features mitm # + TLS interception
+# or: make proxy-min
 ```
-
-Everything else — the CLI, the terminal UI, MCP — works the same on Linux, macOS
-and Windows without that feature.
 
 ## Use
 
@@ -173,18 +174,18 @@ rules engine (e.g. `status >= 500 && path contains "/api"`).
 Keys: `j`/`k` move, `Tab` switch focus, `/` filter, `c` clear, `g`/`G` first/last,
 `f`/`b` scroll detail, `?` help, `q` quit.
 
-### 6. Desktop GUI (cross-platform, opt-in)
+### 6. Desktop GUI (cross-platform)
 
 ```bash
-cargo build --release --features gui
 offat-proxy gui --scope api.example.test
 ```
 
 A native window (egui/eframe, runs on Linux, macOS and Windows) with the same live
 flow list, detail pane, scope/rule status and expression filter as the terminal
 UI, plus mouse selection. It reads the flow store read-only and never alters
-traffic. A build without the `gui` feature still accepts the `gui` command — it
-prints how to enable it and points you at `offat-proxy tui`.
+traffic. Included in the default build; a minimal build made with
+`--no-default-features` omits it, and then the `gui` command prints how to turn it
+back on and points you at `offat-proxy tui`.
 
 ### 7. TLS interception (optional)
 

@@ -11,7 +11,10 @@ name = "offat-proxy"
 path = "src/main.rs"
 
 [features]
-default = ["mitm"]
+# The default build is the single, do-everything binary: CLI + terminal UI + GUI
+# + MCP. For a minimal headless binary with no TLS-interception or GUI/graphics
+# dependencies, build with `--no-default-features` (optionally `--features mitm`).
+default = ["mitm", "gui"]
 # TLS interception. Off by default at runtime (needs --mitm and an installed CA);
 # the feature only controls whether the rustls/rcgen code is compiled in.
 mitm = ["dep:rcgen", "dep:tokio-rustls", "dep:rustls", "dep:rustls-pemfile", "dep:ring", "dep:webpki-roots"]
